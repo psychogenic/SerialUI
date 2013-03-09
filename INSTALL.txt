@@ -1,0 +1,45 @@
+SerialUI Installation
+
+ SerialUI: Serial User Interface.
+ Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ http://www.flyingcarsandstuff.com/projects/SerialUI
+
+
+If you're using the Arduino IDE and building for 
+Arduino, the installation procedure is the same
+as for any library and is described fully at:
+
+http://arduino.cc/en/Guide/Libraries
+
+The short version is: plop the SerialUI directory
+(folder) found within the zip file into your 
+Arduino libraries directory. 
+
+The libraries directory location is system-dependent,
+but will be something like:
+
+	~/arduino/libraries (Linux),
+	Documents/Arduino/libraries/ (mac),
+or
+	My Documents\Arduino\libraries\ (windows)
+
+You'll need to restart the Arduino IDE before you
+see SerialUI in the
+	File -> Examples
+and
+	Sketch -> Import Library
+listings.
+
+Do have a look at the 
+
+	File -> Examples -> SerialUI -> SuperBlinker
+
+example, the README.txt and/or the SerialUI.h header
+file.
+
+For other platforms/dev environments, just include 
+the contents of the SerialUI directory wherever 
+appropriate ;-)
+
+Pat Deegan, psychogenic.com
+

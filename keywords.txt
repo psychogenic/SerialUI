@@ -1,0 +1,50 @@
+#######################################
+# Syntax Coloring Map For TinyBrite
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+SerialUI	KEYWORD1
+SUI		KEYWORD1
+Menu	KEYWORD1
+
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+SUI_DeclareString	KEYWORD2
+topLevelMenu	KEYWORD2
+addCommand	KEYWORD2
+subMenu	KEYWORD2
+name	KEYWORD2
+setName	KEYWORD2
+checkForUserOnce	KEYWORD2
+checkForUser	KEYWORD2
+userPresent	KEYWORD2
+handleRequests	KEYWORD2
+currentMenu	KEYWORD2
+
+showName	KEYWORD2
+showEnterDataPrompt	KEYWORD2
+showPrompt	KEYWORD2
+returnOK	KEYWORD2
+returnError	KEYWORD2
+returnMessage	KEYWORD2
+
+maxIdleMs	KEYWORD2
+setMaxIdleMs	KEYWORD2
+
+setReadTerminator	KEYWORD2
+readTerminator	KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+
