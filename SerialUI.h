@@ -377,11 +377,7 @@ public:
 	 * (of NL, CR and CR+NL) and also respects the
 	 * readTerminator() that may have been set.
 	 *
-	 * NOTE: The downside is that this call will block until
-	 * the max_length has been reached or an EOL char is
-	 * encountered... you're trapped until you get enough
-	 * input.
-	 * However, it is designed to wait for the EOL so it won't
+	 * It is designed to wait for the EOL so it won't
 	 * terminate early (as can happen on slow serial lines, like
 	 * at 9600baud).
 	 */
@@ -558,6 +554,8 @@ private:
 	uint16_t user_presence_timeout_ms;
 	uint16_t user_presence_last_interaction_ms;
 	char read_terminator_char;
+	unsigned long millisec_counter_start;
+
 
 };
 

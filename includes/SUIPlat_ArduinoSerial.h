@@ -81,6 +81,13 @@ class SUIStream : public Stream
 public:
 	// nothing to do
 	virtual ~SUIStream() {}
+
+	unsigned long timeout() { return timeout_ms; }
+	void setTimeout(unsigned long timeout) { timeout_ms = timeout ; Serial.setTimeout(timeout); }
+
+
+private:
+	unsigned long timeout_ms;
 };
 
 } /* end namespace SUI */

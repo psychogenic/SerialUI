@@ -35,7 +35,7 @@
 
 
 #define SERIAL_UI_VERSION		1
-#define SERIAL_UI_SUBVERSION	1
+#define SERIAL_UI_SUBVERSION	2
 
 
 /* *********************** DEFAULT VALUES *********************** */

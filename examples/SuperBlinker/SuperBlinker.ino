@@ -445,10 +445,9 @@ void set_devid()
   // (newline, carriage return or both) we can use readBytesUntil().
   // 
   // readBytesToEOL: works in all line termination setups and won't 
-  //  mess up with a slow serial line (like 9600baud), but blocks.
+  //  mess up with a slow serial line (like 9600baud)
   //
-  // readBytesUntil: needs the correct line termination char, but respects
-  // the timeout specified with setTimeout().
+  // readBytesUntil: needs the correct line termination char
   byte numRead = mySUI.readBytesToEOL(myDevice.dev_id, dev_id_maxlen);
   
   // make sure the string is null-terminated

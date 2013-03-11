@@ -95,7 +95,10 @@ public:
 	// Non-working, required methods...  (stubs)
 	size_t readBytesUntil( char terminator, char *buffer, size_t length) { return 0;}
 	long parseInt(char skipChar=1) { return -1; }
-	void setTimeout(unsigned long timeout) { return ; }
+
+
+	unsigned long timeout() { return _timeout; }
+	void setTimeout(unsigned long timeout) { _timeout = timeout ; }
 
 	int timedRead() {
 		// straight from Arduino Stream, LGPLed

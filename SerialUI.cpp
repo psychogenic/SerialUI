@@ -73,7 +73,14 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 	// a modified version of readBytesUntil, from Arduino Stream,  LGPLed
 	// Copyright (c) 2010 David A. Mellis.
 	size_t count = 0;
-	while (count < max_length) {
+	millisec_counter_start = millis();
+
+	if (max_length < 1)
+	{
+		return 0;
+	}
+
+	do {
 		int c = read();
 		if (c < 0)
 			continue;
@@ -91,7 +98,9 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 
 		*buffer++ = (char) c;
 		count++;
-	}
+
+	} while (count < max_length && (millis() - millisec_counter_start) < timeout());
+
 	return count;
 
 }
