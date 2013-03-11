@@ -57,7 +57,12 @@ public:
     static inline int peek() { return Serial.peek(); }
     static inline void flush() { Serial.flush(); }
     static inline size_t write(uint8_t i) { return Serial.write(i); }
-    static inline  void begin(unsigned long speed) { Serial.begin(speed); }
+    static inline  void begin(unsigned long speed) {
+    	Serial.begin(speed);
+    	// we also set a sane timeout for reads, as this was causing issues
+    	// assuming code will call begin() prior to setTimeout() (if used)
+    	Serial.setTimeout(SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS);
+    }
 
 
 };
