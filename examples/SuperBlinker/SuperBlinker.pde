@@ -139,14 +139,20 @@
 ** ***************** Serial Settings ****************** 
 **
 ** Make sure you're serial port/serial monitor is setup 
-** with a baud rate and "newline" (\n) line endings,
-** or redefine the 
+** with the correct baud rate or redefine the 
 **  serial_baud_rate (integer)
-** and
+** 
+** You may also set
 **  serial_input_terminator (character)
-** according to your environment.
+** according to your environment, though this latest 
+** version handles all the regular EOL situations 
+** automatically, with readBytesToEOL().
+**
+** NOTE: Setting the correct serial_input_terminator is
+** only important if you are using a "strange" (i.e not 
+** NL, CR, or CR+NL) input terminator.
 */
-#define serial_baud_rate           115200
+#define serial_baud_rate           9600
 #define serial_input_terminator   '\n'
 
 /* We'll be using a blinker to show that we're alive,
@@ -432,10 +438,18 @@ void set_devid()
 
 
   // Now, we actually get the input
-  // we can use any Serial method on our SerialUI
-  // object.  Since we want a string of up to dev_id_maxlen 
-  // characters, we use readBytesUntil():
-  byte numRead = mySUI.readBytesUntil(serial_input_terminator, myDevice.dev_id, dev_id_maxlen);
+  // We want a string (of up to dev_id_maxlen 
+  // characters), so you can use readBytesToEOL().  
+  // to ensure we get the whole string
+  // no matter what the serial line terminator settings are 
+  // (newline, carriage return or both) we can use readBytesUntil().
+  // 
+  // readBytesToEOL: works in all line termination setups and won't 
+  //  mess up with a slow serial line (like 9600baud), but blocks.
+  //
+  // readBytesUntil: needs the correct line termination char, but respects
+  // the timeout specified with setTimeout().
+  byte numRead = mySUI.readBytesToEOL(myDevice.dev_id, dev_id_maxlen);
   
   // make sure the string is null-terminated
   myDevice.dev_id[numRead] = '\0';
