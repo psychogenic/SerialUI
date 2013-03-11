@@ -67,6 +67,34 @@ SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint)
 
 }
 
+
+size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
+{
+	// a modified version of readBytesUntil, from Arduino Stream,  LGPLed
+	// Copyright (c) 2010 David A. Mellis.
+	size_t count = 0;
+	while (count < max_length) {
+		int c = read();
+		if (c < 0)
+			continue;
+
+		if (c == '\r') {
+			// hit a CR
+			if (peek() == '\n') // get rid of newline if present
+				read();
+			break;
+		}
+
+		if (c == '\n' || c == read_terminator_char)
+			break;
+
+
+		*buffer++ = (char) c;
+		count++;
+	}
+	return count;
+
+}
 void SerialUI::enter() {
 	if (greeting_msg) {
 		current_menu->returnMessage(greeting_msg);

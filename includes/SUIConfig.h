@@ -35,7 +35,52 @@
 
 
 #define SERIAL_UI_VERSION		1
-#define SERIAL_UI_SUBVERSION	0
+#define SERIAL_UI_SUBVERSION	1
+
+
+/* *********************** DEFAULT VALUES *********************** */
+
+/*
+ * SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN
+ * There is a MAXIMUM LENGTH to the progmem strings (127 characters,
+ * by default, set here).
+ *
+ * You can change this max length if you need to, but as strings
+ * need to be in RAM while they are being transmitted, ensure you
+ * don't eat up all the RAM by making the max too large.
+ *
+ */
+#define SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN				127
+
+/*
+ * SUI_SERIALUI_USERCHECK_MAXDELAY_DEFAULT_MS
+ * User check timeout, in ms. Used by checkForUser*(), as the
+ * default.
+ */
+#define SUI_SERIALUI_USERCHECK_MAXDELAY_DEFAULT_MS			5000
+
+/*
+ * SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS
+ * Maximum user idle time, in ms.
+ */
+#define SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS		30000
+
+/*
+ * SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS
+ * The default readBytesUntil()/readBytesToEOL() time-out, for user input, in ms.
+ */
+#define SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS			25000
+
+
+
+/*
+ * SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT
+ * The default readBytesUntil()/readBytesToEOL() terminator char.
+ * Must be a single char 'c' -- not a string "something bad".
+ */
+#define SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT			'\n'
+
+
 
 /* ****************** COMPILE CONFIGURATION DEFINES ****************** */
 

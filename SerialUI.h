@@ -158,7 +158,7 @@
 	#include <SerialUI.h>
 
 	// Serial Settings
-	#define serial_baud_rate           115200
+	#define serial_baud_rate           9600
 	#define serial_input_terminator   '\n'
 
 
@@ -263,43 +263,6 @@
 #include "includes/SUIPlatform.h"
 
 
-
-/* *********************** DEFAULT VALUES *********************** */
-
-/*
- * SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN
- * There is a MAXIMUM LENGTH to the progmem strings (127 characters,
- * by default, set here).
- *
- * You can change this max length if you need to, but as strings
- * need to be in RAM while they are being transmitted, ensure you
- * don't eat up all the RAM by making the max too large.
- *
- */
-#define SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN				127
-
-/*
- * SUI_SERIALUI_USERCHECK_MAXDELAY_DEFAULT_MS
- * User check timeout, in ms.
- */
-#define SUI_SERIALUI_USERCHECK_MAXDELAY_DEFAULT_MS			5000
-
-/*
- * SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS
- * Maximum user idle time, in ms.
- */
-#define SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS		20000
-
-/*
- * SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT
- * Terminator character to check for when receiving commands and
- * entering input.
- *
- * This needs to be a single character ('c') and not a "string".
- *
- * Defaults to '\n', as defined here.
- */
-#define SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT			'\n'
 
 
 /*
@@ -407,6 +370,22 @@ public:
 	 */
 	char readTerminator() { return read_terminator_char; }
 
+	/*
+	 * readBytesToEOL(BUFFER_PTR, MAX_LENGTH)
+	 * A convenience function to read bytes until the
+	 * "end-of-line".  This handles the various "regular" cases
+	 * (of NL, CR and CR+NL) and also respects the
+	 * readTerminator() that may have been set.
+	 *
+	 * NOTE: The downside is that this call will block until
+	 * the max_length has been reached or an EOL char is
+	 * encountered... you're trapped until you get enough
+	 * input.
+	 * However, it is designed to wait for the EOL so it won't
+	 * terminate early (as can happen on slow serial lines, like
+	 * at 9600baud).
+	 */
+	size_t readBytesToEOL(char* buffer, size_t max_length);
 
 
 
