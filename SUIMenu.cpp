@@ -604,7 +604,7 @@ char * Menu::mallocReadKey() {
 
 	memset(akey, 0, max_key_len + 2);
 
-	uint8_t numRead = sui_driver->readBytesUntil(sui_driver->readTerminator(), akey, max_key_len + 1);
+	uint8_t numRead = sui_driver->readBytesToEOL(akey, max_key_len + 1);
 	if (!numRead) {
 		free(akey);
 		return NULL;
