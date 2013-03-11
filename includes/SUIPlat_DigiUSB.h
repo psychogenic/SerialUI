@@ -97,7 +97,27 @@ public:
 	long parseInt(char skipChar=1) { return -1; }
 	void setTimeout(unsigned long timeout) { return ; }
 
+	int timedRead() {
+		// straight from Arduino Stream, LGPLed
+		// Copyright (c) 2010 David A. Mellis.
+		int c;
+		_startMillis = millis();
+		do {
+			c = StreamImplementation::read();
+			if (c >= 0)
+				return c;
+		} while (millis() - _startMillis < _timeout);
+		return -1; // -1 indicates timeout
+	}
+
+
+
+
 	virtual size_t write(uint8_t i) { return DigiUSB.write(i);  }
+
+private:
+	unsigned long _startMillis;
+	unsigned long _timeout
 
 	/* DEADBEEF (tried to save space by avoiding deriving from Print
 	 * and implementing these manually... even avoiding the String versions,
