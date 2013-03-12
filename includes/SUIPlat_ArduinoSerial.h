@@ -83,7 +83,7 @@ public:
 	virtual ~SUIStream() {}
 
 	unsigned long timeout() { return timeout_ms; }
-	void setTimeout(unsigned long timeout) { timeout_ms = timeout ; Serial.setTimeout(timeout); }
+	void setTimeout(unsigned long timeout) { timeout_ms = timeout ; Stream::setTimeout(timeout); }
 
 
 private:
