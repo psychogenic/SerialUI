@@ -233,6 +233,7 @@ namespace SUI
 
 			Menu * parent_menu;
 
+
 			// Real-life user interaction seems to indicate that
 			// being maximally efficient -- i.e. figuring out the maximum
 			// key length for *this* menu and only reading (up to) that

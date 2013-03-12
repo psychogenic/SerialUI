@@ -684,13 +684,24 @@ char * Menu::mallocReadKey() {
 	}
 
 	// make sure we don't include any return/newlines in our key
+	uint8_t num_nonEOL = 0;
 	for (uint8_t i = 0; i < numRead; i++) {
 		if (akey[i] == '\r' || akey[i] == '\n') {
 			akey[i] = 0;
+		} else {
+			num_nonEOL ++;
 		}
 	}
 
-	return akey;
+	if (num_nonEOL)
+	{
+		// we had some valid, non-EOL, chars.
+		return akey;
+	}
+
+	// no non-EOL
+	MENUFREE(akey);
+	return NULL;
 }
 
 void Menu::returnError(const char * errmsg) {

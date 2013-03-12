@@ -102,6 +102,18 @@
  */
 #define SUI_SERIALUI_SHOW_PROMPTS
 
+/*
+ * SUI_SERIALUI_SHOW_PROMPT_SUBMENU_NAME
+ * When defined, this will show the sub-menu name before
+ * the prompt, when available. e.g.:
+ *
+ *   enable>
+ *
+ * rather than just
+ *   >
+ * when in the 'enable' sub-menu.
+ */
+#define SUI_SERIALUI_SHOW_PROMPT_SUBMENU_NAME
 
 
 /*

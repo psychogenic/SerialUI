@@ -218,6 +218,12 @@ void SerialUI::handleRequests() {
 
 
 void SerialUI::showPrompt() {
+#ifdef SUI_SERIALUI_SHOW_PROMPT_SUBMENU_NAME
+	if (current_menu->parent())
+	{
+		current_menu->showName();
+	}
+#endif
 	print_P(prompt_str);
 }
 
