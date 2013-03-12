@@ -35,7 +35,7 @@
 
 
 #define SERIAL_UI_VERSION		1
-#define SERIAL_UI_SUBVERSION	2
+#define SERIAL_UI_SUBVERSION	3
 
 
 /* *********************** DEFAULT VALUES *********************** */
@@ -117,7 +117,6 @@
 #define SUI_STRINGS_LANGUAGE_EN
 
 
-
 /* ******* Optional error checking and functionality ********
  * With everything on, meaning:
  *
@@ -126,8 +125,9 @@
  *	- SUI_SERIALUI_ECHO_WARNINGS (default: enabled)
  *	- SUI_MENU_INCLUDE_DESTRUCTION_CLEANUP (default: disabled)
  *	- SUI_MENU_ENABLE_SUBMENUS  (default: enabled)
+ *	- SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE (default: enabled)
  *
- * You'll use up about 1.5k extra in compiled code space as compared
+ * You'll use up about 2.1k extra in compiled code space as compared
  * to having all the above disabled.
  *
  * You can disable each of these, by commenting out the #defines,
@@ -181,7 +181,7 @@
  *
  * Disabled by default.
  */
-//#define SUI_INCLUDE_DEBUG
+// #define SUI_INCLUDE_DEBUG
 
 
 
@@ -198,6 +198,43 @@
  */
 // #define SUI_MENU_INCLUDE_DESTRUCTION_CLEANUP
 
+
+/*
+ * SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+ *
+ * By default, memory is allocated dynamically (on an as-needed basis).  This saves
+ * on RAM, using the least amount possible, and allows for flexibility.
+ *
+ * But, it means including functionality for malloc/free/etc.  This takes up space
+ * on the flash.  If you want to save that program space, at the cost of RAM and
+ * some hard-coded limits (for number of items, submenus and key length), undefine
+ * SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE.
+ *
+ * With SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE unset, you must ensure you respect
+ * the limits imposed by the various
+ *  SUI_STATIC_MEMORY_*
+ * defines below.
+ *
+ * Note: you only save about 0.5k in program size by disabling
+ * dynamic memory management.  Not much, sometimes enough :)
+ */
+#define SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+
+/*
+ * SUI_STATIC_MEMORY_*
+ * Hard-coded limits, used when dynamic memory allocations are (disabled* (see above).
+ *
+ * SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM: total sub-menus for the ENTIRE system
+ * 	(not per-menu!).
+ *
+ * SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM: maximum number of menu items per Menu.
+ *
+ * SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM: longest key (command/sub-menu name)
+ * possible.
+ */
+#define SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM  5
+#define SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM	           6
+#define SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM          15
 
 
 

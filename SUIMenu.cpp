@@ -23,17 +23,36 @@
  *
  */
 
-// stdlib included for malloc
-#include <stdlib.h>
 
+
+#include "includes/SUIConfig.h"
 
 #include "SerialUI.h"
-
 #include "includes/SUIMenu.h"
 #include "includes/SUIStrings.h"
 #include "includes/SUIPlatform.h"
 
 
+
+#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+// dynamic memory management enabled
+// stdlib included for malloc
+#include <stdlib.h>
+#define MENUITEMLIST	item_list
+#define MENUFREE(pointer)	free(pointer)
+#define MENUMEMSET(pointer, value, len)		memset(pointer, value, len);
+#else
+// using static memory, so we'll set
+// MENUITEMLIST to the static list.
+#define MENUITEMLIST	item_staticlist
+#define MENUFREE(pointer)	;
+#define MENUMEMSET(pointer, value, len)		\
+		for (uint8_t _pi=0; _pi<len; _pi++) \
+		{ \
+			pointer[_pi] = value; \
+		}
+
+#endif
 
 
 #define SUI_MENU_PROGMEM_STRING_ABS_MAXLEN		SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN
@@ -45,6 +64,7 @@
 // debug is OFF, send debug messages into the void
 #define SUI_MENU_DEBUG_OUTPUT(msg) ;
 #endif
+
 
 
 namespace SUI {
@@ -80,8 +100,18 @@ SUI_DeclareString(error_nomenuitems, SUI_ERRORMSG_NO_MENUITEMS_SET);
 
 #endif
 
+#ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+#ifdef SUI_MENU_ENABLE_SUBMENUS
+// dynamic memory is DISABLED and we want sub-menus
+Menu Menu::submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM] = {};
+uint8_t Menu::submenu_static_idx = 0;
+#endif
+#endif
 
+MenuItemStruct::MenuItemStruct()
+{
 
+}
 MenuItemStruct::MenuItemStruct(PGM_P key_pstr, PGM_P help_pstr,
 		Menu * submenu_ptr, MenuCommand_Callback cmd_ptr)
 {
@@ -133,7 +163,7 @@ void Menu::clear()
 				item_list[i].subMenu = NULL;
 			}
 		}
-		free(item_list);
+		MENUFREE(item_list);
 		item_list = NULL;
 	}
 
@@ -150,9 +180,15 @@ void Menu::init(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * pa
 	menu_name = name;
 	parent_menu = parent;
 	num_menu_items = 0;
+#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 	max_menu_items = 0;
+#else
+	max_menu_items = SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM;
+#endif
+
 	expand_list_amount = SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT;
 	item_list = NULL;
+
 
 	// set our max_key_len to hold *at least*
 	// the available built-in commands
@@ -234,7 +270,20 @@ bool Menu::addCommand(PGM_P key_str, MenuCommand_Callback callback,
 }
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 Menu * Menu::subMenu(PGM_P key_str, PGM_P help_str) {
+
+#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+	// dynamic memory is enabled, so we malloc a pointer to fresh
+	// memory, and keep a reference to this block within the
+	// MenuItem:
 	Menu * sub_men = (Menu*) malloc(sizeof(Menu));
+#else
+	// we'll just use the next available sub-menu slot
+	if (submenu_static_idx >= SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM)
+		return NULL;
+
+	Menu * sub_men = &(submenu_staticlist[submenu_static_idx]);
+	submenu_static_idx++;
+#endif
 
 	if (!sub_men) {
 
@@ -249,7 +298,8 @@ Menu * Menu::subMenu(PGM_P key_str, PGM_P help_str) {
 	MenuItem itm(key_str, help_str, sub_men, NULL);
 
 	if (!addMenuItem(&itm)) {
-		free(sub_men);
+		MENUFREE(sub_men);
+
 		return NULL;
 	}
 
@@ -274,7 +324,10 @@ bool Menu::addMenuItem(MenuItem * itm) {
 		}
 	}
 
-	item_list[num_menu_items] = *(itm);
+	// no dynamic mem... we'll be using a static array
+	MENUITEMLIST[num_menu_items] = *(itm);
+
+
 	if (itm->key_size > max_key_len) {
 		max_key_len = itm->key_size;
 	}
@@ -290,6 +343,8 @@ bool Menu::addMenuItem(MenuItem * itm) {
 
 bool Menu::expandItemList(uint8_t by_amount) {
 
+#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+	// using dynamic memory allocations
 	int menuitm_size = sizeof(MenuItem);
 	MenuItem * new_list = NULL;
 
@@ -305,7 +360,7 @@ bool Menu::expandItemList(uint8_t by_amount) {
 				menuitm_size * (num_menu_items + by_amount));
 
 
-#ifdef SUI_INCLUDE_DEBUG
+ #ifdef SUI_INCLUDE_DEBUG
 
 		if (parent_menu)
 		{
@@ -317,14 +372,14 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 			sui_driver->showFreeRAM();
 		}
-#endif
+ #endif
 
 
 	} else {
 		// no list yet, malloc one please:
 		new_list = (MenuItem*) malloc(menuitm_size * by_amount);
 
-#ifdef SUI_INCLUDE_DEBUG
+ #ifdef SUI_INCLUDE_DEBUG
 		if (parent_menu)
 		{
 			// can't start doing output before SerialUI is initialized
@@ -335,7 +390,7 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 			sui_driver->showFreeRAM();
 		}
-#endif
+ #endif
 	}
 
 
@@ -347,7 +402,7 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 
 		// zero the newly allocated memory
-		memset(&(new_list[num_menu_items]), 0, menuitm_size * by_amount);
+		MENUMEMSET(&(new_list[num_menu_items]), 0, menuitm_size * by_amount);
 
 		// keep that pointer
 		item_list = new_list;
@@ -359,9 +414,13 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 	// abject failure...
 
-#ifdef SUI_SERIALUI_ECHO_WARNINGS
+ #ifdef SUI_SERIALUI_ECHO_WARNINGS
 	returnMessage(error_cantalloc_menuitem);
+ #endif
+
 #endif
+	// either there was an error, or we aren't using
+	// dynamic memory allocations... in both cases:
 	return false;
 
 }
@@ -403,7 +462,7 @@ Menu * Menu::handleRequest() {
 	MenuItem * itm = itemForKey(key_entered);
 	if (itm) {
 		// get rid of our malloc'ed key
-		free(key_entered);
+		MENUFREE(key_entered);
 		if (itm->command) {
 
 			SUI_MENU_DEBUG_OUTPUT("Running command");
@@ -433,7 +492,7 @@ Menu * Menu::handleRequest() {
 
 		SUI_MENU_DEBUG_OUTPUT("Going up a level");
 
-		free(key_entered);
+		MENUFREE(key_entered);
 		return upLevel();
 	}
 #endif
@@ -443,7 +502,7 @@ Menu * Menu::handleRequest() {
 		SUI_MENU_DEBUG_OUTPUT("Help request");
 
 		// get rid of our malloc'ed key
-		free(key_entered);
+		MENUFREE(key_entered);
 		showHelp();
 		return this;
 	}
@@ -453,13 +512,13 @@ Menu * Menu::handleRequest() {
 
 		SUI_MENU_DEBUG_OUTPUT("Exit request");
 
-		free(key_entered);
+		MENUFREE(key_entered);
 		return NULL;
 	}
 
 	// get rid of our malloc'ed key
 	unknownCommand(key_entered);
-	free(key_entered);
+	MENUFREE(key_entered);
 	return this;
 
 }
@@ -483,7 +542,7 @@ void Menu::showHelp() {
 	sui_driver->println_P(menu_name);
 	sui_driver->println(" ");
 	for (uint8_t i = 0; i < num_menu_items; i++) {
-		MenuItem * itm = &(item_list[i]);
+		MenuItem * itm = &(MENUITEMLIST[i]);
 
 		printHelpKey(itm);
 		if (itm->help) {
@@ -553,7 +612,7 @@ MenuItem * Menu::itemForKey(char * key_found) {
 	size_t cmp_size = 0;
 
 	for (uint8_t i = 0; i < num_menu_items; i++) {
-		MenuItem * itm = &(item_list[i]);
+		MenuItem * itm = &(MENUITEMLIST[i]);
 
 		// compare up to smallest of len(key entered) and len(key of this item)
 		cmp_size = (key_size < itm->key_size) ? key_size : itm->key_size;
@@ -584,8 +643,12 @@ char * Menu::mallocReadKey() {
 	}
 #endif
 
+#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 	// we'll need--at most--a container that is the size of our largest key for the menu
 	char * akey = (char*) malloc(sizeof(char) * (max_key_len + 2));
+#else
+	char * akey = key_staticstr;
+#endif
 
 #ifdef SUI_INCLUDE_DEBUG
 	SUI_MENU_DEBUG_OUTPUT("Post read key allocation")
@@ -602,11 +665,11 @@ char * Menu::mallocReadKey() {
 		return NULL;
 	}
 
-	memset(akey, 0, max_key_len + 2);
+	MENUMEMSET(akey, 0, max_key_len + 2);
 
 	uint8_t numRead = sui_driver->readBytesToEOL(akey, max_key_len + 1);
 	if (!numRead) {
-		free(akey);
+		MENUFREE(akey);
 		return NULL;
 	}
 

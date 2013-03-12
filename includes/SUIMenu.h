@@ -88,6 +88,7 @@ namespace SUI
 		Menu * subMenu;
 		MenuCommand_Callback command;
 
+		MenuItemStruct();
 		MenuItemStruct(PGM_P key_pstr, PGM_P help_pstr,
 				Menu * submenu_ptr, MenuCommand_Callback cmd_ptr);
 
@@ -227,10 +228,29 @@ namespace SUI
 			uint8_t num_menu_items;
 			uint8_t max_menu_items;
 			uint8_t expand_list_amount;
+
 			MenuItem * item_list;
 
 			Menu * parent_menu;
 			size_t max_key_len;
+
+#ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+			// we're not using dynamic memory, so we need a few
+			// arrays for menu items and such, with hard-coded lengths
+			MenuItem item_staticlist[SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM];
+			char key_staticstr[SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM + 1];
+ #ifdef SUI_MENU_ENABLE_SUBMENUS
+			// we also want sub-menus... this is a bit tough without
+			// malloc and company, especially since we have an "incomplete type" at
+			// this stage.  So we use a static block of memory, to hold all the sub-menus
+			// the SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM define (in SUIConfig.h)
+			// sets the total number of possible sub-menus in the ENTIRE UI (not per-menu)!
+			static Menu submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM];
+			static uint8_t submenu_static_idx;
+ #endif
+#endif
+
+
 
 
 			/* *****************  CONSTRUCTION  ************** */
