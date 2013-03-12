@@ -61,8 +61,11 @@
 #define SUI_SERIALUI_SUBMENU_HELP			"Enter sub-menu"
 
 #define SUI_SERIALUI_HELP_TITLE_PREFIX		"*** Help for: "
-#define SUI_SERIALUI_KEYHELP_PREFIX			"\t"
-#define SUI_SERIALUI_KEYHELP_SEP			" "
+
+
+#define SUI_SERIALUI_KEYHELP_COMMAND_PREFIX			"\t* "
+#define SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX			"\t+ "
+#define SUI_SERIALUI_KEYHELP_SEP					" "
 
 // prompts
 #define SUI_SERIALUI_PROMPT					"> "
@@ -70,7 +73,8 @@
 
 
 // errors
-#define SUI_SERIALUI_UNKNOWN_SELECTION		" Unknown selection: "
+#define SUI_SERIALUI_UNKNOWN_SELECTION		" Unknown selection '"
+#define SUI_SERIALUI_UNKNOWN_INMENU			"' in menu: "
 #define SUI_ERRORMSG_SUIGREETING_TOOLONG	"SUI greeting overflow"
 #define SUI_ERRORMSG_MENUNAME_TOOLONG		"Menu name overflow"
 #define SUI_ERRORMSG_MENUITEM_KEY_TOOLONG 	"Menu item key overflow"

@@ -232,7 +232,21 @@ namespace SUI
 			MenuItem * item_list;
 
 			Menu * parent_menu;
-			size_t max_key_len;
+
+			// Real-life user interaction seems to indicate that
+			// being maximally efficient -- i.e. figuring out the maximum
+			// key length for *this* menu and only reading (up to) that
+			// number of characters, doesn't account for the human tendency
+			// to get... lost.
+			// So instead of tracking the max key length per menu, we'll track
+			// it *globally* (as a class static var) and allow you to enter:
+			// 	really_long_mistake
+			// even if the current Menu only accepts very short, e.g.
+			//	on
+			//	off
+			// keys.  That way, "really_long_mistake" won't generate
+			// 6 error messages, breaking it up into "off"-sized chunks.
+			static size_t max_key_len;
 
 #ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 			// we're not using dynamic memory, so we need a few

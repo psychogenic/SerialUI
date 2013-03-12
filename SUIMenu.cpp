@@ -79,14 +79,19 @@ SUI_DeclareString(submenu_help, SUI_SERIALUI_SUBMENU_HELP);
 #endif
 
 SUI_DeclareString(help_title_prefix, SUI_SERIALUI_HELP_TITLE_PREFIX);
+SUI_DeclareString(help_key_commandprefix, SUI_SERIALUI_KEYHELP_COMMAND_PREFIX);
+SUI_DeclareString(help_key_submenuprefix, SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX);
+
 SUI_DeclareString(unknown_sel, SUI_SERIALUI_UNKNOWN_SELECTION);
+SUI_DeclareString(unknown_inmenu, SUI_SERIALUI_UNKNOWN_INMENU);
 SUI_DeclareString(help_hint, SUI_SERIALUI_HELP_HINT);
 
 SUI_DeclareString(ok_msg, SUI_SERIALUI_MESSAGE_OK);
 SUI_DeclareString(error_generic, SUI_SERIALUI_MESSAGE_ERROR_GENERIC);
 SUI_DeclareString(error_prefix, SUI_SERIALUI_MESSAGE_ERROR_PREFIX);
 SUI_DeclareString(help_sep, SUI_SERIALUI_KEYHELP_SEP);
-SUI_DeclareString(help_key_prefix, SUI_SERIALUI_KEYHELP_PREFIX);
+
+
 
 SUI_DeclareString(exit_key, SUI_SERIALUI_EXIT_KEY);
 SUI_DeclareString(exit_help, SUI_SERIALUI_EXIT_HELP);
@@ -107,6 +112,8 @@ Menu Menu::submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM] = {}
 uint8_t Menu::submenu_static_idx = 0;
 #endif
 #endif
+
+size_t Menu::max_key_len = 0;
 
 MenuItemStruct::MenuItemStruct()
 {
@@ -134,13 +141,13 @@ Menu::Menu(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * parent)
 		sui_driver(suidrv),
 		menu_name(name), num_menu_items(0), max_menu_items(0), expand_list_amount(
 				SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
-				parent_menu(parent), max_key_len(0) {
+				parent_menu(parent) {
 	init(suidrv, name, num_items_hint, parent);
 }
 Menu::Menu() :
 	menu_name(NULL), num_menu_items(0), max_menu_items(0), expand_list_amount(
 					SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
-					parent_menu(NULL), max_key_len(0)
+					parent_menu(NULL)
 {
 
 }
@@ -192,24 +199,16 @@ void Menu::init(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * pa
 
 	// set our max_key_len to hold *at least*
 	// the available built-in commands
-#ifdef SUI_MENU_ENABLE_SUBMENUS
-	if (parent_menu)
+	if (max_key_len < 1)
 	{
-		// have an "up" but no "quit"
-		max_key_len = strlen_P(up_key);
-		if (strlen_P(help_key) > max_key_len)
+		// max_key_len is now a class-level var, so
+		// we only need to do this once.  It will
+		// eventually hold the max key length for the
+		// largest key in the whole menu system.
+		max_key_len = strlen_P(help_key);
+		if (strlen_P(exit_key) > max_key_len)
 		{
-			max_key_len = strlen_P(help_key);
-		}
-	} else {
-#else
-	{
-#endif
-		// we have a "quit" command, no "up"...
-		max_key_len = strlen_P(exit_key);
-		if (strlen_P(help_key) > max_key_len)
-		{
-			max_key_len = strlen_P(help_key);
+			max_key_len = strlen_P(exit_key);
 		}
 	}
 
@@ -524,11 +523,20 @@ Menu * Menu::handleRequest() {
 }
 
 void Menu::printHelpKey(MenuItem * menuitem) {
-	sui_driver->print_P(help_key_prefix);
+
+	if (menuitem->subMenu)
+	{
+		sui_driver->print_P(help_key_submenuprefix);
+	} else {
+		sui_driver->print_P(help_key_commandprefix);
+	}
+
 	sui_driver->print_P(menuitem->key);
+
 	if (menuitem->help || menuitem->subMenu) {
+		// we need to put in some spacing, for the help message
 		for (uint8_t i = 0;
-				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - menuitem->key_size;
+				i < (SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - menuitem->key_size);
 				i++) {
 
 			sui_driver->print_P(help_sep);
@@ -562,7 +570,7 @@ void Menu::showHelp() {
 
 	if (parent_menu) {
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-		sui_driver->print_P(help_key_prefix);
+		sui_driver->print_P(help_key_commandprefix);
 		sui_driver->print_P(up_key);
 		for (uint8_t i = 0;
 				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(up_key);
@@ -573,7 +581,7 @@ void Menu::showHelp() {
 		sui_driver->println_P(up_help);
 #endif
 	} else {
-		sui_driver->print_P(help_key_prefix);
+		sui_driver->print_P(help_key_commandprefix);
 		sui_driver->print_P(exit_key);
 		for (uint8_t i = 0;
 				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(exit_key);
@@ -584,7 +592,7 @@ void Menu::showHelp() {
 		sui_driver->println_P(exit_help);
 	}
 
-	sui_driver->print_P(help_key_prefix);
+	sui_driver->print_P(help_key_commandprefix);
 	sui_driver->print_P(help_key);
 	for (uint8_t i = 0;
 			i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(help_key);
@@ -631,7 +639,9 @@ void Menu::unknownCommand(char * key) {
 
 	sui_driver->print_P(error_generic);
 	sui_driver->print_P(unknown_sel);
-	sui_driver->println(key);
+	sui_driver->print(key);
+	sui_driver->print_P(unknown_inmenu);
+	sui_driver->println_P(menu_name);
 	sui_driver->println_P(help_hint);
 }
 

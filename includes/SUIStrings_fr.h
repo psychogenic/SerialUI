@@ -61,8 +61,11 @@
 #define SUI_SERIALUI_SUBMENU_HELP			"Aller au sous-repertoire"
 
 #define SUI_SERIALUI_HELP_TITLE_PREFIX		"*** Aide pour: "
-#define SUI_SERIALUI_KEYHELP_PREFIX			"\t"
-#define SUI_SERIALUI_KEYHELP_SEP			" "
+
+
+#define SUI_SERIALUI_KEYHELP_COMMAND_PREFIX			"\t* "
+#define SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX			"\t+ "
+#define SUI_SERIALUI_KEYHELP_SEP					" "
 
 // prompts
 #define SUI_SERIALUI_PROMPT					"> "
@@ -70,7 +73,8 @@
 
 
 // errors
-#define SUI_SERIALUI_UNKNOWN_SELECTION		" Selection inconnue: "
+#define SUI_SERIALUI_UNKNOWN_SELECTION		" Selection inconnue '"
+#define SUI_SERIALUI_UNKNOWN_INMENU			"' dans le menu: "
 
 // TODO: Translate these?
 #define SUI_ERRORMSG_SUIGREETING_TOOLONG	"SUI greeting overflow"
