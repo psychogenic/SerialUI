@@ -43,7 +43,7 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <inttypes.h>
-
+#include "Arduino.h"
 #include <DigiUSB.h>
 
 
@@ -93,13 +93,14 @@ public:
 	// virtual ~SUIStream() {}
 
 	// Non-working, required methods...  (stubs)
-	size_t readBytesUntil( char terminator, char *buffer, size_t length) { return 0;}
+	// size_t readBytesUntil( char terminator, char *buffer, size_t length) { return 0;}
 	long parseInt(char skipChar=1) { return -1; }
 
 
 	unsigned long timeout() { return _timeout; }
 	void setTimeout(unsigned long timeout) { _timeout = timeout ; }
 
+	/*
 	int timedRead() {
 		// straight from Arduino Stream, LGPLed
 		// Copyright (c) 2010 David A. Mellis.
@@ -112,6 +113,7 @@ public:
 		} while (millis() - _startMillis < _timeout);
 		return -1; // -1 indicates timeout
 	}
+	*/
 
 
 
@@ -120,7 +122,7 @@ public:
 
 private:
 	unsigned long _startMillis;
-	unsigned long _timeout
+	unsigned long _timeout;
 
 	/* DEADBEEF (tried to save space by avoiding deriving from Print
 	 * and implementing these manually... even avoiding the String versions,
