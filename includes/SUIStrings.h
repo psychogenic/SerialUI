@@ -41,6 +41,35 @@
 #include "SUIStrings_fr.h"
 #endif
 
+/* Strings common to all languages,  these are relied on by SerialGUI, and best left un-changed */
+#define SUI_STRINGS_MODE_USER				"m:usr"
+#define SUI_STRINGS_MODE_PROGRAM			"m:pgm"
+
+
+// prompts
+#define SUI_SERIALUI_PROMPT						"> "
+#define SUI_SERIALUI_HELP_KEY					"?"
+#define SUI_SERIALUI_UP_KEY						".."
+#define SUI_SERIALUI_EXIT_KEY					"quit"
+
+
+#define SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG	"~S~:"
+#define SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG	"~N~:"
+#define SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG	"C:"
+#define SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX_PROG	"S:"
+#define SUI_SERIALUI_KEYHELP_SEP_PROG				"~H~"
+#define SUI_SERIALUI_PROG_ENDOFTRANSMISSION			"~EOT~"
+
+#define SUI_SERIALUI_PROG_STR_SEP_CHAR				'#'
+
+
+// A few return response strings,
+// not translated, in case the other side is a program
+// expecting OK/ERROR
+#define SUI_SERIALUI_MESSAGE_OK					"OK"
+#define SUI_SERIALUI_MESSAGE_ERROR_GENERIC		"ERROR"
+#define SUI_SERIALUI_MESSAGE_ERROR_PREFIX		"ERROR:"
+
 
 #endif
 

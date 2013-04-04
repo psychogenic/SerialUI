@@ -276,7 +276,10 @@
 	const char name[] PROGMEM = value;
 
 
-
+typedef enum SUIModeEnum {
+	SUIMode_User=0,
+	SUIMode_Program
+} SUIMode;
 
 
 
@@ -511,6 +514,12 @@ public:
 	 * are expecting user input.
 	 */
 	void showEnterDataPrompt();
+	/*
+	 * showEnterNumericDataPrompt()
+	 * Output the "need more *numerical* data" prompt, for when
+	 * you need the user to enter a numeric value.
+	 */
+	void showEnterNumericDataPrompt();
 
 	/*
 	 * print_P(PGM_STRING)
@@ -538,6 +547,10 @@ public:
     virtual size_t write(uint8_t i) { return StreamImplementation::write(i); }
     /* Stream interface extensions for progmem strings */
 
+#ifdef SUI_ENABLE_MODES
+    void setMode(SUIMode setTo) { output_mode = setTo;}
+    inline SUIMode mode() { return output_mode;}
+#endif
 
 #ifdef SUI_INCLUDE_DEBUG
     void debug(const char * debugmsg);
@@ -547,6 +560,7 @@ public:
 
 
 private:
+    SUIMode output_mode;
 	PGM_P greeting_msg;
 	Menu top_lev_menu;
 	Menu * current_menu;

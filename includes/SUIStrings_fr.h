@@ -49,11 +49,9 @@
 
 
 // built-in commands
-#define SUI_SERIALUI_HELP_KEY				"?"
+
 #define SUI_SERIALUI_HELP_HELP				"Enumerer selections disponible (aide)"
-#define SUI_SERIALUI_UP_KEY					".."
 #define SUI_SERIALUI_UP_HELP				"Monter de niveau"
-#define SUI_SERIALUI_EXIT_KEY				"quitter"
 #define SUI_SERIALUI_EXIT_HELP				"Quitter SerialUI"
 
 // help-related
@@ -63,13 +61,12 @@
 #define SUI_SERIALUI_HELP_TITLE_PREFIX		"*** Aide pour: "
 
 
+// prompts
+#define SUI_SERIALUI_MOREDATA_STRING_PROMPT			"... "
+#define SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT		"..# "
 #define SUI_SERIALUI_KEYHELP_COMMAND_PREFIX			"\t* "
 #define SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX			"\t+ "
 #define SUI_SERIALUI_KEYHELP_SEP					" "
-
-// prompts
-#define SUI_SERIALUI_PROMPT					"> "
-#define SUI_SERIALUI_MOREDATA_PROMPT		"... "
 
 
 // errors

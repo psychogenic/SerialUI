@@ -113,6 +113,30 @@ uint8_t Menu::submenu_static_idx = 0;
 #endif
 #endif
 
+
+#ifdef SUI_ENABLE_MODES
+// Mode related strings
+SUI_DeclareString(key_mode_user, SUI_STRINGS_MODE_USER);
+SUI_DeclareString(key_mode_program, SUI_STRINGS_MODE_PROGRAM);
+
+// program-mode strings...
+SUI_DeclareString(help_key_prog_commandprefix, SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG);
+SUI_DeclareString(help_key_prog_submenuprefix, SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX_PROG);
+
+SUI_DeclareString(help_sep_prog, SUI_SERIALUI_KEYHELP_SEP_PROG);
+
+
+// prog-mode enter info output
+SUI_DeclareString(prog_mode_info_helpkey, SUI_SERIALUI_HELP_KEY);
+SUI_DeclareString(prog_mode_info_moreprompt_string, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
+SUI_DeclareString(prog_mode_info_moreprompt_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
+SUI_DeclareString(prog_mode_info_EOT, SUI_SERIALUI_PROG_ENDOFTRANSMISSION);
+
+SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
+
+#endif
+
+
 size_t Menu::max_key_len = 0;
 
 MenuItemStruct::MenuItemStruct()
@@ -205,11 +229,15 @@ void Menu::init(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * pa
 		// we only need to do this once.  It will
 		// eventually hold the max key length for the
 		// largest key in the whole menu system.
+#ifdef SUI_ENABLE_MODES
+		max_key_len = strlen_P(key_mode_program);
+#else
 		max_key_len = strlen_P(help_key);
 		if (strlen_P(exit_key) > max_key_len)
 		{
 			max_key_len = strlen_P(exit_key);
 		}
+#endif
 	}
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
@@ -515,6 +543,88 @@ Menu * Menu::handleRequest() {
 		return NULL;
 	}
 
+
+#ifdef SUI_ENABLE_MODES
+	// check for program mode command...
+	if (strncmp_P(key_entered, key_mode_program, strlen_P(key_mode_program)) == 0)
+	{
+			SUI_MENU_DEBUG_OUTPUT("Entering program mode");
+			sui_driver->setMode(SUIMode_Program);
+			MENUFREE(key_entered);
+
+			char sepChar[2];
+			sepChar[0] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+			sepChar[1] = '\0';
+
+			char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN];
+			outBuf[0] = '\0';
+			strcat(outBuf, sepChar);
+
+
+			strcat_P(outBuf, prog_mode_info_VERSION);
+			strcat(outBuf, sepChar);
+
+
+
+#ifdef SUI_MENU_ENABLE_SUBMENUS
+				strcat_P(outBuf, up_key);
+#else
+				strcat(outBuf, "X");
+#endif
+			strcat(outBuf, sepChar);
+
+			strcat_P(outBuf, exit_key);
+			strcat(outBuf, sepChar);
+
+			strcat_P(outBuf, error_generic);
+			strcat(outBuf, sepChar);
+
+
+			strcat_P(outBuf, prog_mode_info_helpkey);
+			strcat(outBuf, sepChar);
+
+			strcat_P(outBuf, help_key_prog_commandprefix);
+			strcat(outBuf, sepChar);
+
+			strcat_P(outBuf, help_key_prog_submenuprefix);
+			strcat(outBuf, sepChar);
+
+
+			strcat_P(outBuf, help_sep_prog);
+			strcat(outBuf, sepChar);
+
+
+
+			strcat_P(outBuf, prog_mode_info_moreprompt_string);
+			strcat(outBuf, sepChar);
+
+
+
+			strcat_P(outBuf, prog_mode_info_moreprompt_num);
+			strcat(outBuf, sepChar);
+
+			strcat(outBuf, SUI_SERIALUI_PROMPT);
+			strcat(outBuf, sepChar);
+
+			strcat_P(outBuf, prog_mode_info_EOT);
+
+			sui_driver->print(strlen(outBuf) + 1, DEC);
+			sui_driver->println(outBuf);
+
+			return this;
+	}
+
+	if (strncmp_P(key_entered, key_mode_user, strlen_P(key_mode_user)) == 0) {
+		SUI_MENU_DEBUG_OUTPUT("Entering 'user' mode");
+		sui_driver->setMode(SUIMode_User);
+		MENUFREE(key_entered);
+		return this;
+	}
+#endif
+
+
+
+
 	// get rid of our malloc'ed key
 	unknownCommand(key_entered);
 	MENUFREE(key_entered);
@@ -524,31 +634,78 @@ Menu * Menu::handleRequest() {
 
 void Menu::printHelpKey(MenuItem * menuitem) {
 
+
+	PGM_P prefix_cmd;
+	PGM_P prefix_submenu;
+	PGM_P help_sep_to_use;
+
+	bool include_pretty_print = true;
+#ifdef SUI_ENABLE_MODES
+	if (sui_driver->mode() == SUIMode_User)
+	{
+		help_sep_to_use = help_sep;
+		prefix_cmd = help_key_commandprefix;
+		prefix_submenu = help_key_submenuprefix;
+	} else {
+
+		help_sep_to_use = help_sep_prog;
+		prefix_cmd = help_key_prog_commandprefix;
+		prefix_submenu = help_key_prog_submenuprefix;
+		include_pretty_print = false;
+	}
+#else
+
+	help_sep_to_use = help_sep;
+	prefix_cmd = help_key_commandprefix;
+	prefix_submenu = help_key_submenuprefix;
+#endif
+
+
+
 	if (menuitem->subMenu)
 	{
-		sui_driver->print_P(help_key_submenuprefix);
+		sui_driver->print_P(prefix_submenu);
 	} else {
-		sui_driver->print_P(help_key_commandprefix);
+		sui_driver->print_P(prefix_cmd);
 	}
 
 	sui_driver->print_P(menuitem->key);
 
 	if (menuitem->help || menuitem->subMenu) {
-		// we need to put in some spacing, for the help message
-		for (uint8_t i = 0;
+		if (include_pretty_print)
+		{
+			// we need to put in some spacing, for the help message
+			for (uint8_t i = 0;
 				i < (SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - menuitem->key_size);
 				i++) {
 
-			sui_driver->print_P(help_sep);
+				sui_driver->print_P(help_sep_to_use);
+			}
+		} else {
+
+			sui_driver->print_P(help_sep_to_use);
 		}
 	}
 }
 
 void Menu::showHelp() {
 
-	sui_driver->print_P(help_title_prefix);
-	sui_driver->println_P(menu_name);
-	sui_driver->println(" ");
+	bool in_program_mode = false;
+
+#ifdef SUI_ENABLE_MODES
+	if (sui_driver->mode() == SUIMode_Program)
+	{
+		in_program_mode = true;
+	}
+#endif
+
+	if (! in_program_mode)
+	{
+		sui_driver->print_P(help_title_prefix);
+		sui_driver->println_P(menu_name);
+		sui_driver->println(" ");
+	}
+
 	for (uint8_t i = 0; i < num_menu_items; i++) {
 		MenuItem * itm = &(MENUITEMLIST[i]);
 
@@ -566,6 +723,9 @@ void Menu::showHelp() {
 		}
 	}
 
+	if (in_program_mode)
+		return;
+
 	sui_driver->println(" ");
 
 	if (parent_menu) {
@@ -573,11 +733,12 @@ void Menu::showHelp() {
 		sui_driver->print_P(help_key_commandprefix);
 		sui_driver->print_P(up_key);
 		for (uint8_t i = 0;
-				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(up_key);
-				i++) {
+					i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(up_key);
+					i++) {
 
 			sui_driver->print_P(help_sep);
 		}
+
 		sui_driver->println_P(up_help);
 #endif
 	} else {

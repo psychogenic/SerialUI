@@ -62,13 +62,6 @@
 #define SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT		3
 
 
-// A few return response strings,
-// not translated, in case the other side is a program
-// expecting OK/ERROR
-#define SUI_SERIALUI_MESSAGE_OK					"OK"
-#define SUI_SERIALUI_MESSAGE_ERROR_GENERIC		"ERROR"
-#define SUI_SERIALUI_MESSAGE_ERROR_PREFIX		"ERROR:"
-
 
 // SUI is the namespace in which we keep all our goodies.
 namespace SUI

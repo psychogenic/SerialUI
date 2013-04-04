@@ -35,8 +35,7 @@
 
 
 #define SERIAL_UI_VERSION		1
-#define SERIAL_UI_SUBVERSION	3
-
+#define SERIAL_UI_SUBVERSION		4
 
 /* *********************** DEFAULT VALUES *********************** */
 
@@ -184,6 +183,25 @@
 
 
 /*
+ * SUI_ENABLE_MODES
+ *
+ * Leave SUI_ENABLE_MODES defined to allow your device to be accessible by 
+ * third party programs in "program mode".  
+ * 
+ * Druid4Arduino is such a program (it is a dynamically reconfigured UI that 
+ * provides a GUI for any SerialUI-based device).
+ *
+ * The program-mode modifies the output to make it easier for parsers to 
+ * interact with the system, without changing anything from the Serial 
+ * channel user's experience.
+ *
+ * Undefining SUI_ENABLE_MODES will make using Druid (and probably any other
+ * program designed to interact with SerialUI) impossible, but will save a bit
+ * of flash space.
+ */ 
+#define SUI_ENABLE_MODES
+
+/*
  * SUI_INCLUDE_DEBUG
  * Define SUI_INCLUDE_DEBUG to include extra debug output.
  *
@@ -244,10 +262,9 @@
  * SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM: longest key (command/sub-menu name)
  * possible.
  */
-#define SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM  5
-#define SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM	           6
-#define SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM          15
-
+#define SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM	5
+#define SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM		6
+#define SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM		15
 
 
 /*
@@ -284,7 +301,7 @@
 #undef SUI_SERIALUI_ECHO_WARNINGS
 #undef SUI_MENU_INCLUDE_DESTRUCTION_CLEANUP
 #undef SUI_MENU_ENABLE_SUBMENUS
-
+#undef SUI_ENABLE_MODES
 
 #undef SUI_PLATFORM_ARDUINOSERIAL
 #define SUI_PLATFORM_DIGISPARKUSB
@@ -296,5 +313,12 @@
 #warning "SUI_INCLUDE_DEBUG is enabled"
 #endif
 
+
+#define SUIXSTR(s) SUISTR(s)
+#define SUISTR(s) 	#s
+
+
+#define SERIAL_UI_VERSION_TOSTRING(V, SV)		V "." SV
+#define SERIAL_UI_VERSION_STRING	SERIAL_UI_VERSION_TOSTRING(SUIXSTR(SERIAL_UI_VERSION), SUIXSTR(SERIAL_UI_SUBVERSION))
 
 #endif /* SUIConfig_h */

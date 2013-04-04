@@ -42,10 +42,19 @@ namespace SUI {
 // a few strings we'll need here (only)
 SUI_DeclareString(top_menu_name, SUI_SERIALUI_TOP_MENU_NAME);
 SUI_DeclareString(prompt_str, SUI_SERIALUI_PROMPT);
-SUI_DeclareString(moredata_prompt_str, SUI_SERIALUI_MOREDATA_PROMPT);
+
+SUI_DeclareString(moredata_prompt_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT);
+SUI_DeclareString(moredata_prompt_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT);
+
+#ifdef SUI_ENABLE_MODES
+SUI_DeclareString(end_of_tx_str, SUI_SERIALUI_PROG_ENDOFTRANSMISSION);
+SUI_DeclareString(moredata_prompt_prog_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
+SUI_DeclareString(moredata_prompt_prog_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
+#endif
 
 
 SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint) :
+		output_mode(SUIMode_User),
 		greeting_msg(greeting_message),top_lev_menu(), current_menu(NULL),
 				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
@@ -224,11 +233,49 @@ void SerialUI::showPrompt() {
 		current_menu->showName();
 	}
 #endif
+
+#ifdef SUI_ENABLE_MODES
+	if (mode() == SUIMode_Program)
+	{
+
+		println_P(prompt_str);
+		println_P(end_of_tx_str);
+		return;
+	}
+#endif
+
 	print_P(prompt_str);
 }
 
 void SerialUI::showEnterDataPrompt() {
+
+#ifdef SUI_ENABLE_MODES
+	if (mode() == SUIMode_Program)
+	{
+
+		println_P(moredata_prompt_prog_str);
+		println_P(end_of_tx_str);
+		return;
+	}
+#endif
+
 	print_P(moredata_prompt_str);
+}
+
+void SerialUI::showEnterNumericDataPrompt() {
+
+#ifdef SUI_ENABLE_MODES
+	if (mode() == SUIMode_Program)
+	{
+
+		println_P(moredata_prompt_prog_num);
+		println_P(end_of_tx_str);
+		return;
+	}
+#endif
+
+	print_P(moredata_prompt_num);
+
 }
 
 
