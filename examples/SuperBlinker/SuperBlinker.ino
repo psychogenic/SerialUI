@@ -464,10 +464,10 @@ void set_devid()
 // set the device value for "red"
 void set_red()
 {
-  // Here, we want some additional input from 
+  // Here, we want some additional (numerical) input from 
   // the user, so we show the "enter data prompt"
-  // using... showEnterDataPrompt
-  mySUI.showEnterDataPrompt();
+  // using... showEnterNumericDataPrompt
+  mySUI.showEnterNumericDataPrompt();
   
   // Now, we actually get the input
   // we can use any Serial method on our SerialUI
@@ -497,10 +497,10 @@ void set_red()
 // same as set_red, but set the device value for "green"
 void set_green()
 {
-  // Here, we want some additional input from 
+  // Here, we want some additional (numerical) input from 
   // the user, so we show the "enter data prompt"
-  // using... showEnterDataPrompt
-  mySUI.showEnterDataPrompt();
+  // using... showEnterNumericDataPrompt
+  mySUI.showEnterNumericDataPrompt();
   
   // Now, we actually get the input
   // we can use any Serial method on our SerialUI
@@ -528,10 +528,10 @@ void set_green()
 // same as set_red, but set the device value for "blue"
 void set_blue()
 {
-  // Here, we want some additional input from 
+  // Here, we want some additional (numerical) input from 
   // the user, so we show the "enter data prompt"
-  // using... showEnterDataPrompt
-  mySUI.showEnterDataPrompt();
+  // using... showEnterNumericDataPrompt
+  mySUI.showEnterNumericDataPrompt();
   
   // Now, we actually get the input
   // we can use any Serial method on our SerialUI
