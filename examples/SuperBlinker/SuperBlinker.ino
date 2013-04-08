@@ -262,6 +262,10 @@ deviceInfo;
 // Just declare a global deviceInfo structure for 
 // use below, initialized to all-zeros:
 deviceInfo myDevice = {0};
+// NOTE: In real life, I think the device resets as we
+// close the serial connection, meaning that if you want
+// your config to be permanent, you probably have to save
+// it to eeprom or somesuch.
 
 
 
