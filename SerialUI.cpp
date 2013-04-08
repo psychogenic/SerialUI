@@ -136,6 +136,11 @@ void SerialUI::exit()
 	// go back to top level menu, in case we re-enter SUI later...
 	current_menu = &top_lev_menu;
 
+#ifdef SUI_ENABLE_MODES
+		// ensure we always restart in "user" mode...
+		setMode(SUIMode_User);
+#endif
+
 }
 
 Menu * SerialUI::topLevelMenu(PGM_P setNameTo) {
