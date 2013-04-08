@@ -97,13 +97,13 @@ menu item.
 		* ..                  Move up to parent menu
 		* ?                   List available menu items
 	SuperBlinker Settings> red
-	... 10
+	..# 10
 	OK
 	SuperBlinker Settings> green
-	... 20
+	..# 20
 	OK
 	SuperBlinker Settings> blue
-	... 42
+	..# 42
 	OK
 	SuperBlinker Settings> deviceid
 	... Yay Device!
