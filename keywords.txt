@@ -38,6 +38,9 @@ setMaxIdleMs	KEYWORD2
 setReadTerminator	KEYWORD2
 readTerminator	KEYWORD2
 
+echoCommands	KEYWORD2
+setEchoCommands	KEYWORD2
+setCurrentMenu	KEYWORD2
 #######################################
 # Instances (KEYWORD2)
 #######################################

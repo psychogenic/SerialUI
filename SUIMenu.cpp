@@ -483,7 +483,11 @@ Menu * Menu::handleRequest() {
 
 #ifdef SUI_SERIALUI_ECHO_ON
 	// echo
-	sui_driver->println(key_entered);
+	if (sui_driver->echoCommands())
+	{
+		sui_driver->println(key_entered);
+	}
+
 #endif
 
 	MenuItem * itm = itemForKey(key_entered);
@@ -869,6 +873,15 @@ void Menu::returnError(const char * errmsg) {
 	if (errmsg) {
 		sui_driver->print_P(error_prefix);
 		sui_driver->println(errmsg);
+	} else {
+		sui_driver->println_P(error_generic);
+	}
+}
+
+void Menu::returnError_P(PGM_P errmsg) {
+	if (errmsg) {
+		sui_driver->print_P(error_prefix);
+		sui_driver->println_P(errmsg);
 	} else {
 		sui_driver->println_P(error_generic);
 	}

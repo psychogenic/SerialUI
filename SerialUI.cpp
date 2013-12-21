@@ -59,7 +59,13 @@ SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint)
 				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
 				user_presence_last_interaction_ms(0),
-				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT)
+				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT),
+#ifdef SUI_SERIALUI_ECHO_ON
+				echo_commands(true),
+#else
+				echo_commands(false),
+#endif
+				menu_manual_override(false)
 				{
 
 
@@ -193,6 +199,14 @@ bool SerialUI::userPresent() {
 	return user_present;
 
 }
+void SerialUI::setCurrentMenu(Menu * setTo)
+{
+	if (setTo)
+	{
+		current_menu = setTo;
+		menu_manual_override = true;
+	}
+}
 
 void SerialUI::handleRequests() {
 	Menu * ret_menu;
@@ -207,7 +221,16 @@ void SerialUI::handleRequests() {
 			ret_menu = current_menu->handleRequest();
 
 			if (ret_menu) {
-				current_menu = ret_menu;
+				if (menu_manual_override)
+				{
+					// leave the current menu as is, as it was overridden in
+					// the last command
+					menu_manual_override = false;
+				} else {
+					// make certain we reflect whatever changes are required
+					// (e.g. the item was a submenu)
+					current_menu = ret_menu;
+				}
 			} else {
 				exit();
 				return;
@@ -282,7 +305,11 @@ void SerialUI::showEnterNumericDataPrompt() {
 	print_P(moredata_prompt_num);
 
 }
+void SerialUI::setEchoCommands(bool setTo)
+{
+	echo_commands = setTo;
 
+}
 
 #ifdef SUI_PLATFORM_DIGISPARKUSB
 // special case here, as the digispark's tiny version

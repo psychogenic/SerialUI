@@ -456,6 +456,12 @@ public:
 	}
 
 	/*
+	 * Manually force the current SUI::Menu -- useful for things like
+	 * "top" commands, to jump back to top level menu.
+	 */
+	void setCurrentMenu(Menu * setTo);
+
+	/*
 	 * enter()
 	 * Called after checkForUser*(), when we are ready to process
 	 * requests, to show the greeting/prompt.
@@ -500,6 +506,10 @@ public:
 	 */
 	void returnError(const char * errmsg = NULL) {
 		current_menu->returnError(errmsg);
+	}
+
+	void returnError_P(PGM_P errmsg) {
+		current_menu->returnError_P(errmsg);
 	}
 
 	/*
@@ -552,6 +562,9 @@ public:
     inline SUIMode mode() { return output_mode;}
 #endif
 
+    inline bool echoCommands() { return echo_commands;}
+    void setEchoCommands(bool setTo);
+
 #ifdef SUI_INCLUDE_DEBUG
     void debug(const char * debugmsg);
     void debug_P(PGM_P debugmesg_p);
@@ -570,6 +583,8 @@ private:
 	uint16_t user_presence_last_interaction_ms;
 	char read_terminator_char;
 	unsigned long millisec_counter_start;
+	bool echo_commands;
+	bool menu_manual_override;
 
 
 };

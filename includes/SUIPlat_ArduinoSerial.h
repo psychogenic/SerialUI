@@ -32,11 +32,12 @@
 
 
 // system/avr includes
+#include <inttypes.h>
+#ifndef PLATFORM_DESKTOP
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include <inttypes.h>
-
 #include "Arduino.h"
+#endif
 
 
 // SUI is the namespace in which we keep all our goodies.
@@ -82,11 +83,16 @@ public:
 	// nothing to do
 	virtual ~SUIStream() {}
 
-	unsigned long timeout() { return timeout_ms; }
-	void setTimeout(unsigned long timeout) { timeout_ms = timeout ; Stream::setTimeout(timeout); }
+	unsigned long timeout();
+	void setTimeout(unsigned long timeout);
 
+	unsigned long parseULong(char skipChar);
+	unsigned long parseULong();
 
 private:
+	int timedPeek();
+
+	int peekNextDigit();
 	unsigned long timeout_ms;
 };
 

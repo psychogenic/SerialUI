@@ -191,8 +191,13 @@ namespace SUI
 			 * otherwise.
 			 */
 			void returnError(const char * errmsg=NULL);
-
-
+			/*
+			 * returnError(ERRORMESSAGE)
+			 * Return (prints out) an error message.
+			 * This version is useful if you have ERRORMESSAGE in progmem
+			 * (e.g. declared with SUI_DeclareString)
+			 */
+			void returnError_P(PGM_P errmsg) ;
 
 			/*
 			 * showName()
