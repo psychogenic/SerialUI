@@ -90,6 +90,9 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 	size_t count = 0;
 	millisec_counter_start = millis();
 
+	bool noTimeout = timeout() < 1;
+
+
 	if (max_length < 1)
 	{
 		return 0;
@@ -114,7 +117,7 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 		*buffer++ = (char) c;
 		count++;
 
-	} while (count < max_length && (millis() - millisec_counter_start) < timeout());
+	} while (count < max_length &&  (noTimeout || (millis() - millisec_counter_start) < timeout()));
 
 	return count;
 
