@@ -477,7 +477,7 @@ Menu * Menu::handleRequest() {
 
 	if (!key_entered) {
 		// nothing entered
-		sui_driver->println(" ");
+		sui_driver->println(' ');
 		return this;
 	}
 
@@ -707,7 +707,7 @@ void Menu::showHelp() {
 	{
 		sui_driver->print_P(help_title_prefix);
 		sui_driver->println_P(menu_name);
-		sui_driver->println(" ");
+		sui_driver->println(' ');
 	}
 
 	for (uint8_t i = 0; i < num_menu_items; i++) {
@@ -723,14 +723,14 @@ void Menu::showHelp() {
 		}
 #endif
 		else {
-			sui_driver->println(" ");
+			sui_driver->println(' ');
 		}
 	}
 
 	if (in_program_mode)
 		return;
 
-	sui_driver->println(" ");
+	sui_driver->println(' ');
 
 	if (parent_menu) {
 #ifdef SUI_MENU_ENABLE_SUBMENUS
