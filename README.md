@@ -1,5 +1,5 @@
 SerialUI: Serial User Interface.
-Copyright (C) 2013 Pat Deegan.  All rights reserved.
+Copyright (C) 2013,2014 Pat Deegan.  All rights reserved.
 
 http://www.flyingcarsandstuff.com/projects/SerialUI
 
