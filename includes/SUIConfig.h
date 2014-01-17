@@ -34,8 +34,8 @@
 #define SUIConfig_h
 
 
-#define SERIAL_UI_VERSION		1
-#define SERIAL_UI_SUBVERSION		6
+#define SERIAL_UI_VERSION			1
+#define SERIAL_UI_SUBVERSION		7
 
 /* *********************** DEFAULT VALUES *********************** */
 
@@ -267,6 +267,14 @@
 #define SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM		15
 
 
+
+/*
+ * SUI_ENABLE_STREAMPROMPTING
+ *
+ * Enable the "file upload" stream prompt.
+ *
+ */
+#define SUI_ENABLE_STREAMPROMPTING
 /*
  * SUI_PLATFORM_X
  *
@@ -320,5 +328,9 @@
 
 #define SERIAL_UI_VERSION_TOSTRING(V, SV)		V "." SV
 #define SERIAL_UI_VERSION_STRING	SERIAL_UI_VERSION_TOSTRING(SUIXSTR(SERIAL_UI_VERSION), SUIXSTR(SERIAL_UI_SUBVERSION))
+
+#define SERIALUI_VERSION_AT_LEAST(v, sub)  ( ((SERIAL_UI_SUBVERSION >= sub) and (SERIAL_UI_VERSION >= v)) or \
+											(SERIAL_UI_VERSION > v))
+
 
 #endif /* SUIConfig_h */

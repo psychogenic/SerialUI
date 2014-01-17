@@ -45,11 +45,13 @@ SUI_DeclareString(prompt_str, SUI_SERIALUI_PROMPT);
 
 SUI_DeclareString(moredata_prompt_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT);
 SUI_DeclareString(moredata_prompt_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT);
+SUI_DeclareString(moredata_prompt_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT);
 
 #ifdef SUI_ENABLE_MODES
 SUI_DeclareString(end_of_tx_str, SUI_SERIALUI_PROG_ENDOFTRANSMISSION);
 SUI_DeclareString(moredata_prompt_prog_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
 SUI_DeclareString(moredata_prompt_prog_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
+SUI_DeclareString(moredata_prompt_prog_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG);
 #endif
 
 
@@ -293,7 +295,9 @@ void SerialUI::showEnterDataPrompt() {
 	print_P(moredata_prompt_str);
 }
 
+
 void SerialUI::showEnterNumericDataPrompt() {
+
 
 #ifdef SUI_ENABLE_MODES
 	if (mode() == SUIMode_Program)
@@ -307,7 +311,60 @@ void SerialUI::showEnterNumericDataPrompt() {
 
 	print_P(moredata_prompt_num);
 
+
 }
+
+
+#ifdef SUI_ENABLE_STREAMPROMPTING
+size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t bufferSize, streamInputCallback callback)
+{
+
+#ifdef SUI_ENABLE_MODES
+	if (mode() == SUIMode_Program)
+	{
+
+		println_P(moredata_prompt_prog_stream);
+		println_P(end_of_tx_str);
+	} else {
+#endif
+
+	print_P(moredata_prompt_stream);
+#ifdef SUI_ENABLE_MODES
+	}
+#endif
+
+	stream_expected_size = this->parseInt();
+
+	if (stream_expected_size < 1)
+		return 0;
+
+	stream_cur_count = 0;
+	// dump the terminator
+	while (this->available() && (this->peek() == '\r' || this->peek() == '\n'))
+	{
+		this->read();
+	}
+
+	if (stream_expected_size < 1)
+		return 0;
+
+	while (stream_cur_count < stream_expected_size)
+	{
+		uint8_t lenToRead = (stream_expected_size - stream_cur_count) > bufferSize ? bufferSize : (stream_expected_size - stream_cur_count);
+		size_t lenRead = this->readBytes(bufferToUse, lenToRead);
+		if (! lenRead)
+		{
+			// looks like we timed out...
+			return stream_cur_count;
+		}
+		callback(bufferToUse, lenRead, stream_cur_count, stream_expected_size);
+		stream_cur_count += lenRead;
+	}
+	return stream_cur_count;
+}
+
+#endif
+
 void SerialUI::setEchoCommands(bool setTo)
 {
 	echo_commands = setTo;

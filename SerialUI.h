@@ -317,6 +317,10 @@ namespace SUI {
  * 	More info on usage above and in the examples/SuperBlinker sample code.
  *
  */
+
+
+typedef void(*streamInputCallback)(char* buf, uint8_t len, size_t previous_position, size_t total_len);
+
 class SerialUI : public SUI::SUIStream
 
 {
@@ -530,6 +534,9 @@ public:
 	 * you need the user to enter a numeric value.
 	 */
 	void showEnterNumericDataPrompt();
+#ifdef SUI_ENABLE_STREAMPROMPTING
+	size_t showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t bufferSize, streamInputCallback callback);
+#endif
 
 	/*
 	 * print_P(PGM_STRING)
@@ -585,6 +592,10 @@ private:
 	unsigned long millisec_counter_start;
 	bool echo_commands;
 	bool menu_manual_override;
+#ifdef SUI_ENABLE_STREAMPROMPTING
+	size_t stream_expected_size;
+	size_t stream_cur_count;
+#endif
 
 
 };
