@@ -28,6 +28,8 @@ currentMenu	KEYWORD2
 showName	KEYWORD2
 showEnterDataPrompt	KEYWORD2
 showPrompt	KEYWORD2
+showEnterNumericDataPrompt	KEYWORD2
+showEnterStreamPromptAndReceive	KEYWORD2
 returnOK	KEYWORD2
 returnError	KEYWORD2
 returnMessage	KEYWORD2
