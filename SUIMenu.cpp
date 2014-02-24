@@ -737,7 +737,7 @@ void Menu::showHelp() {
 	}
 
 	if (in_program_mode)
-		return;
+		return; // don't need navigation help in program mode
 
 	sui_driver->println(' ');
 

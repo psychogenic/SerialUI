@@ -16,11 +16,29 @@
 // SUI is the namespace in which we keep all our goodies.
 namespace SUI {
 
+// default to using standard HardwareSerial as implementation stream to use.
+StreamInstanceType * StreamImplementation::stream_to_use = &Serial;
+bool StreamImplementation::stream_to_use_override = false;
+
+void StreamImplementation::setStream(StreamInstanceType * strm) {
+	stream_to_use = strm;
+	stream_to_use_override = true;
+}
+
+void StreamImplementation::begin(unsigned long speed) {
+
+   	if (! stream_to_use_override)
+   	{
+   		Serial.begin(speed);
+   	}
+   	// we also set a sane timeout for reads, as this was causing issues
+   	// assuming code will call begin() prior to setTimeout() (if used)
+   	stream_to_use->setTimeout(SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS);
+}
 
 unsigned long SUIStream::timeout() { return timeout_ms; }
 void SUIStream::setTimeout(unsigned long timeout) { timeout_ms = timeout ; Stream::setTimeout(timeout); }
 #define NO_SKIP_CHAR  1
-
 
 unsigned long SUIStream::parseULong()
 {

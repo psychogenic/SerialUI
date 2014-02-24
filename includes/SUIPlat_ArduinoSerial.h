@@ -43,6 +43,9 @@
 // SUI is the namespace in which we keep all our goodies.
 namespace SUI {
 
+typedef Stream StreamInstanceType;
+
+
 /*
  * StreamImplementation -- wraps all the uses of Serial in a single place,
  * to ease implementation of different types of comm.
@@ -52,18 +55,17 @@ namespace SUI {
 class StreamImplementation {
 
 public:
+	static void setStream(StreamInstanceType * strm);
+	static inline int available() {  return stream_to_use->available();}
+    static inline int read() { return stream_to_use->read(); }
+    static inline int peek() { return stream_to_use->peek(); }
+    static inline void flush() { stream_to_use->flush(); }
+    static inline size_t write(uint8_t i) { return stream_to_use->write(i); }
+    static void begin(unsigned long speed) ;
 
-	static inline int available() { return Serial.available();}
-    static inline int read() { return Serial.read(); }
-    static inline int peek() { return Serial.peek(); }
-    static inline void flush() { Serial.flush(); }
-    static inline size_t write(uint8_t i) { return Serial.write(i); }
-    static inline  void begin(unsigned long speed) {
-    	Serial.begin(speed);
-    	// we also set a sane timeout for reads, as this was causing issues
-    	// assuming code will call begin() prior to setTimeout() (if used)
-    	Serial.setTimeout(SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS);
-    }
+private:
+    static StreamInstanceType * stream_to_use;
+    static bool stream_to_use_override;
 
 
 };

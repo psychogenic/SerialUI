@@ -320,6 +320,9 @@ namespace SUI {
 
 
 typedef void(*streamInputCallback)(char* buf, uint8_t len, size_t previous_position, size_t total_len);
+typedef bool(*streamInputStartCallback)(size_t total_len);
+typedef void(*streamInputEndCallback)(size_t total_len);
+
 
 class SerialUI : public SUI::SUIStream
 
@@ -329,19 +332,22 @@ public:
 
 	/* 
 	 * SerialUI constructor.
-	 * The constructor is called with two (optional) parameters:
+	 * The constructor is called with three (optional) parameters:
 	 *
-	 *  SerialUI([PGM_P greeting_message, [uint8_t num_top_level_menuitems_hint]]);
+	 *  SerialUI([PGM_P greeting_message, [uint8_t num_top_level_menuitems_hint, [Stream* underlying_Stream]]]);
 	 *
 	 *   - a message string to show on entry, declared with SUI_DeclareString
 	 *   - a hint concerning the number of top level menu items (to avoid the cost
 	 *     of memory re-allocation, when you have many--say, more than 3)
+	 *   - a pointer to the underlying stream to use (defaults to system (HardwareSerial)Serial).
+	 *     This third argument need only be used in special circumstances, e.g. when you want to 
+	 *     use SerialUI over SoftwareSerial on some other pins
 	 *
-	 * As mentioned both are optional but a greeting is nice as it lets you know
+	 * As mentioned all are optional but a greeting is nice as it lets you know
 	 * everything is working.
 	 */
 	SerialUI(PGM_P greeting_message = NULL,
-			uint8_t num_top_level_menuitems_hint = 0);
+			uint8_t num_top_level_menuitems_hint = 0, StreamInstanceType * underlying_stream=NULL);
 
 #ifdef SUI_SUISTREAM_NEEDSVIRTUAL
 	// d'tor  (virtual class)
@@ -535,7 +541,8 @@ public:
 	 */
 	void showEnterNumericDataPrompt();
 #ifdef SUI_ENABLE_STREAMPROMPTING
-	size_t showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t bufferSize, streamInputCallback callback);
+	size_t showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t bufferSize, streamInputCallback callback,
+			streamInputStartCallback startupCallback=NULL, streamInputEndCallback completedCallback=NULL);
 #endif
 
 	/*
@@ -572,10 +579,10 @@ public:
     inline bool echoCommands() { return echo_commands;}
     void setEchoCommands(bool setTo);
 
+    void showFreeRAM();
 #ifdef SUI_INCLUDE_DEBUG
     void debug(const char * debugmsg);
     void debug_P(PGM_P debugmesg_p);
-    void showFreeRAM();
 #endif
 
 

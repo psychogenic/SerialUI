@@ -37,6 +37,7 @@
 #endif
 
 
+
 namespace SUI {
 
 // a few strings we'll need here (only)
@@ -55,7 +56,7 @@ SUI_DeclareString(moredata_prompt_prog_stream, SUI_SERIALUI_MOREDATA_STREAM_PROM
 #endif
 
 
-SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint) :
+SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint, StreamInstanceType * underlying_stream) :
 		output_mode(SUIMode_User),
 		greeting_msg(greeting_message),top_lev_menu(), current_menu(NULL),
 				user_check_performed(false), user_present(false),
@@ -68,8 +69,12 @@ SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint)
 				echo_commands(false),
 #endif
 				menu_manual_override(false)
-				{
+{
 
+	if (underlying_stream != NULL)
+	{
+		StreamImplementation::setStream(underlying_stream);
+	}
 
 	top_lev_menu.init(this, top_menu_name, num_top_level_menuitems_hint, NULL);
 
@@ -178,7 +183,7 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 bool SerialUI::checkForUser(uint16_t timeout_ms) {
 	uint16_t ms_count = 0;
 	while (ms_count < timeout_ms) {
-		if (available() > 0) {
+		if (this->available() > 0) {
 			user_present = true;
 			return true;
 		}
@@ -216,7 +221,7 @@ void SerialUI::setCurrentMenu(Menu * setTo)
 void SerialUI::handleRequests() {
 	Menu * ret_menu;
 	for (uint8_t i = 0; i <= 100; i++) {
-		if (available() > 0) {
+		if (this->available() > 0) {
 
 			SERIALUI_DEBUG("Handling pending request");
 
@@ -316,7 +321,8 @@ void SerialUI::showEnterNumericDataPrompt() {
 
 
 #ifdef SUI_ENABLE_STREAMPROMPTING
-size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t bufferSize, streamInputCallback callback)
+size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t bufferSize, streamInputCallback callback,
+		streamInputStartCallback startupCallback, streamInputEndCallback completedCallback)
 {
 
 #ifdef SUI_ENABLE_MODES
@@ -338,6 +344,15 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 	if (stream_expected_size < 1)
 		return 0;
 
+	bool doPipedata = true; // if this is true, we'll send the data over to the callback
+	// but no matter what, we'll need to consume it.
+	if (startupCallback)
+	{
+		doPipedata = startupCallback(stream_expected_size);
+	}
+
+
+
 	stream_cur_count = 0;
 	// dump the terminator
 	while (this->available() && (this->peek() == '\r' || this->peek() == '\n'))
@@ -345,8 +360,6 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 		this->read();
 	}
 
-	if (stream_expected_size < 1)
-		return 0;
 
 	while (stream_cur_count < stream_expected_size)
 	{
@@ -357,9 +370,18 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 			// looks like we timed out...
 			return stream_cur_count;
 		}
-		callback(bufferToUse, lenRead, stream_cur_count, stream_expected_size);
+		if (doPipedata)
+			callback(bufferToUse, lenRead, stream_cur_count, stream_expected_size);
+
 		stream_cur_count += lenRead;
 	}
+
+	if (! doPipedata)
+		return 0; // we just flushed the data...
+
+	if (completedCallback)
+		completedCallback(stream_cur_count);
+
 	return stream_cur_count;
 }
 
@@ -405,6 +427,7 @@ size_t SerialUI::println_P(PGM_P message) {
 
 
 #ifdef SUI_INCLUDE_DEBUG
+
 // debug is ON, we'll need a global-space freeRAM() function:
 int freeRAM()
 {
@@ -415,8 +438,20 @@ int freeRAM()
 	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
 
+
+
 // add some debug-related method implementations
 namespace SUI {
+
+
+void SerialUI::showFreeRAM()
+{
+	  extern int __heap_start, *__brkval;
+	  int v;
+	  print_P(PSTR("Free RAM: "));
+	  println(freeRAM());
+
+}
 
 void SerialUI::debug(const char * debugmsg)
 {
@@ -428,14 +463,6 @@ void SerialUI::debug_P(PGM_P debugmesg_p)
 {
 	print_P(PSTR("DEBUG: "));
 	println_P(debugmesg_p);
-
-}
-void SerialUI::showFreeRAM()
-{
-	  extern int __heap_start, *__brkval;
-	  int v;
-	  print_P(PSTR("Free RAM: "));
-	  println(freeRAM());
 
 }
 } /* end namespace SUI */
