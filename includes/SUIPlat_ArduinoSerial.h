@@ -88,13 +88,18 @@ public:
 	unsigned long timeout();
 	void setTimeout(unsigned long timeout);
 
+	// parseULong -- gives us access to large valued ints (unsigned)
 	unsigned long parseULong(char skipChar);
 	unsigned long parseULong();
+
+	// parseInHex -- allows us to parse hex ints like 3e and F3D9
+	unsigned long parseIntHex();
+	unsigned long parseIntHex(char skipChar);
 
 private:
 	int timedPeek();
 
-	int peekNextDigit();
+	int peekNextDigit(bool includeHex=false);
 	unsigned long timeout_ms;
 };
 

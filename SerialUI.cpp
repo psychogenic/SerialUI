@@ -53,6 +53,7 @@ SUI_DeclareString(end_of_tx_str, SUI_SERIALUI_PROG_ENDOFTRANSMISSION);
 SUI_DeclareString(moredata_prompt_prog_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
 SUI_DeclareString(moredata_prompt_prog_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
 SUI_DeclareString(moredata_prompt_prog_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG);
+SUI_DeclareString(terminate_gui_prog, SUI_SERIALUI_TERMINATE_GUI_PROG);
 #endif
 
 
@@ -67,6 +68,11 @@ SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint,
 				echo_commands(true),
 #else
 				echo_commands(false),
+#endif
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+				heartbeat_function_cb(NULL),
+				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
+				heartbeat_function_last_called(0),
 #endif
 				menu_manual_override(false)
 {
@@ -144,18 +150,29 @@ void SerialUI::enter() {
 SUI_DeclareString(goodbye,
 		"\r\nThanks for using SerialUI! Goodbye.");
 
+
 void SerialUI::exit()
 {
+
+#ifdef SUI_ENABLE_MODES
+
+	if (mode() == SUIMode_Program) {
+
+		println_P(terminate_gui_prog);
+		println_P(end_of_tx_str);
+		return;
+	}
+	// ensure we always restart in "user" mode...
+
+	setMode(SUIMode_User);
+#endif
+
 	returnMessage(goodbye);
 	user_present = false;
 	user_presence_last_interaction_ms = 0;
 	// go back to top level menu, in case we re-enter SUI later...
 	current_menu = &top_lev_menu;
 
-#ifdef SUI_ENABLE_MODES
-		// ensure we always restart in "user" mode...
-		setMode(SUIMode_User);
-#endif
 
 }
 
@@ -221,6 +238,22 @@ void SerialUI::setCurrentMenu(Menu * setTo)
 void SerialUI::handleRequests() {
 	Menu * ret_menu;
 	for (uint8_t i = 0; i <= 100; i++) {
+
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+		if (heartbeat_function_cb != NULL)
+		{
+			uint32_t timeNow = millis();
+			if (timeNow >= (heartbeat_function_last_called + heartbeat_function_period))
+			{
+				// time to call again...
+				heartbeat_function_cb();
+				heartbeat_function_last_called = timeNow;
+			}
+		}
+#endif
+
+
+
 		if (this->available() > 0) {
 
 			SERIALUI_DEBUG("Handling pending request");
@@ -284,6 +317,8 @@ void SerialUI::showPrompt() {
 
 	print_P(prompt_str);
 }
+
+
 
 void SerialUI::showEnterDataPrompt() {
 

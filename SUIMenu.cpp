@@ -33,7 +33,6 @@
 #include "includes/SUIPlatform.h"
 
 
-
 #ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 // dynamic memory management enabled
 // stdlib included for malloc
@@ -130,6 +129,9 @@ SUI_DeclareString(help_sep_prog, SUI_SERIALUI_KEYHELP_SEP_PROG);
 SUI_DeclareString(prog_mode_info_helpkey, SUI_SERIALUI_HELP_KEY);
 SUI_DeclareString(prog_mode_info_moreprompt_string, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
 SUI_DeclareString(prog_mode_info_moreprompt_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
+
+SUI_DeclareString(prog_mode_terminate_gui, SUI_SERIALUI_TERMINATE_GUI_PROG);
+
 #ifdef SUI_ENABLE_STREAMPROMPTING
 SUI_DeclareString(prog_mode_info_moreprompt_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG);
 #endif
@@ -568,7 +570,6 @@ Menu * Menu::handleRequest() {
 			outBuf[0] = '\0';
 			strcat(outBuf, sepChar);
 
-
 			strcat_P(outBuf, prog_mode_info_VERSION);
 			strcat(outBuf, sepChar);
 
@@ -615,11 +616,16 @@ Menu * Menu::handleRequest() {
 			strcat(outBuf, sepChar);
 
 			strcat_P(outBuf, prog_mode_info_EOT);
-#ifdef SUI_ENABLE_STREAMPROMPTING
 			strcat(outBuf, sepChar);
+
+#ifdef SUI_ENABLE_STREAMPROMPTING
 			strcat_P(outBuf, prog_mode_info_moreprompt_stream);
 			strcat(outBuf, sepChar);
 #endif
+
+
+			strcat_P(outBuf, prog_mode_terminate_gui);
+			strcat(outBuf, sepChar);
 
 			sui_driver->print(strlen(outBuf) + 1, DEC);
 			sui_driver->println(outBuf);

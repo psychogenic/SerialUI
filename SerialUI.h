@@ -323,6 +323,10 @@ typedef void(*streamInputCallback)(char* buf, uint8_t len, size_t previous_posit
 typedef bool(*streamInputStartCallback)(size_t total_len);
 typedef void(*streamInputEndCallback)(size_t total_len);
 
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+typedef void(*heartbeatFunction)(void);
+#endif
+
 
 class SerialUI : public SUI::SUIStream
 
@@ -586,6 +590,14 @@ public:
 #endif
 
 
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+    void setUserPresenceHeartbeat(heartbeatFunction hbf) { heartbeat_function_cb = hbf;}
+    void setUserPresenceHeartbeatPeriod(uint16_t ms) { heartbeat_function_period = ms;}
+    uint16_t userPresenceHeartbeatPeriod() { return heartbeat_function_period;}
+#endif
+
+
+
 private:
     SUIMode output_mode;
 	PGM_P greeting_msg;
@@ -598,11 +610,18 @@ private:
 	char read_terminator_char;
 	unsigned long millisec_counter_start;
 	bool echo_commands;
-	bool menu_manual_override;
 #ifdef SUI_ENABLE_STREAMPROMPTING
 	size_t stream_expected_size;
 	size_t stream_cur_count;
 #endif
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+	heartbeatFunction heartbeat_function_cb;
+	uint16_t		  heartbeat_function_period;
+	uint32_t		  heartbeat_function_last_called;
+#endif
+
+	bool menu_manual_override;
+
 
 
 };

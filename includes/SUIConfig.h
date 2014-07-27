@@ -35,7 +35,7 @@
 
 
 #define SERIAL_UI_VERSION			1
-#define SERIAL_UI_SUBVERSION		8
+#define SERIAL_UI_SUBVERSION		11
 
 /* *********************** DEFAULT VALUES *********************** */
 
@@ -275,6 +275,19 @@
  *
  */
 #define SUI_ENABLE_STREAMPROMPTING
+
+
+/*
+ * SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+ *
+ * Enable the "heartbeat" function to be called, if specified, while handling requests.
+ */
+#define SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+
+#define SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS		500
+
+
+
 /*
  * SUI_PLATFORM_X
  *
