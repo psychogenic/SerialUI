@@ -34,8 +34,8 @@
 #define SUIConfig_h
 
 
-#define SERIAL_UI_VERSION			1
-#define SERIAL_UI_SUBVERSION		11
+#define SERIAL_UI_VERSION		1
+#define SERIAL_UI_SUBVERSION		12
 
 /* *********************** DEFAULT VALUES *********************** */
 

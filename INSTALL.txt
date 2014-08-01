@@ -1,7 +1,7 @@
 SerialUI Installation
 
  SerialUI: Serial User Interface.
- Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ Copyright (C) 2013,2014 Pat Deegan.  All rights reserved.
  http://www.flyingcarsandstuff.com/projects/SerialUI
 
 
@@ -18,10 +18,16 @@ Arduino libraries directory.
 The libraries directory location is system-dependent,
 but will be something like:
 
-	~/arduino/libraries (Linux),
+	~/sketchbook/libraries (Linux),
 	Documents/Arduino/libraries/ (mac),
 or
 	My Documents\Arduino\libraries\ (windows)
+
+
+Apparently, with newer version of the Arduino IDE,
+you can import libraries from the IDE itself.  I've
+yet to try this version--see the link above for 
+details and let me know if it works.
 
 You'll need to restart the Arduino IDE before you
 see SerialUI in the

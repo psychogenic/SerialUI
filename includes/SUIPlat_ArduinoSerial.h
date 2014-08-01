@@ -34,9 +34,22 @@
 // system/avr includes
 #include <inttypes.h>
 #ifndef PLATFORM_DESKTOP
-#include <avr/io.h>
+
 #include <avr/pgmspace.h>
 #include "Arduino.h"
+
+// For Due, it seems all the *_P() functions
+// are simply defined as their regular equivalents, but
+// there's no strncpy_P and strncmp_P defined, so we
+// create aliases in that case:
+#ifndef strncpy_P
+#define strncpy_P(to, from, s)		strncpy(to, from, s)
+#endif
+
+#ifndef strncmp_P
+#define strncmp_P(a, b, s)			strncmp(a,b,s)
+#endif
+
 #endif
 
 
