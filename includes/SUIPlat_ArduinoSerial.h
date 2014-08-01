@@ -42,12 +42,14 @@
 // are simply defined as their regular equivalents, but
 // there's no strncpy_P and strncmp_P defined, so we
 // create aliases in that case:
+#ifdef ARDUINO_DUE_BUILD
 #ifndef strncpy_P
 #define strncpy_P(to, from, s)		strncpy(to, from, s)
 #endif
 
 #ifndef strncmp_P
 #define strncmp_P(a, b, s)			strncmp(a,b,s)
+#endif
 #endif
 
 #endif

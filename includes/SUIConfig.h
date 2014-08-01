@@ -306,6 +306,10 @@
 //#define SUI_PLATFORM_DIGISPARKUSB
 #define SUI_PLATFORM_ARDUINOSERIAL
 
+/* ARDUINO_DUE_BUILD
+* If you're building for a DUE, please uncomment this line:
+*/
+//#define ARDUINO_DUE_BUILD
 
 
 
