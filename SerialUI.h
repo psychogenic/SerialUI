@@ -262,6 +262,7 @@
 #include "includes/SUIStrings.h"
 #include "includes/SUIMenu.h"
 #include "includes/SUIPlatform.h"
+#include "includes/SUIStateTracking.h"
 
 
 
@@ -487,7 +488,7 @@ public:
 	 * exit()
 	 * May be called to force an exit from SerialUI.
 	 */
-	void exit();
+	void exit(bool terminate_gui=true);
 
 
 	/* ******************** return messages ******************* */
@@ -596,6 +597,14 @@ public:
     uint16_t userPresenceHeartbeatPeriod() { return heartbeat_function_period;}
 #endif
 
+#ifdef SUI_ENABLE_STATE_TRACKER
+    int8_t trackState(PGM_P name, bool * var) { return addStateTracking(name, SUITracked_Bool, (void*)var);}
+    int8_t trackState(PGM_P name, unsigned long * var) { return addStateTracking(name, SUITracked_UInt, (void*)var);}
+    int8_t trackState(PGM_P name, float * var) { return addStateTracking(name, SUITracked_Float, (void*)var);}
+
+    void showTrackedState();
+
+#endif
 
 
 private:
@@ -620,9 +629,17 @@ private:
 	uint32_t		  heartbeat_function_last_called;
 #endif
 
+
 	bool menu_manual_override;
 
 
+#ifdef SUI_ENABLE_STATE_TRACKER
+	TrackedStateVariableDetails * stateTrackedVars[SUI_STATE_TRACKER_MAX_VARIABLES];
+	void initStateTrackedVars();
+	int8_t stateTrackedVarsNextAvailableSlot();
+	int8_t addStateTracking(PGM_P name, TrackedType type, void* var);
+
+#endif
 
 };
 

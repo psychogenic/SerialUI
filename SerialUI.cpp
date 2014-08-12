@@ -54,6 +54,11 @@ SUI_DeclareString(moredata_prompt_prog_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT_
 SUI_DeclareString(moredata_prompt_prog_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
 SUI_DeclareString(moredata_prompt_prog_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG);
 SUI_DeclareString(terminate_gui_prog, SUI_SERIALUI_TERMINATE_GUI_PROG);
+
+#ifdef SUI_ENABLE_STATE_TRACKER
+SUI_DeclareString(tracked_state_prog_prefix, SUI_SERIALUI_TRACKEDSTATE_PREFIX_PROG);
+#endif
+
 #endif
 
 
@@ -91,6 +96,10 @@ SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint,
 			&& strlen_P(greeting_msg) > SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN) {
 		current_menu->returnMessage(PSTR(SUI_ERRORMSG_SUIGREETING_TOOLONG));
 	}
+#endif
+
+#ifdef SUI_ENABLE_STATE_TRACKER
+	initStateTrackedVars();
 #endif
 
 }
@@ -151,23 +160,28 @@ SUI_DeclareString(goodbye,
 		"\r\nThanks for using SerialUI! Goodbye.");
 
 
-void SerialUI::exit()
+void SerialUI::exit(bool terminate_gui)
 {
 
 #ifdef SUI_ENABLE_MODES
 
 	if (mode() == SUIMode_Program) {
 
-		println_P(terminate_gui_prog);
+		if (terminate_gui)
+			println_P(terminate_gui_prog);
+
 		println_P(end_of_tx_str);
-		return;
-	}
-	// ensure we always restart in "user" mode...
 
-	setMode(SUIMode_User);
+
+		// ensure we always restart in "user" mode...
+		setMode(SUIMode_User);
+
+	} else
+
 #endif
-
-	returnMessage(goodbye);
+	{
+		returnMessage(goodbye);
+	}
 	user_present = false;
 	user_presence_last_interaction_ms = 0;
 	// go back to top level menu, in case we re-enter SUI later...
@@ -220,7 +234,7 @@ bool SerialUI::userPresent() {
 
 	if (user_presence_last_interaction_ms >= user_presence_timeout_ms) {
 		SERIALUI_DEBUG("User idles excessively, bumping out...");
-		exit();
+		exit(false);
 	}
 
 	return user_present;
@@ -275,7 +289,7 @@ void SerialUI::handleRequests() {
 					current_menu = ret_menu;
 				}
 			} else {
-				exit();
+				exit(false);
 				return;
 			}
 
@@ -305,17 +319,17 @@ void SerialUI::showPrompt() {
 	}
 #endif
 
+
+	print_P(prompt_str);
 #ifdef SUI_ENABLE_MODES
 	if (mode() == SUIMode_Program)
 	{
-
-		println_P(prompt_str);
+		println(' ');
 		println_P(end_of_tx_str);
-		return;
+		// return;
 	}
 #endif
 
-	print_P(prompt_str);
 }
 
 
@@ -457,6 +471,135 @@ size_t SerialUI::println_P(PGM_P message) {
 
 
 }
+
+
+#ifdef SUI_ENABLE_STATE_TRACKER
+void SerialUI::initStateTrackedVars() {
+	for (uint8_t i = 0; i < SUI_STATE_TRACKER_MAX_VARIABLES; i++)
+		stateTrackedVars[i] = NULL;
+}
+int8_t SerialUI::stateTrackedVarsNextAvailableSlot() {
+	for (int8_t i = 0; i < SUI_STATE_TRACKER_MAX_VARIABLES; i++) {
+		if (stateTrackedVars[i] == NULL)
+			return i;
+	}
+
+	return -1;
+
+}
+
+int8_t SerialUI::addStateTracking(PGM_P name, TrackedType type, void* var)
+{
+	int8_t slot = stateTrackedVarsNextAvailableSlot();
+	if (slot < 0)
+		return slot;
+
+	TrackedStateVariableDetails * trackedDets = new TrackedStateVariableDetails(name, type, var);
+
+	if (! trackedDets)
+		return -1;
+
+	stateTrackedVars[slot] = trackedDets;
+
+	return slot;
+
+}
+
+void SerialUI::showTrackedState()
+{
+
+	char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN];
+
+	if (stateTrackedVarsNextAvailableSlot() == 0)
+	{
+		// nothing to show...
+		return;
+	}
+
+
+#ifdef SUI_ENABLE_MODES
+
+	if (mode() == SUIMode_Program) {
+
+		char numBuf[8 * sizeof(long) + 1];
+
+		outBuf[0] = '\0';
+		uint8_t totlen = 0;
+		uint8_t idx = 0;
+		unsigned long m;
+		unsigned long tmpInt;
+		while (stateTrackedVars[idx] != NULL)
+		{
+			outBuf[totlen++] = (char)stateTrackedVars[idx]->type;
+
+			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+			outBuf[totlen] = '\0';
+
+			strcat_P(outBuf, stateTrackedVars[idx]->name);
+			totlen += strlen_P(stateTrackedVars[idx]->name);
+
+			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+			outBuf[totlen] = '\0';
+
+			double dval = 0; // Assumes 8-bit chars plus zero byte.
+			char *str = &numBuf[sizeof(numBuf) - 1];
+
+			switch (stateTrackedVars[idx]->type)
+			{
+			case SUITracked_Bool:
+				outBuf[totlen++] = (*(stateTrackedVars[idx]->ptr_bool) ? '1' : '0');
+				break;
+			case SUITracked_UInt:
+#ifdef PLATFORM_DESKTOP
+				totlen += sprintf(&(outBuf[totlen]), "%i", *(stateTrackedVars[idx]->ptr_int));
+#else
+				*str = '\0';
+				tmpInt = *(stateTrackedVars[idx]->ptr_int);
+				do {
+					m = tmpInt;
+					tmpInt /= 10;
+					char c = m - 10 * tmpInt;
+					*--str = c + '0';
+				} while (tmpInt);
+
+				strcat(&(outBuf[totlen]), str);
+				totlen += strlen(str);
+
+#endif
+				break;
+
+			case SUITracked_Float:
+#ifdef PLATFORM_DESKTOP
+				totlen += sprintf(&(outBuf[totlen]), "%.2f", *(stateTrackedVars[idx]->ptr_float));
+#else
+				dval = *(stateTrackedVars[idx]->ptr_float);
+				totlen += strlen(dtostrf(dval, 5, 2, &(outBuf[totlen])));
+#endif
+
+				break;
+			}
+
+			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+			outBuf[totlen] = '\0';
+
+			idx++;
+		}
+
+
+		print_P(tracked_state_prog_prefix);
+		print(strlen(outBuf) + 1);
+		print(SUI_SERIALUI_PROG_STR_SEP_CHAR);
+		println(outBuf);
+
+
+		return;
+	}
+
+#endif
+
+}
+
+#endif
 
 } /* end namespace SUI */
 

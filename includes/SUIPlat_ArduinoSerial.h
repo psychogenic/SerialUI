@@ -33,7 +33,11 @@
 
 // system/avr includes
 #include <inttypes.h>
-#ifndef PLATFORM_DESKTOP
+#ifdef PLATFORM_DESKTOP
+
+#define dtostrf(fl, wdth, prec, ptr)		sprintf(ptr, "%.2f", fl)
+
+#else
 
 #include <avr/pgmspace.h>
 #include "Arduino.h"
@@ -42,7 +46,7 @@
 // are simply defined as their regular equivalents, but
 // there's no strncpy_P and strncmp_P defined, so we
 // create aliases in that case:
-#ifdef ARDUINO_DUE_BUILD
+#ifdef SUI_BUILD_FOR_DUE
 #ifndef strncpy_P
 #define strncpy_P(to, from, s)		strncpy(to, from, s)
 #endif

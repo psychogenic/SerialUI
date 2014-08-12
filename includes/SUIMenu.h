@@ -74,6 +74,14 @@ namespace SUI
 	class Menu; // forward decl
 	typedef void (*MenuCommand_Callback)(void);
 
+	typedef struct MenuItemDetailsStruct {
+		PGM_P key_str;
+		MenuCommand_Callback callback;
+		PGM_P help_str;
+		MenuItemDetailsStruct(PGM_P key, MenuCommand_Callback cb, PGM_P help=NULL);
+
+	} MenuItemDetails ;
+
 	typedef struct MenuItemStruct {
 		PGM_P key;
 		PGM_P help;
@@ -119,6 +127,8 @@ namespace SUI
 			 *          be added.
 			 */
 			bool addCommand(PGM_P key_str, MenuCommand_Callback callback, PGM_P help_str=NULL);
+
+			bool addCommands(MenuItemDetails detailsList[], uint8_t number);
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 			/*
@@ -396,6 +406,10 @@ namespace SUI
 			 * it can construct and enter Menus.
 			 */
 			friend class SerialUI;
+
+
+			void pingRespond();
+
 
 
 	};

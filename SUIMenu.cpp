@@ -117,6 +117,7 @@ uint8_t Menu::submenu_static_idx = 0;
 // Mode related strings
 SUI_DeclareString(key_mode_user, SUI_STRINGS_MODE_USER);
 SUI_DeclareString(key_mode_program, SUI_STRINGS_MODE_PROGRAM);
+SUI_DeclareString(key_ping_command, SUI_STRINGS_PING_COMMAND);
 
 // program-mode strings...
 SUI_DeclareString(help_key_prog_commandprefix, SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG);
@@ -144,6 +145,12 @@ SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
 
 
 size_t Menu::max_key_len = 0;
+
+MenuItemDetailsStruct::MenuItemDetailsStruct(PGM_P key, MenuCommand_Callback cb, PGM_P help) :
+			key_str(key), callback(cb), help_str(help)
+{
+
+}
 
 MenuItemStruct::MenuItemStruct()
 {
@@ -278,6 +285,19 @@ Menu * Menu::parent() {
 	return parent_menu;
 }
 
+bool Menu::addCommands(MenuItemDetails detailsList[], uint8_t number)
+{
+
+	for (uint8_t i=0; i<number; i++)
+	{
+		if (! this->addCommand(detailsList[i].key_str, detailsList[i].callback, detailsList[i].help_str))
+			return false;
+
+	}
+
+	return true;
+
+}
 
 bool Menu::addCommand(PGM_P key_str, MenuCommand_Callback callback,
 		PGM_P help_str) {
@@ -491,7 +511,12 @@ Menu * Menu::handleRequest() {
 	// echo
 	if (sui_driver->echoCommands())
 	{
-		sui_driver->println(key_entered);
+#ifdef SUI_ENABLE_MODES
+		if (sui_driver->mode() == SUIMode_User)
+#endif
+		{
+			sui_driver->println(key_entered);
+		}
 	}
 
 #endif
@@ -579,7 +604,7 @@ Menu * Menu::handleRequest() {
 				strcat_P(outBuf, up_key);
 #else
 				strcat(outBuf, "X");
-#endif
+#endif	/* SUI_MENU_ENABLE_SUBMENUS */
 			strcat(outBuf, sepChar);
 
 			strcat_P(outBuf, exit_key);
@@ -639,9 +664,14 @@ Menu * Menu::handleRequest() {
 		MENUFREE(key_entered);
 		return this;
 	}
-#endif
+#endif	/* SUI_ENABLE_MODES */
 
+	if (strncmp_P(key_entered, key_ping_command, strlen_P(key_ping_command)) == 0) {
 
+			MENUFREE(key_entered);
+			pingRespond();
+			return this;
+		}
 
 
 	// get rid of our malloc'ed key
@@ -913,6 +943,16 @@ void Menu::returnMessage(PGM_P message) { sui_driver->println_P(message);}
 
 
 void Menu::showName() { sui_driver->print_P(menu_name); }
+
+void Menu::pingRespond() {
+#ifdef SUI_ENABLE_STATE_TRACKER
+	sui_driver->showTrackedState();
+#endif
+
+
+
+
+}
 
 } /* end namespace SUI */
 

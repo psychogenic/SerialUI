@@ -44,6 +44,7 @@
 /* Strings common to all languages,  these are relied on by SerialGUI, and best left un-changed */
 #define SUI_STRINGS_MODE_USER				"m:usr"
 #define SUI_STRINGS_MODE_PROGRAM			"m:pgm"
+#define SUI_STRINGS_PING_COMMAND			"p:ng"
 
 
 // prompts
@@ -63,6 +64,8 @@
 #define SUI_SERIALUI_TERMINATE_GUI_PROG				"~EOG~"
 
 #define SUI_SERIALUI_PROG_ENDOFTRANSMISSION			"~EOT~"
+
+#define SUI_SERIALUI_TRACKEDSTATE_PREFIX_PROG			"!~TS~"
 
 #define SUI_SERIALUI_PROG_STR_SEP_CHAR				'#'
 

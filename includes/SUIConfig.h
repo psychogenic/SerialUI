@@ -34,8 +34,8 @@
 #define SUIConfig_h
 
 
-#define SERIAL_UI_VERSION		1
-#define SERIAL_UI_SUBVERSION		12
+#define SERIAL_UI_VERSION			1
+#define SERIAL_UI_SUBVERSION		13
 
 /* *********************** DEFAULT VALUES *********************** */
 
@@ -156,6 +156,7 @@
  * Disable this (undefine it/comment it out) if you know everything is
  * working and you're tight on flash space.
  */
+// 
 #define SUI_INCLUDE_EXTRA_SAFETYCHECKS
 
 
@@ -263,8 +264,8 @@
  * possible.
  */
 #define SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM	5
-#define SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM		6
-#define SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM		15
+#define SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM				6
+#define SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM			15
 
 
 
@@ -286,6 +287,14 @@
 
 #define SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS		500
 
+/*
+ * SUI_ENABLE_STATE_TRACKER
+ *
+ * Enables the variable "state tracking" which will notify Druid4Arduino of
+ * changes to certain (global) variables
+ */
+#define SUI_ENABLE_STATE_TRACKER
+#define SUI_STATE_TRACKER_MAX_VARIABLES		8
 
 
 /*
@@ -306,10 +315,10 @@
 //#define SUI_PLATFORM_DIGISPARKUSB
 #define SUI_PLATFORM_ARDUINOSERIAL
 
-/* ARDUINO_DUE_BUILD
+/* SUI_BUILD_FOR_DUE
 * If you're building for a DUE, please uncomment this line:
 */
-//#define ARDUINO_DUE_BUILD
+//#define SUI_BUILD_FOR_DUE
 
 
 
