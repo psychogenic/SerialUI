@@ -1,6 +1,6 @@
 /*
 **  SerialUI demo/test and tutorial.
-**  Copyright (C) 2013 Pat Deegan.  All rights reserved.
+**  Copyright (C) 2013, 2014 Pat Deegan.  All rights reserved.
 **
 ** http://www.flyingcarsandstuff.com/projects/SerialUI
 **
@@ -153,7 +153,7 @@
 ** only important if you are using a "strange" (i.e not
 ** NL, CR, or CR+NL) input terminator.
 */
-#define serial_baud_rate           9600
+#define serial_baud_rate           115200
 #define serial_input_terminator   '\n'
 
 /* We'll be using a blinker to show that we're alive,
@@ -222,6 +222,13 @@ SUI_DeclareString(exit_help, "exit (and terminate Druid)");
 
 
 
+// a few labels for our variable auto-tracking
+SUI_DeclareString(enabled_label, "enabled");
+SUI_DeclareString(pi_label, "mmm, pi");
+SUI_DeclareString(time_label, "time");
+
+
+
 /*
 ** ********************* SerialUI instance ***********************
 **
@@ -254,11 +261,11 @@ SUI::SerialUI mySUI = SUI::SerialUI(device_greeting);
 // deviceInfo struct, a place to store our settings
 typedef struct deviceInfo {
 
-  int red;
-  int green;
-  int blue;
+  unsigned long red;
+  unsigned long green;
+  unsigned long blue;
   char dev_id[dev_id_maxlen + 1];
-  boolean state;
+  bool state;
 }
 deviceInfo;
 
@@ -279,6 +286,9 @@ deviceInfo myDevice = {0};
 ** The standard Arduino setup() function.  Here we'll
 ** setup serial comm and the menu structure.
 */
+
+float someFloat = 3.141596;
+unsigned long curTime = 0;
 void setup()
 {
 
@@ -292,6 +302,17 @@ void setup()
   // how we are marking the "end-of-line" (\n, by default):
   mySUI.setReadTerminator(serial_input_terminator);
 
+
+  // Setup variable state tracking -- will report changes to
+  // Druid4Arduino (v >= 1.3.0) so it can automatically display
+  // these in GUI.
+  mySUI.trackState(enabled_label, &(myDevice.state));
+  mySUI.trackState(settings_red_key, &(myDevice.red));
+  mySUI.trackState(settings_green_key, &(myDevice.green));
+  mySUI.trackState(settings_blue_key, &(myDevice.blue));
+  mySUI.trackState(pi_label, &someFloat);
+  mySUI.trackState(time_label, &curTime);
+  
 
   // The SerialUI menu setup is a bit involved, and it
   // needs to know about the functions we'll be using as
@@ -351,6 +372,13 @@ void loop()
     {
       // actually respond to requests, using
       mySUI.handleRequests();
+      curTime = millis();
+      
+      if (myDevice.state)
+      {
+        mySUI.print(F("ON at "));
+        mySUI.println(curTime);
+      }
     }
 
   } /* end if we had a user on the serial line */
@@ -601,6 +629,9 @@ void show_info()
   else {
     mySUI.println(F("OFF"));
   }
+  
+  
+  mySUI.showTrackedState();
 
 }
 
