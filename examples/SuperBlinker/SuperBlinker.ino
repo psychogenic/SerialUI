@@ -224,8 +224,7 @@ SUI_DeclareString(exit_help, "exit (and terminate Druid)");
 
 // a few labels for our variable auto-tracking
 SUI_DeclareString(enabled_label, "enabled");
-SUI_DeclareString(pi_label, "mmm, pi");
-SUI_DeclareString(time_label, "time");
+
 
 
 
@@ -287,8 +286,6 @@ deviceInfo myDevice = {0};
 ** setup serial comm and the menu structure.
 */
 
-float someFloat = 3.141596;
-unsigned long curTime = 0;
 void setup()
 {
 
@@ -305,13 +302,12 @@ void setup()
 
   // Setup variable state tracking -- will report changes to
   // Druid4Arduino (v >= 1.3.0) so it can automatically display
-  // these in GUI.
+  // these in GUI.  See the VariableTracking example for more on this...
   mySUI.trackState(enabled_label, &(myDevice.state));
   mySUI.trackState(settings_red_key, &(myDevice.red));
   mySUI.trackState(settings_green_key, &(myDevice.green));
   mySUI.trackState(settings_blue_key, &(myDevice.blue));
-  mySUI.trackState(pi_label, &someFloat);
-  mySUI.trackState(time_label, &curTime);
+
   
 
   // The SerialUI menu setup is a bit involved, and it
@@ -372,12 +368,11 @@ void loop()
     {
       // actually respond to requests, using
       mySUI.handleRequests();
-      curTime = millis();
-      
+
       if (myDevice.state)
       {
         mySUI.print(F("ON at "));
-        mySUI.println(curTime);
+        mySUI.println(millis());
       }
     }
 
@@ -631,7 +626,7 @@ void show_info()
   }
   
   
-  mySUI.showTrackedState();
+  mySUI.returnOK();
 
 }
 
