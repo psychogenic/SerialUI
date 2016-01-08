@@ -259,6 +259,7 @@
 
 // SerialUI includes
 #include "includes/SUIConfig.h"
+#include "includes/SUIStream.h"
 #include "includes/SUIStrings.h"
 #include "includes/SUIMenu.h"
 #include "includes/SUIPlatform.h"
@@ -427,8 +428,12 @@ public:
 	 * true, there is a user sending requests that need to be
 	 * handled (see handleRequests())
 	 *
-	 * TIMOUTMS is a timeout in ms.  This call is blocking, for
-	 * a maximum of TIMOUTMS ms.
+	 * TIMOUTMS is a timeout in ms.  If TIMEOUTMS is 0, the check
+	 * will be performed and return immediately with an answer as to
+	 * whether a user is present or not.
+	 *
+	 * With any positive value > 0, the call is blocking, for
+	 * a maximum of TIMOUTMS ms (and a minimum of SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS)
 	 *
 	 * Return boolean true if a user is present, false otherwise.
 	 *
@@ -602,7 +607,7 @@ public:
     int8_t trackState(PGM_P name, unsigned long * var) { return addStateTracking(name, SUITracked_UInt, (void*)var);}
     int8_t trackState(PGM_P name, float * var) { return addStateTracking(name, SUITracked_Float, (void*)var);}
 
-    void showTrackedState();
+    bool showTrackedState();
 
 #endif
 

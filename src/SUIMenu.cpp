@@ -946,8 +946,13 @@ void Menu::showName() { sui_driver->print_P(menu_name); }
 
 void Menu::pingRespond() {
 #ifdef SUI_ENABLE_STATE_TRACKER
-	sui_driver->showTrackedState();
+	if (sui_driver->showTrackedState())
+	{
+		return;
+	}
 #endif
+
+	sui_driver->println(' ');
 
 
 

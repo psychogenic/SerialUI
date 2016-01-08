@@ -1,23 +1,21 @@
 /*
- * SUIPlat_Arduino.cpp
+ * SUIStream.cpp
  *
- *  Created on: 2013-12-13
- *      Author: malcalypse
+ *  Created on: Jan 7, 2016
+ *      Author: Pat Deegan
+ *      Part of the SerialUI Project
+ *      Copyright (C) 2015 Pat Deegan, http://psychogenic.com
  */
 
 
-#include "includes/SUIConfig.h"
+#include "includes/SUIStream.h"
 
-#ifdef SUI_PLATFORM_ARDUINOSERIAL
-#include "includes/SUIPlat_ArduinoSerial.h"
-
-
-
-// SUI is the namespace in which we keep all our goodies.
+#ifdef SUI_BASEIMPLEMENTATION_STANDARD
 namespace SUI {
 
+
 // default to using standard HardwareSerial as implementation stream to use.
-StreamInstanceType * StreamImplementation::stream_to_use = &Serial;
+StreamInstanceType * StreamImplementation::stream_to_use = &(SUI_PLATFORM_HARDWARESERIAL_DEFAULT);
 bool StreamImplementation::stream_to_use_override = false;
 
 void StreamImplementation::setStream(StreamInstanceType * strm) {
@@ -30,16 +28,43 @@ void StreamImplementation::begin(unsigned long speed) {
 
    	if (!stream_to_use_override)
 	{
-   		Serial.begin(speed);
+   		// when overridden, it's your responsibility to
+   		// begin()... here, there's no override used,
+   		// so we make the call ourselves.
+   		SUI_PLATFORM_HARDWARESERIAL_DEFAULT.begin(speed);
    	}
    	// we also set a sane timeout for reads, as this was causing issues
    	// assuming code will call begin() prior to setTimeout() (if used)
    	stream_to_use->setTimeout(SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS);
 }
 
-unsigned long SUIStream::timeout() { return timeout_ms; }
-void SUIStream::setTimeout(unsigned long timeout) { timeout_ms = timeout ; Stream::setTimeout(timeout); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define NO_SKIP_CHAR  1
+size_t SUIStream::write(uint8_t i)
+{
+	return StreamImplementation::write(i);
+}
+
+long SUIStream::parseInt(char skipChar)
+{
+	return SerialUIStreamBaseType::parseInt(skipChar);
+}
+unsigned long SUIStream::timeout() { return timeout_ms; }
+void SUIStream::setTimeout(unsigned long timeout) { timeout_ms = timeout ; StreamInstanceType::setTimeout(timeout); }
 
 unsigned long SUIStream::parseULong()
 {
@@ -132,6 +157,6 @@ int SUIStream::peekNextDigit(bool includeHex)
   return -1;
 }
 
+}
 
-} /* namespace SUI */
-#endif
+#endif /* SUI_BASEIMPLEMENTATION_STANDARD */

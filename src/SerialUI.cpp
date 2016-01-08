@@ -25,8 +25,7 @@
 
 #include "SerialUI.h"
 
-#define SUI_SERIALUI_USERCHECK_DELAY_MS		3
-#define SUI_SERIALUI_HANDLEREQ_DELAY_MS		5
+#define SUI_SERIALUI_HANDLEREQ_DELAY_MS		3
 
 #ifdef SUI_INCLUDE_DEBUG
 // debug is ON, call the debug() method:
@@ -213,14 +212,19 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 
 bool SerialUI::checkForUser(uint16_t timeout_ms) {
 	uint16_t ms_count = 0;
-	while (ms_count < timeout_ms) {
+	while (ms_count <= timeout_ms) {
 		if (this->available() > 0) {
 			user_present = true;
 			return true;
 		}
 
-		delay(SUI_SERIALUI_USERCHECK_DELAY_MS);
-		ms_count += SUI_SERIALUI_USERCHECK_DELAY_MS;
+		// nothing on serial line, as of yet
+		// if this was a "non-blocking" check, return immediately
+		if (! timeout_ms)
+			return false;
+
+		delay(SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS);
+		ms_count += SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS;
 	}
 
 	return false;
@@ -505,7 +509,7 @@ int8_t SerialUI::addStateTracking(PGM_P name, TrackedType type, void* var)
 
 }
 
-void SerialUI::showTrackedState()
+bool SerialUI::showTrackedState()
 {
 
 	char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN];
@@ -513,7 +517,7 @@ void SerialUI::showTrackedState()
 	if (stateTrackedVarsNextAvailableSlot() == 0)
 	{
 		// nothing to show...
-		return;
+		return false;
 	}
 
 
@@ -541,7 +545,8 @@ void SerialUI::showTrackedState()
 			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
 			outBuf[totlen] = '\0';
 
-			double dval = 0; // Assumes 8-bit chars plus zero byte.
+			//double dval = 0; // Assumes 8-bit chars plus zero byte.
+			float dval = 0; // Assumes 8-bit chars plus zero byte.
 			char *str = &numBuf[sizeof(numBuf) - 1];
 
 			switch (stateTrackedVars[idx]->type)
@@ -573,7 +578,9 @@ void SerialUI::showTrackedState()
 				totlen += sprintf(&(outBuf[totlen]), "%.2f", *(stateTrackedVars[idx]->ptr_float));
 #else
 				dval = *(stateTrackedVars[idx]->ptr_float);
-				totlen += strlen(dtostrf(dval, 5, 2, &(outBuf[totlen])));
+				totlen += SUI_CONVERT_FLOAT_TO_STRING_AND_RETLEN(dval, &(outBuf[totlen]));
+
+						// strlen(dtostrf(dval, 5, 2, &(outBuf[totlen])));
 #endif
 
 				break;
@@ -592,11 +599,12 @@ void SerialUI::showTrackedState()
 		println(outBuf);
 
 
-		return;
+		return (totlen > 0);
 	}
 
 #endif
 
+	return false;
 }
 
 #endif

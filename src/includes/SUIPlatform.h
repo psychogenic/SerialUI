@@ -32,12 +32,24 @@
 
 #include "SUIConfig.h"
 
-#ifdef SUI_PLATFORM_ARDUINOSERIAL
-#include "SUIPlat_ArduinoSerial.h"
+#ifdef SUI_PLATFORM_ARDUINOSTANDARD
+#include "platform/ArduinoSerial.h"
 #endif
 
 #ifdef SUI_PLATFORM_DIGISPARKUSB
-#include "SUIPlat_DigiUSB.h"
+#include "platform/DigiUSB.h"
 #endif
+
+
+#ifdef SUI_PLATFORM_RBLNRF51822
+#include "platform/RBL_nRF51822.h"
+#endif
+
+#ifdef PLATFORM_DESKTOP
+
+#include "platform/Desktop.h"
+
+#endif
+
 
 #endif /* SUIPlatform_H */

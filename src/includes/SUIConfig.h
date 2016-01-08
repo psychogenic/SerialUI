@@ -1,9 +1,9 @@
 /*
  *
  * SUIConfig.h -- SerialUI compile time configuration.
- * Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ * Copyright (C) 2013-2016 Pat Deegan.  All rights reserved.
  *
- * http://www.flyingcarsandstuff.com/projects/SerialUI
+ * http://www.flyingcarsandstuff.com/projects/SerialUI/
  *
  * Please let me know if you use SerialUI in your projects, and
  * provide a URL if you'd like me to link to it from the SerialUI
@@ -30,12 +30,51 @@
  *
  *  See below for available flags.
  */
-#ifndef SUIConfig_h
-#define SUIConfig_h
+#ifndef SERIAL_UI_CONFIGURATION_H_
+#define SERIAL_UI_CONFIGURATION_H_
+
+
+/*
+ * SUI_PLATFORM_X
+ *
+ * Define ONE OF the available SUI_PLATFORM_X values to select the serial
+ * implementation platform.
+ *
+ * SUI_PLATFORM_ARDUINOSTANDARD: regular Arduino/Arduino-compatible.
+ *  Is the default and will usually just work(tm)
+ *
+ * SUI_PLATFORM_ARDUINO_DUE:	What it says, Arduino Due.
+ *
+ *
+ * SUI_PLATFORM_RBLNRF51822: nRF51822-centered Arduino SDK, by
+ * RedBearLab, for things like the BLE Nano http://redbearlab.com/blenano/
+ *
+ *
+ * SUI_PLATFORM_DIGISPARKUSB:  DigiSpark, needs testing/work.
+ *
+ * NOTE: for SUI_PLATFORM_DIGISPARKUSB, I've had to add a
+ * 	#include <DigiUSB.h>
+ * at the top of my sketch to get it to compile at all...
+ */
+#define SUI_PLATFORM_ARDUINOSTANDARD
+// #define SUI_PLATFORM_ARDUINO_DUE
+// #define SUI_PLATFORM_RBLNRF51822
+// #define SUI_PLATFORM_DIGISPARKUSB
+
+
+
+
+
+
 
 
 #define SERIAL_UI_VERSION			1
-#define SERIAL_UI_SUBVERSION		13
+#define SERIAL_UI_SUBVERSION		14
+#define SERIAL_UI_PATCHLEVEL		0
+
+
+
+
 
 /* *********************** DEFAULT VALUES *********************** */
 
@@ -297,28 +336,47 @@
 #define SUI_STATE_TRACKER_MAX_VARIABLES		8
 
 
+
 /*
- * SUI_PLATFORM_X
+ * SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS
  *
- * Define ONE OF the available SUI_PLATFORM_X values to select the serial
- * implementation platform.
+ * Used when a call to checkForUser(TIMEOUTMS) is made with some
+ * positive TIMEOUTMS value.
  *
- * Only SUI_PLATFORM_ARDUINOSERIAL working for now, SUI_PLATFORM_DIGISPARKUSB is
- * a work in-progress for digistump Digispark USB serial comm... not sure
- * I'll be able to get it usable in such a tight space (a whole
- * 6k of flash available!!1!).
- *
- * NOTE: for SUI_PLATFORM_DIGISPARKUSB, I've had to add a
- * 	#include <DigiUSB.h>
- * at the top of my sketch to get it to compile at all...
+ * When TIMEOUTMS == 0, the call returns immediately with a boolean
+ * indicating presence of user.  With TIMEOUTMS > 0, the check will
+ * simply:
+ * 	* either return true, if a user is around
+ * 	* wait for SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS and check
+ * 	  again, until we hit the TIMOUTMS total.
  */
-//#define SUI_PLATFORM_DIGISPARKUSB
-#define SUI_PLATFORM_ARDUINOSERIAL
+#define SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS		1
+
+
+
+
+
+
+
+// default "Serial" implementation to use
+#define SUI_PLATFORM_HARDWARESERIAL_DEFAULT		Serial
+
+
+
+
+
+// a bit of flag management, here, nothing to configure
+
+#ifdef SUI_PLATFORM_ARDUINO_DUE
+// is actually just standard Arduino +
+// the SUI_BUILD_FOR_DUE flag
+#define SUI_PLATFORM_ARDUINOSTANDARD
 
 /* SUI_BUILD_FOR_DUE
-* If you're building for a DUE, please uncomment this line:
 */
-//#define SUI_BUILD_FOR_DUE
+#define SUI_BUILD_FOR_DUE
+
+#endif
 
 
 
@@ -337,7 +395,7 @@
 #undef SUI_MENU_ENABLE_SUBMENUS
 #undef SUI_ENABLE_MODES
 
-#undef SUI_PLATFORM_ARDUINOSERIAL
+#undef SUI_PLATFORM_ARDUINOSTANDARD
 #define SUI_PLATFORM_DIGISPARKUSB
 #endif
 
@@ -359,4 +417,4 @@
 											(SERIAL_UI_VERSION > v))
 
 
-#endif /* SUIConfig_h */
+#endif /* SERIAL_UI_CONFIGURATION_H_ */

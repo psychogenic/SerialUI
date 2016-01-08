@@ -27,8 +27,13 @@
  *
  */
 
-#ifndef SUIPlat_ArduinoSerial_h
-#define SUIPlat_ArduinoSerial_h
+#ifndef SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_
+#define SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_
+
+#include "../SUIConfig.h"
+
+
+#ifdef SUI_PLATFORM_ARDUINOSTANDARD
 
 
 // system/avr includes
@@ -39,14 +44,13 @@
 
 #else
 
-#include <avr/pgmspace.h>
-#include "Arduino.h"
+#ifdef SUI_BUILD_FOR_DUE
+
 
 // For Due, it seems all the *_P() functions
 // are simply defined as their regular equivalents, but
 // there's no strncpy_P and strncmp_P defined, so we
 // create aliases in that case:
-#ifdef SUI_BUILD_FOR_DUE
 #ifndef strncpy_P
 #define strncpy_P(to, from, s)		strncpy(to, from, s)
 #endif
@@ -54,13 +58,34 @@
 #ifndef strncmp_P
 #define strncmp_P(a, b, s)			strncmp(a,b,s)
 #endif
+
+#define SUI_CONVERT_FLOAT_TO_STRING_AND_RETLEN(fl, intoptr)	sprintf(intoptr, "%.2f", fl);
+
+#else
+#define SUI_CONVERT_FLOAT_TO_STRING_AND_RETLEN(fl, intoptr) SUI::_ard_float2str_and_len(fl, intoptr)
 #endif
+
+#include <avr/pgmspace.h>
+#include "Arduino.h"
+
 
 #endif
 
 
 // SUI is the namespace in which we keep all our goodies.
 namespace SUI {
+
+#ifndef SUI_PLATFORM_ARDUINO_DUE
+inline size_t _ard_float2str_and_len(double fl, char * intoptr) {
+		return strlen(dtostrf(fl, 5, 2, intoptr));
+	}
+#endif
+
+typedef Stream SerialUIStreamBaseType;
+
+// used the standard base implementation of the SUIStream
+#define SUI_BASEIMPLEMENTATION_STANDARD
+#define SUI_SUISTREAM_NEEDSVIRTUAL
 
 typedef Stream StreamInstanceType;
 
@@ -89,40 +114,10 @@ private:
 
 };
 
-/*
- * class SUIStream -- a streaming class based on Arduino Stream.
- *
- * In this case, there's nothing to do--we can use Stream as-is so
- * we just derive a class from Stream and leave it empty.
- */
 
-
-#define SUI_SUISTREAM_NEEDSVIRTUAL
-class SUIStream : public Stream
-{
-public:
-	// nothing to do
-	virtual ~SUIStream() {}
-
-	unsigned long timeout();
-	void setTimeout(unsigned long timeout);
-
-	// parseULong -- gives us access to large valued ints (unsigned)
-	unsigned long parseULong(char skipChar);
-	unsigned long parseULong();
-
-	// parseInHex -- allows us to parse hex ints like 3e and F3D9
-	unsigned long parseIntHex();
-	unsigned long parseIntHex(char skipChar);
-
-private:
-	int timedPeek();
-
-	int peekNextDigit(bool includeHex=false);
-	unsigned long timeout_ms;
-};
 
 } /* end namespace SUI */
 
+#endif /* SUI_PLATFORM_ARDUINOSTANDARD */
 
-#endif /* SUIPlat_ArduinoSerial_h */
+#endif /* SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_ */

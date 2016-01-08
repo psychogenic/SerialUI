@@ -32,7 +32,7 @@
 #ifdef SUI_PLATFORM_DIGISPARKUSB
 // only include this stuff if we're actually using this platform...
 
-#include "includes/SUIPlat_DigiUSB.h"
+#include "includes/platform/DigiUSB.h"
 
 namespace SUI {
 int StreamImplementation::peeked = -1;
