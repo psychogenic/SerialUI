@@ -1,6 +1,6 @@
 /*
  *
- * SUIPlattform.h -- SerialUI system platform-specifics.
+ * SUIPlatform.h -- SerialUI system platform-specifics.
  * Copyright (C) 2013 Pat Deegan.  All rights reserved.
  *
  *
@@ -27,13 +27,24 @@
  *
  */
 
-#ifndef SUIPlatform_h
-#define SUIPlatform_h
+#ifndef SERIALUI_PLATFORM_MAIN_H_
+#define SERIALUI_PLATFORM_MAIN_H_
 
 #include "SUIConfig.h"
+#include "SUIExtIncludes.h"
+#include "platform/PlatformExtIncludes.h"
 
-#ifdef SUI_PLATFORM_ARDUINOSTANDARD
-#include "platform/ArduinoSerial.h"
+#ifdef SUI_PLATFORM_ESP8266
+#include "platform/ESP8266.h"
+#endif
+
+
+#ifdef SUI_PLATFORM_ARDUINO_AVR
+#include "platform/ArduinoAVR.h"
+#endif
+
+#ifdef  SUI_PLATFORM_ARDUINO_SAM
+#include "platform/ArduinoSAM.h"
 #endif
 
 #ifdef SUI_PLATFORM_DIGISPARKUSB
@@ -52,4 +63,41 @@
 #endif
 
 
-#endif /* SUIPlatform_H */
+
+#ifdef SUI_BUILDFOR_ARDUINO_STANDARD
+// may get included by in addition to one
+// of the above, in a few cases.
+#include "platform/ArduinoStandard.h"
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+//if ( (SUI_FLASHSTRING_PTR) != SUI_PROGMEM_PTR)
+#if 0
+#define PRINT_FLASHSTR(...)		print_P(__VA_ARGS__)
+#define PRINTLN_FLASHSTR(...)	println_P(__VA_ARGS__)
+#define STRLEN_FLASHSTR(...)	strlen_P(__VA_ARGS__)
+#define STRCAT_FLASHSTR(...)	strcat_P(__VA_ARGS__)
+#define STRCMP_FLASHSTR(...)	strcmp_P(__VA_ARGS__)
+#define STRNCMP_FLASHSTR(...)	strncmp_P(__VA_ARGS__)
+#else
+#define PRINT_FLASHSTR(...)		print(__VA_ARGS__)
+#define PRINTLN_FLASHSTR(...)	println(__VA_ARGS__)
+#define STRLEN_FLASHSTR(...)	strlen(reinterpret_cast<const char *>(__VA_ARGS__))
+#define STRCAT_FLASHSTR(a, b)	strcat(reinterpret_cast<char *>(a), reinterpret_cast<const char *>(b))
+#define STRCMP_FLASHSTR(a, b)	strcmp(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b))
+#define STRNCMP_FLASHSTR(a, b, len)	strncmp(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b), (len))
+
+#endif
+
+
+#endif /* SERIALUI_PLATFORM_MAIN_H_ */

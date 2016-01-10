@@ -8,55 +8,18 @@
  */
 
 
-#include "includes/SUIStream.h"
+#include "includes/SUIPlatform.h"
 
 #ifdef SUI_BASEIMPLEMENTATION_STANDARD
+
+#include "includes/stream/SUIStream.h"
 namespace SUI {
-
-
-// default to using standard HardwareSerial as implementation stream to use.
-StreamInstanceType * StreamImplementation::stream_to_use = &(SUI_PLATFORM_HARDWARESERIAL_DEFAULT);
-bool StreamImplementation::stream_to_use_override = false;
-
-void StreamImplementation::setStream(StreamInstanceType * strm) {
-	stream_to_use = strm;
-	stream_to_use_override = true;
-}
-
-void StreamImplementation::begin(unsigned long speed) {
-
-
-   	if (!stream_to_use_override)
-	{
-   		// when overridden, it's your responsibility to
-   		// begin()... here, there's no override used,
-   		// so we make the call ourselves.
-   		SUI_PLATFORM_HARDWARESERIAL_DEFAULT.begin(speed);
-   	}
-   	// we also set a sane timeout for reads, as this was causing issues
-   	// assuming code will call begin() prior to setTimeout() (if used)
-   	stream_to_use->setTimeout(SUI_SERIALUI_READBYTES_TIMEOUT_DEFAULT_MS);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #define NO_SKIP_CHAR  1
 size_t SUIStream::write(uint8_t i)
 {
-	return StreamImplementation::write(i);
+	return streamDelegate->write(i);
 }
 
 long SUIStream::parseInt(char skipChar)
@@ -64,7 +27,7 @@ long SUIStream::parseInt(char skipChar)
 	return SerialUIStreamBaseType::parseInt(skipChar);
 }
 unsigned long SUIStream::timeout() { return timeout_ms; }
-void SUIStream::setTimeout(unsigned long timeout) { timeout_ms = timeout ; StreamInstanceType::setTimeout(timeout); }
+void SUIStream::setTimeout(unsigned long timeout) { timeout_ms = timeout ; streamDelegate->setTimeout(timeout); }
 
 unsigned long SUIStream::parseULong()
 {

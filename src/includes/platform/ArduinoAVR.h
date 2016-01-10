@@ -23,53 +23,17 @@
  *
  * ************************* OVERVIEW *************************
  *
- * Implementation for serial using DigiUSB -- NOT WORKING/compiling
- * too large for Digispark.
+ * Here we'll store all the platform-specific includes and structures.
  *
  */
-#include "includes/SUIConfig.h"
 
-#ifdef SUI_PLATFORM_DIGISPARKUSB
-// only include this stuff if we're actually using this platform...
-
-#include "includes/platform/DigiUSB.h"
-
-namespace SUI {
-int StreamDelegate::peeked = -1;
-
-int StreamDelegate::read() {
-	int retval = -1;
-	if (peeked != -1) {
-
-		retval = peeked;
-		peeked = -1;
-	} else {
-		retval = DigiUSB.read();
-	}
-
-	return retval;
-}
-
-int StreamDelegate::peek() {
-	int retval = -1;
-
-	if (peeked == -1)
-	{
-
-		peeked  = read();
-	}
-
-	return peeked;
-}
-
-void StreamDelegate::flush()
-{
-	peeked = -1;
-	return;
-}
+#ifndef SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_
+#define SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_
+// specifically Arduino *AVR* (mega/xmega)
 
 
-}
+#define SUI_FLASHSTRING_PTR		const __FlashStringHelper*
+#define SUI_PROGMEM_PTR			PGM_P
+//#define SUI_FLASHSTRING_PTR		PGM_P
 
-#endif
-
+#endif /* SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_ */

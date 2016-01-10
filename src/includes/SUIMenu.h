@@ -75,22 +75,22 @@ namespace SUI
 	typedef void (*MenuCommand_Callback)(void);
 
 	typedef struct MenuItemDetailsStruct {
-		PGM_P key_str;
+		SUI_FLASHSTRING_PTR key_str;
 		MenuCommand_Callback callback;
-		PGM_P help_str;
-		MenuItemDetailsStruct(PGM_P key, MenuCommand_Callback cb, PGM_P help=NULL);
+		SUI_FLASHSTRING_PTR help_str;
+		MenuItemDetailsStruct(SUI_FLASHSTRING_PTR key, MenuCommand_Callback cb, SUI_FLASHSTRING_PTR help=NULL);
 
 	} MenuItemDetails ;
 
 	typedef struct MenuItemStruct {
-		PGM_P key;
-		PGM_P help;
+		SUI_FLASHSTRING_PTR key;
+		SUI_FLASHSTRING_PTR help;
 		uint8_t key_size;
 		Menu * subMenu;
 		MenuCommand_Callback command;
 
 		MenuItemStruct();
-		MenuItemStruct(PGM_P key_pstr, PGM_P help_pstr,
+		MenuItemStruct(SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
 				Menu * submenu_ptr, MenuCommand_Callback cmd_ptr);
 
 
@@ -126,7 +126,7 @@ namespace SUI
 			 * Return:  returns boolean true on success, false if command could not
 			 *          be added.
 			 */
-			bool addCommand(PGM_P key_str, MenuCommand_Callback callback, PGM_P help_str=NULL);
+			bool addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback, SUI_FLASHSTRING_PTR help_str=NULL);
 
 			bool addCommands(MenuItemDetails detailsList[], uint8_t number);
 
@@ -146,19 +146,19 @@ namespace SUI
 			 *          could not be created.
 			 *
 			 */
-			Menu * subMenu(PGM_P key_str, PGM_P help_str=NULL);
+			Menu * subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str=NULL);
 #endif
 
 			/*
 			 * name()
 			 * Returns: the menu name (progmem, i.e. SUI_DeclareString-created) string.
 			 */
-			PGM_P name();
+			SUI_FLASHSTRING_PTR name();
 			/*
 			 * setName(NAME)
 			 * Sets the menu name to (progmem,  i.e. SUI_DeclareString-created) string.
 			 */
-			void setName(PGM_P namestr);
+			void setName(SUI_FLASHSTRING_PTR namestr);
 
 
 			/*
@@ -182,7 +182,7 @@ namespace SUI
 			 * Return (prints out) MESSAGE, which is a
 			 * progmem,  i.e. SUI_DeclareString-created, string.
 			 */
-			void returnMessage(PGM_P message) ;
+			void returnMessage(SUI_FLASHSTRING_PTR message) ;
 
 
 			/*
@@ -201,13 +201,22 @@ namespace SUI
 			 * otherwise.
 			 */
 			void returnError(const char * errmsg=NULL);
+
+
+			void returnError(SUI_FLASHSTRING_PTR errmsg);
+
 			/*
 			 * returnError(ERRORMESSAGE)
 			 * Return (prints out) an error message.
 			 * This version is useful if you have ERRORMESSAGE in progmem
 			 * (e.g. declared with SUI_DeclareString)
 			 */
-			void returnError_P(PGM_P errmsg) ;
+
+#ifdef SUI_PROGMEM_PTR
+			void returnError_P(SUI_PROGMEM_PTR errmsg) ;
+
+#endif
+
 
 			/*
 			 * showName()
@@ -232,7 +241,7 @@ namespace SUI
 
 		private:
 			SerialUI * sui_driver;
-			PGM_P menu_name;
+			SUI_FLASHSTRING_PTR menu_name;
 			uint8_t num_menu_items;
 			uint8_t max_menu_items;
 			uint8_t expand_list_amount;
@@ -284,14 +293,14 @@ namespace SUI
 			 * 	SerialUI::topLevelMenu()
 			 * and use Menu::subMenu() to create sub-menus properly.
 			 */
-			Menu(SerialUI * SUIDriver, PGM_P name, uint8_t num_items_hint=0, Menu* parent_menu_ptr=NULL);
+			Menu(SerialUI * SUIDriver, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint=0, Menu* parent_menu_ptr=NULL);
 			Menu();
 
 			/*
 			 * init
 			 * Performs Menu initialisation, used internally when malloc'ing Menus.
 			 */
-			void init(SerialUI * SUIdrv, PGM_P name, uint8_t num_items_hint, Menu * parent);
+			void init(SerialUI * SUIdrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent);
 
 
 

@@ -14,7 +14,7 @@
 
 #ifdef PLATFORM_DESKTOP
 
-#define PGM_P	const char *
+#define SUI_FLASHSTRING_PTR	const char *
 
 #define SUI_CONVERT_FLOAT_TO_STRING_AND_RETLEN(fl, intoptr) 0
 
@@ -41,18 +41,18 @@ typedef DummyStream SerialUIStreamBaseType;
 
 // used the standard base implementation of the SUIStream
 #define SUI_BASEIMPLEMENTATION_STANDARD
-#define SUI_SUISTREAM_NEEDSVIRTUAL
+
 
 typedef DummyStream StreamInstanceType;
 
 
 /*
- * StreamImplementation -- wraps all the uses of Serial in a single place,
+ * StreamDelegate -- wraps all the uses of Serial in a single place,
  * to ease implementation of different types of comm.
  * All you need are the following 7 methods to behave like Serial (HardwareSerial.h)
  * methods and the rest should just work.
  */
-class StreamImplementation {
+class StreamDelegate {
 
 public:
 	static void setStream(StreamInstanceType * strm);

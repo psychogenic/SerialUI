@@ -10,7 +10,8 @@
 #ifndef SERIALUI_SRC_INCLUDES_SUISTREAM_H_
 #define SERIALUI_SRC_INCLUDES_SUISTREAM_H_
 
-#include "SUIPlatform.h"
+#include "../SUIPlatform.h"
+#include "Delegate.h"
 
 
 namespace SUI {
@@ -18,9 +19,9 @@ namespace SUI {
 class SUIStream : public SerialUIStreamBaseType
 {
 public:
-#ifdef SUI_SUISTREAM_NEEDSVIRTUAL
+	SUIStream(StreamDelegate * useDelegate) : timeout_ms(0), streamDelegate(useDelegate) {}
 	virtual ~SUIStream() {}
-#endif
+
 
 	unsigned long timeout();
 	void setTimeout(unsigned long timeout);
@@ -35,11 +36,19 @@ public:
 
 	virtual size_t write(uint8_t i);
 	virtual long parseInt(char skipChar=1);
+
+protected:
+
+	inline void useDelegate(StreamDelegate * d) { streamDelegate = d;}
+	inline StreamDelegate * delegate() { return streamDelegate;}
+
 private:
 	int timedPeek();
 
 	int peekNextDigit(bool includeHex=false);
 	unsigned long timeout_ms;
+	StreamDelegate * streamDelegate;
+
 };
 
 

@@ -40,26 +40,24 @@
  *
  */
 
-#ifndef SerialUI_Strings
-#define SerialUI_Strings
+#ifndef SERIAL_UI_STRINGS_EN_H_
+#define SERIAL_UI_STRINGS_EN_H_
 
 
 
-#define SUI_SERIALUI_TOP_MENU_NAME			"HAUT"
+#define SUI_SERIALUI_TOP_MENU_NAME			"TOP"
 
 
 // built-in commands
-
-#define SUI_SERIALUI_HELP_HELP				"Enumerer selections disponible (aide)"
-#define SUI_SERIALUI_UP_HELP				"Monter de niveau"
-#define SUI_SERIALUI_EXIT_HELP				"Quitter SerialUI"
+#define SUI_SERIALUI_HELP_HELP				"List available menu items"
+#define SUI_SERIALUI_UP_HELP				"Move up to parent menu"
+#define SUI_SERIALUI_EXIT_HELP				"Exit SerialUI"
 
 // help-related
-#define SUI_SERIALUI_HELP_HINT				"Entrez '?' pour les options disponible"
-#define SUI_SERIALUI_SUBMENU_HELP			"Aller au sous-repertoire"
+#define SUI_SERIALUI_HELP_HINT				"Enter '?' for available options"
+#define SUI_SERIALUI_SUBMENU_HELP			"Enter sub-menu"
 
-#define SUI_SERIALUI_HELP_TITLE_PREFIX		"*** Aide pour: "
-
+#define SUI_SERIALUI_HELP_TITLE_PREFIX		"*** Help for: "
 
 // prompts
 #define SUI_SERIALUI_MOREDATA_STRING_PROMPT			"... "
@@ -71,10 +69,8 @@
 
 
 // errors
-#define SUI_SERIALUI_UNKNOWN_SELECTION		" Selection inconnue '"
-#define SUI_SERIALUI_UNKNOWN_INMENU			"' dans le menu: "
-
-// TODO: Translate these?
+#define SUI_SERIALUI_UNKNOWN_SELECTION		" Unknown selection '"
+#define SUI_SERIALUI_UNKNOWN_INMENU			"' in menu: "
 #define SUI_ERRORMSG_SUIGREETING_TOOLONG	"SUI greeting overflow"
 #define SUI_ERRORMSG_MENUNAME_TOOLONG		"Menu name overflow"
 #define SUI_ERRORMSG_MENUITEM_KEY_TOOLONG 	"Menu item key overflow"
@@ -84,5 +80,6 @@
 #define SUI_ERRORMSG_CANTALLOCATE_KEY		"Couldn't allocate space for key"
 #define SUI_ERRORMSG_NO_MENUITEMS_SET		"No menu items have been set"
 
-
 #endif
+
+

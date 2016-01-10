@@ -66,13 +66,13 @@ inline size_t _ard_float2str_and_len(double fl, char * intoptr) {
 	}
 
 /*
- * StreamImplementation -- wraps all the uses of Serial in a single place,
+ * StreamDelegate -- wraps all the uses of Serial in a single place,
  * to ease implementation of different types of comm.
  * All you need are the following 7 methods to behave like Serial (HardwareSerial.h)
  * methods and the rest should just work.
  */
 
-class StreamImplementation {
+class StreamDelegate {
 
 public:
 

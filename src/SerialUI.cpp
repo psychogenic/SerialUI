@@ -29,7 +29,7 @@
 
 #ifdef SUI_INCLUDE_DEBUG
 // debug is ON, call the debug() method:
-#define SERIALUI_DEBUG(msg)		debug(msg);
+#define SERIALUI_DEBUG(msg)		debug(F(msg));
 #else
 // debug is OFF, nullify all the debug output:
 #define SERIALUI_DEBUG(msg)		;
@@ -39,31 +39,18 @@
 
 namespace SUI {
 
-// a few strings we'll need here (only)
-SUI_DeclareString(top_menu_name, SUI_SERIALUI_TOP_MENU_NAME);
-SUI_DeclareString(prompt_str, SUI_SERIALUI_PROMPT);
-
-SUI_DeclareString(moredata_prompt_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT);
-SUI_DeclareString(moredata_prompt_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT);
-SUI_DeclareString(moredata_prompt_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT);
-
-#ifdef SUI_ENABLE_MODES
-SUI_DeclareString(end_of_tx_str, SUI_SERIALUI_PROG_ENDOFTRANSMISSION);
-SUI_DeclareString(moredata_prompt_prog_str, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
-SUI_DeclareString(moredata_prompt_prog_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
-SUI_DeclareString(moredata_prompt_prog_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG);
-SUI_DeclareString(terminate_gui_prog, SUI_SERIALUI_TERMINATE_GUI_PROG);
-
-#ifdef SUI_ENABLE_STATE_TRACKER
-SUI_DeclareString(tracked_state_prog_prefix, SUI_SERIALUI_TRACKEDSTATE_PREFIX_PROG);
-#endif
-
-#endif
+// Our default delegate... this is basically a wrapper around our
+// Serial port... the indirection allows little gain in the standard
+// setup (AVR-based Arduino) but it gives us some flexibility we can use
+// for other platforms and for some neat tricks--like "wireless" serial ports etc.
+static StreamDelegate _suiDefaultDelegate(&SUI_PLATFORM_HARDWARESERIAL_DEFAULT);
 
 
-SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint, StreamInstanceType * underlying_stream) :
+SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
+		SerialUIUnderlyingStreamType * underlying_stream) :
+		SUI::SUIStream(&_suiDefaultDelegate),
 		output_mode(SUIMode_User),
-		greeting_msg(greeting_message),top_lev_menu(), current_menu(NULL),
+		greeting_msg(NULL),top_lev_menu(), current_menu(NULL),
 				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
 				user_presence_last_interaction_ms(0),
@@ -78,22 +65,62 @@ SerialUI::SerialUI(PGM_P greeting_message, uint8_t num_top_level_menuitems_hint,
 				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
 				heartbeat_function_last_called(0),
 #endif
-				menu_manual_override(false)
+				menu_manual_override(false),
+				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
 {
+
+	doInit(num_top_level_menuitems_hint, underlying_stream);
+}
+
+
+#ifdef SUI_PROGMEM_PTR
+SerialUI::SerialUI(SUI_PROGMEM_PTR greeting_message, uint8_t num_top_level_menuitems_hint,
+		SerialUIUnderlyingStreamType * underlying_stream) :
+		SUI::SUIStream(&_suiDefaultDelegate),
+		output_mode(SUIMode_User),
+		greeting_msg(SUI_STR("Use v2.0 SerialUI API")),top_lev_menu(), current_menu(NULL),
+				user_check_performed(false), user_present(false),
+				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
+				user_presence_last_interaction_ms(0),
+				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT),
+#ifdef SUI_SERIALUI_ECHO_ON
+				echo_commands(true),
+#else
+				echo_commands(false),
+#endif
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+				heartbeat_function_cb(NULL),
+				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
+				heartbeat_function_last_called(0),
+#endif
+				menu_manual_override(false),
+				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
+{
+
+	doInit(num_top_level_menuitems_hint, underlying_stream);
+}
+
+#endif
+
+
+void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SerialUIUnderlyingStreamType * underlying_stream)
+{
+
+
 
 	if (underlying_stream != NULL)
 	{
-		StreamImplementation::setStream(underlying_stream);
+		delegate()->setStream(underlying_stream);
 	}
 
-	top_lev_menu.init(this, top_menu_name, num_top_level_menuitems_hint, NULL);
+	top_lev_menu.init(this, SUI_STR(SUI_SERIALUI_TOP_MENU_NAME), num_top_level_menuitems_hint, NULL);
 
 	current_menu = &top_lev_menu;
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
 	if (greeting_msg
-			&& strlen_P(greeting_msg) > SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN) {
-		current_menu->returnMessage(PSTR(SUI_ERRORMSG_SUIGREETING_TOOLONG));
+			&& STRLEN_FLASHSTR(greeting_msg) > SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN) {
+		greeting_msg = SUI_STR(SUI_ERRORMSG_SUIGREETING_TOOLONG);
 	}
 #endif
 
@@ -155,21 +182,17 @@ void SerialUI::enter() {
 }
 
 
-SUI_DeclareString(goodbye,
-		"\r\nThanks for using SerialUI! Goodbye.");
-
 
 void SerialUI::exit(bool terminate_gui)
 {
-
 #ifdef SUI_ENABLE_MODES
 
 	if (mode() == SUIMode_Program) {
 
 		if (terminate_gui)
-			println_P(terminate_gui_prog);
+			PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_TERMINATE_GUI_PROG));
 
-		println_P(end_of_tx_str);
+		PRINTLN_FLASHSTR(end_of_tx_str);
 
 
 		// ensure we always restart in "user" mode...
@@ -179,7 +202,8 @@ void SerialUI::exit(bool terminate_gui)
 
 #endif
 	{
-		returnMessage(goodbye);
+
+		returnMessage(SUI_STR("\r\nThanks for using SerialUI! Goodbye."));
 	}
 	user_present = false;
 	user_presence_last_interaction_ms = 0;
@@ -189,7 +213,7 @@ void SerialUI::exit(bool terminate_gui)
 
 }
 
-Menu * SerialUI::topLevelMenu(PGM_P setNameTo) {
+Menu * SerialUI::topLevelMenu(SUI_FLASHSTRING_PTR setNameTo) {
 	if (setNameTo) {
 		top_lev_menu.setName(setNameTo);
 	}
@@ -324,12 +348,12 @@ void SerialUI::showPrompt() {
 #endif
 
 
-	print_P(prompt_str);
+	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_PROMPT));
 #ifdef SUI_ENABLE_MODES
 	if (mode() == SUIMode_Program)
 	{
 		println(' ');
-		println_P(end_of_tx_str);
+		PRINTLN_FLASHSTR(end_of_tx_str);
 		// return;
 	}
 #endif
@@ -344,13 +368,14 @@ void SerialUI::showEnterDataPrompt() {
 	if (mode() == SUIMode_Program)
 	{
 
-		println_P(moredata_prompt_prog_str);
-		println_P(end_of_tx_str);
+		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG));
+		// PRINTLN_FLASHSTR(moredata_prompt_prog_str);
+		PRINTLN_FLASHSTR(end_of_tx_str);
 		return;
 	}
 #endif
 
-	print_P(moredata_prompt_str);
+	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT));
 }
 
 
@@ -361,13 +386,17 @@ void SerialUI::showEnterNumericDataPrompt() {
 	if (mode() == SUIMode_Program)
 	{
 
-		println_P(moredata_prompt_prog_num);
-		println_P(end_of_tx_str);
+		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG));
+		PRINTLN_FLASHSTR(end_of_tx_str);
+		/*
+		PRINTLN_FLASHSTR(moredata_prompt_prog_num);
+		PRINTLN_FLASHSTR(end_of_tx_str);
+		*/
 		return;
 	}
 #endif
 
-	print_P(moredata_prompt_num);
+	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT));
 
 
 }
@@ -382,12 +411,12 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 	if (mode() == SUIMode_Program)
 	{
 
-		println_P(moredata_prompt_prog_stream);
-		println_P(end_of_tx_str);
+		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG));
+		PRINTLN_FLASHSTR(end_of_tx_str);
 	} else {
 #endif
 
-	print_P(moredata_prompt_stream);
+	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT));
 #ifdef SUI_ENABLE_MODES
 	}
 #endif
@@ -458,7 +487,10 @@ void SerialUI::setEchoCommands(bool setTo)
 	return function(value);
 #endif
 
-size_t SerialUI::print_P(PGM_P message) {
+
+
+#ifdef SUI_PROGMEM_PTR
+size_t SerialUI::print_P(SUI_PROGMEM_PTR message) {
 	char p_buffer[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN + 1];
 	strncpy_P(p_buffer, message, SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN);
 
@@ -467,7 +499,7 @@ size_t SerialUI::print_P(PGM_P message) {
 }
 
 
-size_t SerialUI::println_P(PGM_P message) {
+size_t SerialUI::println_P(SUI_PROGMEM_PTR message) {
 	char p_buffer[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN + 1];
 	strncpy_P(p_buffer, message, SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN);
 
@@ -475,7 +507,16 @@ size_t SerialUI::println_P(PGM_P message) {
 
 
 }
+#ifdef SUI_INCLUDE_DEBUG
 
+void SerialUI::debug_P(SUI_PROGMEM_PTR debugmesg_p)
+{
+	print_P(SUI_STR("DEBUG: "));
+	println_P(debugmesg_p);
+
+}
+#endif
+#endif
 
 #ifdef SUI_ENABLE_STATE_TRACKER
 void SerialUI::initStateTrackedVars() {
@@ -492,7 +533,7 @@ int8_t SerialUI::stateTrackedVarsNextAvailableSlot() {
 
 }
 
-int8_t SerialUI::addStateTracking(PGM_P name, TrackedType type, void* var)
+int8_t SerialUI::addStateTracking(SUI_FLASHSTRING_PTR name, TrackedType type, void* var)
 {
 	int8_t slot = stateTrackedVarsNextAvailableSlot();
 	if (slot < 0)
@@ -539,8 +580,8 @@ bool SerialUI::showTrackedState()
 			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
 			outBuf[totlen] = '\0';
 
-			strcat_P(outBuf, stateTrackedVars[idx]->name);
-			totlen += strlen_P(stateTrackedVars[idx]->name);
+			STRCAT_FLASHSTR(outBuf, stateTrackedVars[idx]->name);
+			totlen += STRLEN_FLASHSTR(stateTrackedVars[idx]->name);
 
 			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
 			outBuf[totlen] = '\0';
@@ -593,7 +634,7 @@ bool SerialUI::showTrackedState()
 		}
 
 
-		print_P(tracked_state_prog_prefix);
+		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_TRACKEDSTATE_PREFIX_PROG));
 		print(strlen(outBuf) + 1);
 		print(SUI_SERIALUI_PROG_STR_SEP_CHAR);
 		println(outBuf);
@@ -634,23 +675,24 @@ void SerialUI::showFreeRAM()
 {
 	  extern int __heap_start, *__brkval;
 	  int v;
-	  print_P(PSTR("Free RAM: "));
+	  PRINT_FLASHSTR(SUI_STR("Free RAM: "));
 	  println(freeRAM());
 
 }
 
 void SerialUI::debug(const char * debugmsg)
 {
-	print_P(PSTR("DEBUG: "));
+	PRINT_FLASHSTR(SUI_STR("DEBUG: "));
 	println(debugmsg);
 }
 
-void SerialUI::debug_P(PGM_P debugmesg_p)
+void SerialUI::debug(SUI_FLASHSTRING_PTR debugmsg)
 {
-	print_P(PSTR("DEBUG: "));
-	println_P(debugmesg_p);
 
+	PRINT_FLASHSTR(SUI_STR("DEBUG: "));
+	println(debugmsg);
 }
+
 } /* end namespace SUI */
 #endif
 

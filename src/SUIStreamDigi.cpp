@@ -7,10 +7,10 @@
  *      Copyright (C) 2015 Pat Deegan, http://psychogenic.com
  */
 
-#include "includes/SUIStream.h"
-
+#include "includes/SUIPlatform.h"
 #ifdef SUI_PLATFORM_DIGISPARKUSB
 
+#include "includes/stream/SUIStream.h"
 namespace SUI {
 
 

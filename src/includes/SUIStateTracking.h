@@ -12,8 +12,8 @@
 
 #ifdef BUILDING_DRUID
 
-#ifndef PGM_P
-#define PGM_P	char *
+#ifndef SUI_FLASHSTRING_PTR
+#define SUI_FLASHSTRING_PTR	char *
 #endif
 #else
 
@@ -32,7 +32,7 @@ typedef enum TrackedTypeEnum {
 typedef struct TrackedStateVariableDetailsStruct {
 
 	TrackedType type;
-	PGM_P name;
+	SUI_FLASHSTRING_PTR name;
 	union {
 		float * ptr_float;
 		unsigned long *	ptr_int;
@@ -45,7 +45,7 @@ typedef struct TrackedStateVariableDetailsStruct {
 		bool	lastval_bool;
 	};
 
-	TrackedStateVariableDetailsStruct(PGM_P name, TrackedType type, void * variable );
+	TrackedStateVariableDetailsStruct(SUI_FLASHSTRING_PTR name, TrackedType type, void * variable );
 
 	bool hasChanged();
 

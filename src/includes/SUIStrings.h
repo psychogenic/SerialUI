@@ -34,11 +34,11 @@
 #include "SUIConfig.h"
 
 #ifdef SUI_STRINGS_LANGUAGE_EN
-#include "SUIStrings_en.h"
+#include "strings/SUIStrings_en.h"
 #endif
 
 #ifdef SUI_STRINGS_LANGUAGE_FR
-#include "SUIStrings_fr.h"
+#include "strings/SUIStrings_fr.h"
 #endif
 
 /* Strings common to all languages,  these are relied on by SerialGUI, and best left un-changed */

@@ -57,8 +57,15 @@
 #define SUI_MENU_PROGMEM_STRING_ABS_MAXLEN		SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN
 
 #ifdef SUI_INCLUDE_DEBUG
+
 // debug is ON
+
+#if 0
+DEADBEEF
 #define SUI_MENU_DEBUG_OUTPUT(msg)	sui_driver->debug_P(PSTR(msg));
+#else
+#define SUI_MENU_DEBUG_OUTPUT(msg)	sui_driver->debug(F(msg));
+#endif
 #else
 // debug is OFF, send debug messages into the void
 #define SUI_MENU_DEBUG_OUTPUT(msg) ;
@@ -68,6 +75,8 @@
 
 namespace SUI {
 
+#if 0
+DEADBEEF ...
 SUI_DeclareString(help_key, SUI_SERIALUI_HELP_KEY);
 SUI_DeclareString(help_help, SUI_SERIALUI_HELP_HELP);
 
@@ -104,13 +113,7 @@ SUI_DeclareString(error_nomenuitems, SUI_ERRORMSG_NO_MENUITEMS_SET);
 
 #endif
 
-#ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
-#ifdef SUI_MENU_ENABLE_SUBMENUS
-// dynamic memory is DISABLED and we want sub-menus
-Menu Menu::submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM] = {};
-uint8_t Menu::submenu_static_idx = 0;
-#endif
-#endif
+
 
 
 #ifdef SUI_ENABLE_MODES
@@ -144,9 +147,105 @@ SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
 #endif
 
 
+#endif /* DEADBEEF */
+
+
+#define help_key SUI_STR(SUI_SERIALUI_HELP_KEY)
+#define help_help SUI_STR(SUI_SERIALUI_HELP_HELP)
+
+#ifdef SUI_MENU_ENABLE_SUBMENUS
+#define up_key SUI_STR(SUI_SERIALUI_UP_KEY)
+#define up_help SUI_STR(SUI_SERIALUI_UP_HELP)
+#define submenu_help SUI_STR(SUI_SERIALUI_SUBMENU_HELP)
+#endif
+
+#define help_title_prefix SUI_STR(SUI_SERIALUI_HELP_TITLE_PREFIX)
+#define help_key_commandprefix SUI_STR(SUI_SERIALUI_KEYHELP_COMMAND_PREFIX)
+#define help_key_submenuprefix SUI_STR(SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX)
+
+#define unknown_sel SUI_STR(SUI_SERIALUI_UNKNOWN_SELECTION)
+#define unknown_inmenu SUI_STR(SUI_SERIALUI_UNKNOWN_INMENU)
+#define help_hint SUI_STR(SUI_SERIALUI_HELP_HINT)
+
+#define ok_msg SUI_STR(SUI_SERIALUI_MESSAGE_OK)
+#define error_generic SUI_STR(SUI_SERIALUI_MESSAGE_ERROR_GENERIC)
+#define error_prefix SUI_STR(SUI_SERIALUI_MESSAGE_ERROR_PREFIX)
+#define help_sep SUI_STR(SUI_SERIALUI_KEYHELP_SEP)
+
+
+
+#define exit_key SUI_STR(SUI_SERIALUI_EXIT_KEY)
+#define exit_help SUI_STR(SUI_SERIALUI_EXIT_HELP)
+
+#ifdef SUI_SERIALUI_ECHO_WARNINGS
+#define error_cantalloc_submenu SUI_STR(SUI_ERRORMSG_CANTALLOCATE_SUBMENU)
+#define error_cantalloc_menuitem SUI_STR(SUI_ERRORMSG_CANTALLOCATE_MENUITEM)
+#define error_cantalloc_key SUI_STR(SUI_ERRORMSG_CANTALLOCATE_KEY)
+
+#define error_nomenuitems SUI_STR(SUI_ERRORMSG_NO_MENUITEMS_SET)
+
+#endif
+
+
+
+
+#ifdef SUI_ENABLE_MODES
+// Mode related strings
+#define key_mode_user SUI_STR(SUI_STRINGS_MODE_USER)
+#define key_mode_program SUI_STR(SUI_STRINGS_MODE_PROGRAM)
+#define key_ping_command SUI_STR(SUI_STRINGS_PING_COMMAND)
+
+// program-mode strings...
+#define help_key_prog_commandprefix SUI_STR(SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG)
+#define help_key_prog_submenuprefix SUI_STR(SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX_PROG)
+
+#define help_sep_prog SUI_STR(SUI_SERIALUI_KEYHELP_SEP_PROG)
+
+
+// prog-mode enter info output
+#define prog_mode_info_helpkey SUI_STR(SUI_SERIALUI_HELP_KEY)
+#define prog_mode_info_moreprompt_string SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG)
+#define prog_mode_info_moreprompt_num SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG)
+
+#define prog_mode_terminate_gui SUI_STR(SUI_SERIALUI_TERMINATE_GUI_PROG)
+
+#ifdef SUI_ENABLE_STREAMPROMPTING
+#define prog_mode_info_moreprompt_stream SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG)
+#endif
+
+#define prog_mode_info_EOT SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION)
+
+#define prog_mode_info_VERSION SUI_STR(SERIAL_UI_VERSION_STRING)
+
+#endif
+
+
+
+#ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
+#ifdef SUI_MENU_ENABLE_SUBMENUS
+// dynamic memory is DISABLED and we want sub-menus
+Menu Menu::submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM] = {};
+uint8_t Menu::submenu_static_idx = 0;
+#endif
+#endif
+
+
+//define SUIDRIVER_PRINTLN_FLASH(msg)	sui_driver->println_P(msg)
+
+
+#if 0
+#define SUIDRIVER_PRINTLN_FLASH(msg)	sui_driver->println_P(msg)
+#define SUIDRIVER_PRINT_FLASH(msg)	sui_driver->print_P(msg)
+#else
+
+#define SUIDRIVER_PRINTLN_FLASH(msg)	sui_driver->println(msg)
+#define SUIDRIVER_PRINT_FLASH(msg)	sui_driver->print(msg)
+#endif
+
+
 size_t Menu::max_key_len = 0;
 
-MenuItemDetailsStruct::MenuItemDetailsStruct(PGM_P key, MenuCommand_Callback cb, PGM_P help) :
+MenuItemDetailsStruct::MenuItemDetailsStruct(SUI_FLASHSTRING_PTR key, MenuCommand_Callback cb, SUI_FLASHSTRING_PTR help) :
 			key_str(key), callback(cb), help_str(help)
 {
 
@@ -156,14 +255,14 @@ MenuItemStruct::MenuItemStruct()
 {
 
 }
-MenuItemStruct::MenuItemStruct(PGM_P key_pstr, PGM_P help_pstr,
+MenuItemStruct::MenuItemStruct(SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
 		Menu * submenu_ptr, MenuCommand_Callback cmd_ptr)
 {
 	key = key_pstr;
 	help = help_pstr;
 	subMenu = submenu_ptr;
 	command = cmd_ptr;
-	key_size = strlen_P(key);
+	key_size = STRLEN_FLASHSTR(key);
 }
 
 
@@ -174,7 +273,7 @@ MenuItemStruct::MenuItemStruct(PGM_P key_pstr, PGM_P help_pstr,
 
 
 
-Menu::Menu(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * parent) :
+Menu::Menu(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) :
 		sui_driver(suidrv),
 		menu_name(name), num_menu_items(0), max_menu_items(0), expand_list_amount(
 				SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
@@ -182,6 +281,7 @@ Menu::Menu(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * parent)
 	init(suidrv, name, num_items_hint, parent);
 }
 Menu::Menu() :
+	sui_driver(NULL),
 	menu_name(NULL), num_menu_items(0), max_menu_items(0), expand_list_amount(
 					SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
 					parent_menu(NULL)
@@ -217,7 +317,7 @@ void Menu::clear()
 }
 #endif
 
-void Menu::init(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * parent) {
+void Menu::init(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) {
 
 
 	sui_driver = suidrv;
@@ -243,21 +343,22 @@ void Menu::init(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * pa
 		// eventually hold the max key length for the
 		// largest key in the whole menu system.
 #ifdef SUI_ENABLE_MODES
-		max_key_len = strlen_P(key_mode_program);
+		max_key_len = STRLEN_FLASHSTR(key_mode_program);
 #else
-		max_key_len = strlen_P(help_key);
-		if (strlen_P(exit_key) > max_key_len)
+		max_key_len = STRLEN_FLASHSTR(help_key);
+		if (STRLEN_FLASHSTR(exit_key) > max_key_len)
 		{
-			max_key_len = strlen_P(exit_key);
+			max_key_len = STRLEN_FLASHSTR(exit_key);
 		}
 #endif
 	}
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
-	if (strlen_P(menu_name) > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
-		returnMessage(PSTR(SUI_ERRORMSG_MENUNAME_TOOLONG));
+	if (STRLEN_FLASHSTR(menu_name) > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
+		returnMessage(SUI_STR(SUI_ERRORMSG_MENUNAME_TOOLONG));
 	}
 #endif
+
 
 #ifdef SUI_INCLUDE_DEBUG
 	if (parent_menu)
@@ -273,11 +374,11 @@ void Menu::init(SerialUI * suidrv, PGM_P name, uint8_t num_items_hint, Menu * pa
 	expandItemList(num_items_hint);
 }
 
-PGM_P Menu::name() {
+SUI_FLASHSTRING_PTR Menu::name() {
 	return menu_name;
 }
 
-void Menu::setName(PGM_P namestr) {
+void Menu::setName(SUI_FLASHSTRING_PTR namestr) {
 	menu_name = namestr;
 }
 
@@ -299,20 +400,20 @@ bool Menu::addCommands(MenuItemDetails detailsList[], uint8_t number)
 
 }
 
-bool Menu::addCommand(PGM_P key_str, MenuCommand_Callback callback,
-		PGM_P help_str) {
+bool Menu::addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback,
+		SUI_FLASHSTRING_PTR help_str) {
 
 	MenuItem itm(key_str, help_str, NULL, callback);
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
 	if (itm.key_size > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
 
-		returnMessage(PSTR(SUI_ERRORMSG_MENUITEM_KEY_TOOLONG));
+		returnMessage(SUI_STR(SUI_ERRORMSG_MENUITEM_KEY_TOOLONG));
 	}
 
-	if (help_str && strlen_P(help_str) > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
-		sui_driver->println_P(help_str);
-		returnMessage(PSTR(SUI_ERRORMSG_MENUITEM_HELP_TOOLONG));
+	if (help_str && STRLEN_FLASHSTR(help_str) > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
+		SUIDRIVER_PRINTLN_FLASH(help_str);
+		returnMessage(SUI_STR(SUI_ERRORMSG_MENUITEM_HELP_TOOLONG));
 	}
 
 #endif
@@ -321,8 +422,26 @@ bool Menu::addCommand(PGM_P key_str, MenuCommand_Callback callback,
 	return addMenuItem(&itm);
 
 }
+
+
+#ifdef SUI_PROGMEM_PTR
+void Menu::returnError_P(SUI_PROGMEM_PTR errmsg) {
+	if (errmsg) {
+		SUIDRIVER_PRINT_FLASH(error_prefix);
+		SUIDRIVER_PRINTLN_FLASH(errmsg);
+	} else {
+		SUIDRIVER_PRINTLN_FLASH(error_generic);
+	}
+}
+#endif
+
+
+
+
+
+
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-Menu * Menu::subMenu(PGM_P key_str, PGM_P help_str) {
+Menu * Menu::subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str) {
 
 #ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 	// dynamic memory is enabled, so we malloc a pointer to fresh
@@ -487,6 +606,8 @@ void Menu::enter() {
 
 Menu * Menu::handleRequest() {
 
+	SUI_MENU_DEBUG_OUTPUT("Menu req rcvd.");
+
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
 
 	if (!num_menu_items) {
@@ -541,6 +662,7 @@ Menu * Menu::handleRequest() {
 			return itm->subMenu;
 		}
 #endif
+		SUI_MENU_DEBUG_OUTPUT("Itm4key, but neither cmd nor sub??");
 		// get here, we have a problem.
 		// error
 		return this;
@@ -549,7 +671,7 @@ Menu * Menu::handleRequest() {
 	// not found...
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-	if (parent_menu && strncmp_P(key_entered, up_key, strlen_P(up_key)) == 0) {
+	if (parent_menu && STRNCMP_FLASHSTR(key_entered, up_key, STRLEN_FLASHSTR(up_key)) == 0) {
 		// get rid of our malloc'ed key
 
 		SUI_MENU_DEBUG_OUTPUT("Going up a level");
@@ -559,7 +681,7 @@ Menu * Menu::handleRequest() {
 	}
 #endif
 
-	if (strncmp_P(key_entered, help_key, strlen_P(help_key)) == 0) {
+	if (STRNCMP_FLASHSTR(key_entered, help_key, STRLEN_FLASHSTR(help_key)) == 0) {
 
 		SUI_MENU_DEBUG_OUTPUT("Help request");
 
@@ -569,19 +691,30 @@ Menu * Menu::handleRequest() {
 		return this;
 	}
 
-	if ( ( parent_menu == NULL) && strncmp_P(key_entered, exit_key, strlen_P(exit_key)) == 0) {
-		// get rid of our malloc'ed key
+	if (parent_menu == NULL)
+	{
+		// in top level, might be a request to exit
+		uint8_t exit_keylen = STRLEN_FLASHSTR(exit_key);
+		uint8_t key_len = strlen(key_entered);
 
-		SUI_MENU_DEBUG_OUTPUT("Exit request");
+		uint8_t numToComp = key_len < exit_keylen ? key_len : exit_keylen;
 
-		MENUFREE(key_entered);
-		return NULL;
+		if (STRNCMP_FLASHSTR(key_entered, exit_key, numToComp) == 0)
+		{
+			// yeah, consider it a match.
+
+			SUI_MENU_DEBUG_OUTPUT("Exit request");
+
+			MENUFREE(key_entered);
+			return NULL; // a null return indicates that this is it
+		}
+
 	}
 
 
 #ifdef SUI_ENABLE_MODES
 	// check for program mode command...
-	if (strncmp_P(key_entered, key_mode_program, strlen_P(key_mode_program)) == 0)
+	if (STRNCMP_FLASHSTR(key_entered, key_mode_program, STRLEN_FLASHSTR(key_mode_program)) == 0)
 	{
 			SUI_MENU_DEBUG_OUTPUT("Entering program mode");
 			sui_driver->setMode(SUIMode_Program);
@@ -595,61 +728,61 @@ Menu * Menu::handleRequest() {
 			outBuf[0] = '\0';
 			strcat(outBuf, sepChar);
 
-			strcat_P(outBuf, prog_mode_info_VERSION);
+			STRCAT_FLASHSTR(outBuf, prog_mode_info_VERSION);
 			strcat(outBuf, sepChar);
 
 
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-				strcat_P(outBuf, up_key);
+				STRCAT_FLASHSTR(outBuf, up_key);
 #else
 				strcat(outBuf, "X");
 #endif	/* SUI_MENU_ENABLE_SUBMENUS */
 			strcat(outBuf, sepChar);
 
-			strcat_P(outBuf, exit_key);
+			STRCAT_FLASHSTR(outBuf, exit_key);
 			strcat(outBuf, sepChar);
 
-			strcat_P(outBuf, error_generic);
-			strcat(outBuf, sepChar);
-
-
-			strcat_P(outBuf, prog_mode_info_helpkey);
-			strcat(outBuf, sepChar);
-
-			strcat_P(outBuf, help_key_prog_commandprefix);
-			strcat(outBuf, sepChar);
-
-			strcat_P(outBuf, help_key_prog_submenuprefix);
+			STRCAT_FLASHSTR(outBuf, error_generic);
 			strcat(outBuf, sepChar);
 
 
-			strcat_P(outBuf, help_sep_prog);
+			STRCAT_FLASHSTR(outBuf, prog_mode_info_helpkey);
+			strcat(outBuf, sepChar);
+
+			STRCAT_FLASHSTR(outBuf, help_key_prog_commandprefix);
+			strcat(outBuf, sepChar);
+
+			STRCAT_FLASHSTR(outBuf, help_key_prog_submenuprefix);
 			strcat(outBuf, sepChar);
 
 
-
-			strcat_P(outBuf, prog_mode_info_moreprompt_string);
+			STRCAT_FLASHSTR(outBuf, help_sep_prog);
 			strcat(outBuf, sepChar);
 
 
 
-			strcat_P(outBuf, prog_mode_info_moreprompt_num);
+			STRCAT_FLASHSTR(outBuf, prog_mode_info_moreprompt_string);
+			strcat(outBuf, sepChar);
+
+
+
+			STRCAT_FLASHSTR(outBuf, prog_mode_info_moreprompt_num);
 			strcat(outBuf, sepChar);
 
 			strcat(outBuf, SUI_SERIALUI_PROMPT);
 			strcat(outBuf, sepChar);
 
-			strcat_P(outBuf, prog_mode_info_EOT);
+			STRCAT_FLASHSTR(outBuf, prog_mode_info_EOT);
 			strcat(outBuf, sepChar);
 
 #ifdef SUI_ENABLE_STREAMPROMPTING
-			strcat_P(outBuf, prog_mode_info_moreprompt_stream);
+			STRCAT_FLASHSTR(outBuf, prog_mode_info_moreprompt_stream);
 			strcat(outBuf, sepChar);
 #endif
 
 
-			strcat_P(outBuf, prog_mode_terminate_gui);
+			STRCAT_FLASHSTR(outBuf, prog_mode_terminate_gui);
 			strcat(outBuf, sepChar);
 
 			sui_driver->print(strlen(outBuf) + 1, DEC);
@@ -658,7 +791,7 @@ Menu * Menu::handleRequest() {
 			return this;
 	}
 
-	if (strncmp_P(key_entered, key_mode_user, strlen_P(key_mode_user)) == 0) {
+	if (STRNCMP_FLASHSTR(key_entered, key_mode_user, STRLEN_FLASHSTR(key_mode_user)) == 0) {
 		SUI_MENU_DEBUG_OUTPUT("Entering 'user' mode");
 		sui_driver->setMode(SUIMode_User);
 		MENUFREE(key_entered);
@@ -666,7 +799,7 @@ Menu * Menu::handleRequest() {
 	}
 #endif	/* SUI_ENABLE_MODES */
 
-	if (strncmp_P(key_entered, key_ping_command, strlen_P(key_ping_command)) == 0) {
+	if (STRNCMP_FLASHSTR(key_entered, key_ping_command, STRLEN_FLASHSTR(key_ping_command)) == 0) {
 
 			MENUFREE(key_entered);
 			pingRespond();
@@ -684,9 +817,9 @@ Menu * Menu::handleRequest() {
 void Menu::printHelpKey(MenuItem * menuitem) {
 
 
-	PGM_P prefix_cmd;
-	PGM_P prefix_submenu;
-	PGM_P help_sep_to_use;
+	SUI_FLASHSTRING_PTR prefix_cmd;
+	SUI_FLASHSTRING_PTR prefix_submenu;
+	SUI_FLASHSTRING_PTR help_sep_to_use;
 
 	bool include_pretty_print = true;
 #ifdef SUI_ENABLE_MODES
@@ -713,12 +846,12 @@ void Menu::printHelpKey(MenuItem * menuitem) {
 
 	if (menuitem->subMenu)
 	{
-		sui_driver->print_P(prefix_submenu);
+		SUIDRIVER_PRINT_FLASH(prefix_submenu);
 	} else {
-		sui_driver->print_P(prefix_cmd);
+		SUIDRIVER_PRINT_FLASH(prefix_cmd);
 	}
 
-	sui_driver->print_P(menuitem->key);
+	SUIDRIVER_PRINT_FLASH(menuitem->key);
 
 	if (menuitem->help || menuitem->subMenu) {
 		if (include_pretty_print)
@@ -728,11 +861,11 @@ void Menu::printHelpKey(MenuItem * menuitem) {
 				i < (SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - menuitem->key_size);
 				i++) {
 
-				sui_driver->print_P(help_sep_to_use);
+				SUIDRIVER_PRINT_FLASH(help_sep_to_use);
 			}
 		} else {
 
-			sui_driver->print_P(help_sep_to_use);
+			SUIDRIVER_PRINT_FLASH(help_sep_to_use);
 		}
 	}
 }
@@ -750,8 +883,8 @@ void Menu::showHelp() {
 
 	if (! in_program_mode)
 	{
-		sui_driver->print_P(help_title_prefix);
-		sui_driver->println_P(menu_name);
+		SUIDRIVER_PRINT_FLASH(help_title_prefix);
+		SUIDRIVER_PRINTLN_FLASH(menu_name);
 		sui_driver->println(' ');
 	}
 
@@ -760,11 +893,11 @@ void Menu::showHelp() {
 
 		printHelpKey(itm);
 		if (itm->help) {
-			sui_driver->println_P(itm->help);
+			SUIDRIVER_PRINTLN_FLASH(itm->help);
 		}
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 		else if (itm->subMenu) {
-			sui_driver->println_P(submenu_help);
+			SUIDRIVER_PRINTLN_FLASH(submenu_help);
 		}
 #endif
 		else {
@@ -779,37 +912,37 @@ void Menu::showHelp() {
 
 	if (parent_menu) {
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-		sui_driver->print_P(help_key_commandprefix);
-		sui_driver->print_P(up_key);
+		SUIDRIVER_PRINT_FLASH(help_key_commandprefix);
+		SUIDRIVER_PRINT_FLASH(up_key);
 		for (uint8_t i = 0;
-					i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(up_key);
+					i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(up_key);
 					i++) {
 
-			sui_driver->print_P(help_sep);
+			SUIDRIVER_PRINT_FLASH(help_sep);
 		}
 
-		sui_driver->println_P(up_help);
+		SUIDRIVER_PRINTLN_FLASH(up_help);
 #endif
 	} else {
-		sui_driver->print_P(help_key_commandprefix);
-		sui_driver->print_P(exit_key);
+		SUIDRIVER_PRINT_FLASH(help_key_commandprefix);
+		SUIDRIVER_PRINT_FLASH(exit_key);
 		for (uint8_t i = 0;
-				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(exit_key);
+				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(exit_key);
 				i++) {
 
-			sui_driver->print_P(help_sep);
+			SUIDRIVER_PRINT_FLASH(help_sep);
 		}
-		sui_driver->println_P(exit_help);
+		SUIDRIVER_PRINTLN_FLASH(exit_help);
 	}
 
-	sui_driver->print_P(help_key_commandprefix);
-	sui_driver->print_P(help_key);
+	SUIDRIVER_PRINT_FLASH(help_key_commandprefix);
+	SUIDRIVER_PRINT_FLASH(help_key);
 	for (uint8_t i = 0;
-			i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - strlen_P(help_key);
+			i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(help_key);
 			i++) {
-		sui_driver->print_P(help_sep);
+		SUIDRIVER_PRINT_FLASH(help_sep);
 	}
-	sui_driver->println_P(help_help);
+	SUIDRIVER_PRINTLN_FLASH(help_help);
 
 }
 
@@ -835,7 +968,7 @@ MenuItem * Menu::itemForKey(char * key_found) {
 		// compare up to smallest of len(key entered) and len(key of this item)
 		cmp_size = (key_size < itm->key_size) ? key_size : itm->key_size;
 
-		if (strncmp_P(key_found, itm->key, cmp_size) == 0) {
+		if (STRNCMP_FLASHSTR(key_found, itm->key, cmp_size) == 0) {
 			// have a match...
 			return itm;
 		}
@@ -847,12 +980,12 @@ MenuItem * Menu::itemForKey(char * key_found) {
 
 void Menu::unknownCommand(char * key) {
 
-	sui_driver->print_P(error_generic);
-	sui_driver->print_P(unknown_sel);
+	SUIDRIVER_PRINT_FLASH(error_generic);
+	SUIDRIVER_PRINT_FLASH(unknown_sel);
 	sui_driver->print(key);
-	sui_driver->print_P(unknown_inmenu);
-	sui_driver->println_P(menu_name);
-	sui_driver->println_P(help_hint);
+	SUIDRIVER_PRINT_FLASH(unknown_inmenu);
+	SUIDRIVER_PRINTLN_FLASH(menu_name);
+	SUIDRIVER_PRINTLN_FLASH(help_hint);
 }
 
 char * Menu::mallocReadKey() {
@@ -916,33 +1049,34 @@ char * Menu::mallocReadKey() {
 
 void Menu::returnError(const char * errmsg) {
 	if (errmsg) {
-		sui_driver->print_P(error_prefix);
+		SUIDRIVER_PRINT_FLASH(error_prefix);
 		sui_driver->println(errmsg);
 	} else {
-		sui_driver->println_P(error_generic);
+		SUIDRIVER_PRINTLN_FLASH(error_generic);
 	}
 }
 
-void Menu::returnError_P(PGM_P errmsg) {
-	if (errmsg) {
-		sui_driver->print_P(error_prefix);
-		sui_driver->println_P(errmsg);
-	} else {
-		sui_driver->println_P(error_generic);
-	}
+void Menu::returnError(SUI_FLASHSTRING_PTR errmsg) {
+	SUIDRIVER_PRINT_FLASH(error_prefix);
+	sui_driver->println(errmsg);
+
 }
+
+
 
 void Menu::returnOK() {
-	char p_buffer[4];
-	strncpy_P(p_buffer, ok_msg, 4);
-	sui_driver->println(p_buffer);
+	sui_driver->println(F(SUI_SERIALUI_MESSAGE_OK));
 
 }
 
-void Menu::returnMessage(PGM_P message) { sui_driver->println_P(message);}
+
+void Menu::returnMessage(SUI_FLASHSTRING_PTR message) { SUIDRIVER_PRINTLN_FLASH(message);}
 
 
-void Menu::showName() { sui_driver->print_P(menu_name); }
+
+
+
+void Menu::showName() { SUIDRIVER_PRINT_FLASH(menu_name); }
 
 void Menu::pingRespond() {
 #ifdef SUI_ENABLE_STATE_TRACKER

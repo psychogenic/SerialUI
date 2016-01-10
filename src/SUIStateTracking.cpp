@@ -14,8 +14,8 @@
 
 namespace SUI {
 
-TrackedStateVariableDetailsStruct::TrackedStateVariableDetailsStruct(PGM_P n,
-		TrackedType t, void * variable ) : name(n), type(t)
+TrackedStateVariableDetailsStruct::TrackedStateVariableDetailsStruct(SUI_FLASHSTRING_PTR n,
+		TrackedType t, void * variable ) : type(t), name(n)
 {
 	switch (type)
 	{

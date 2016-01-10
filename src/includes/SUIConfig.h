@@ -34,45 +34,6 @@
 #define SERIAL_UI_CONFIGURATION_H_
 
 
-/*
- * SUI_PLATFORM_X
- *
- * Define ONE OF the available SUI_PLATFORM_X values to select the serial
- * implementation platform.
- *
- * SUI_PLATFORM_ARDUINOSTANDARD: regular Arduino/Arduino-compatible.
- *  Is the default and will usually just work(tm)
- *
- * SUI_PLATFORM_ARDUINO_DUE:	What it says, Arduino Due.
- *
- *
- * SUI_PLATFORM_RBLNRF51822: nRF51822-centered Arduino SDK, by
- * RedBearLab, for things like the BLE Nano http://redbearlab.com/blenano/
- *
- *
- * SUI_PLATFORM_DIGISPARKUSB:  DigiSpark, needs testing/work.
- *
- * NOTE: for SUI_PLATFORM_DIGISPARKUSB, I've had to add a
- * 	#include <DigiUSB.h>
- * at the top of my sketch to get it to compile at all...
- */
-#define SUI_PLATFORM_ARDUINOSTANDARD
-// #define SUI_PLATFORM_ARDUINO_DUE
-// #define SUI_PLATFORM_RBLNRF51822
-// #define SUI_PLATFORM_DIGISPARKUSB
-
-
-
-
-
-
-
-
-#define SERIAL_UI_VERSION			1
-#define SERIAL_UI_SUBVERSION		14
-#define SERIAL_UI_PATCHLEVEL		0
-
-
 
 
 
@@ -254,8 +215,6 @@
 // #define SUI_INCLUDE_DEBUG
 
 
-
-
 /*
  * SUI_MENU_INCLUDE_DESTRUCTION_CLEANUP
  *
@@ -355,28 +314,127 @@
 
 
 
+/* *********************** Platform and auto-detection thereof **************** */
+
+/*
+ * SUI_PLATFORM_X
+ *
+ * As of version 2, SerialUI does what it can to auto-detect the
+ * platform you're building for.  If you're not using the Arduino IDE,
+ * or not using a Makefile that includes the standard defines for all
+ * the platform, you may need to _hardcode_ a platform, otherwise
+ * detection should work.
+ *
+ * To hardcode a platform, define ONE OF the available
+ * SUI_PLATFORM_X values to select the serial implementation platform.
+ *
+ * SUI_PLATFORM_ARDUINO_AVR: regular Arduino/Arduino-compatible.
+ *  Is the default and will usually just work(tm)
+ *
+ * SUI_PLATFORM_XMEGA: Xmegaduino, XMEGA-based devices... for some reason,
+ * this needs to be #defined with the current release of xmegaduino...?
+ *
+ * SUI_PLATFORM_ARDUINO_SAM:	Arduino Due and such
+ *
+ * SUI_PLATFORM_RBLNRF51822: nRF51822-centered Arduino SDK, by
+ * RedBearLab, for things like the BLE Nano http://redbearlab.com/blenano/
+ *
+ * SUI_PLATFORM_ESP8266: ESP8266 devices, like the Olimex MOD-WIFI and the
+ * Sparkfun ESP Thing, etc.
+ *
+ *
+ * SUI_PLATFORM_DIGISPARKUSB:  DigiSpark, needs testing/work.
+ *
+ * NOTE: for SUI_PLATFORM_DIGISPARKUSB, I've had to add a
+ * 	#include <DigiUSB.h>
+ * at the top of my sketch to get it to compile at all...
+ */
+// NOTE: define only 1, and ONLY if auto-detect doesn't work...
+// #define SUI_PLATFORM_ARDUINO_AVR
+// #define SUI_PLATFORM_ARDUINO_SAM
+// #define SUI_PLATFORM_RBLNRF51822
+// #define SUI_PLATFORM_DIGISPARKUSB
+// #define SUI_PLATFORM_XMEGA
+// #define SUI_PLATFORM_ESP8266
 
 
+// Auto-detection stuff...
 
-// default "Serial" implementation to use
-#define SUI_PLATFORM_HARDWARESERIAL_DEFAULT		Serial
+// most standard arduinos
+#if defined(ARDUINO_ARCH_AVR) or defined (SUI_PLATFORM_ARDUINO_AVR)
 
+	#define SUI_ARCH_AVR
 
-
-
-
-// a bit of flag management, here, nothing to configure
-
-#ifdef SUI_PLATFORM_ARDUINO_DUE
-// is actually just standard Arduino +
-// the SUI_BUILD_FOR_DUE flag
-#define SUI_PLATFORM_ARDUINOSTANDARD
-
-/* SUI_BUILD_FOR_DUE
-*/
-#define SUI_BUILD_FOR_DUE
-
+	#ifndef SUI_PLATFORM_ARDUINO_AVR
+		#define SUI_PLATFORM_AUTODETECTED
+		#define SUI_PLATFORM_ARDUINO_AVR
+	#endif
+	#ifndef SUI_BUILDFOR_ARDUINO_STANDARD
+		#define SUI_BUILDFOR_ARDUINO_STANDARD
+	#endif
 #endif
+
+
+// XMEGADUINO
+#if defined(ARDUINO_ARCH_XMEGA) or defined(SUI_PLATFORM_XMEGA)
+	#define SUI_ARCH_AVR
+
+	#ifndef SUI_PLATFORM_XMEGA
+		#define SUI_PLATFORM_AUTODETECTED
+		#define SUI_PLATFORM_XMEGA
+		#error "Please #define SUI_PLATFORM_XMEGA in SUIConfig.h because the xmegaduino makefile is buggy and doesn't allow for auto-detection."
+	#endif
+	#define SUI_BUILDFOR_ARDUINO_STANDARD
+#endif
+
+
+
+#if defined(ARDUINO_ARCH_ESP8266) or defined(ARDUINO_MOD_WIFI_ESP8266) \
+	or defined(ESP8266) or defined(SUI_PLATFORM_ESP8266)
+	#ifndef SUI_PLATFORM_ESP8266
+		#define SUI_PLATFORM_AUTODETECTED
+		#define SUI_PLATFORM_ESP8266
+	#endif
+	#define SUI_BUILDFOR_ARDUINO_STANDARD
+	#define SUI_ARCH_ESP8266
+#endif
+
+
+// BLE Nano
+#if defined(ARDUINO_RBL_nRF51822) or defined(ARDUINO_ARCH_NRF51822)
+	#ifndef SUI_PLATFORM_RBLNRF51822
+		#define SUI_PLATFORM_AUTODETECTED
+		#define SUI_PLATFORM_RBLNRF51822
+	#endif /* SUI_PLATFORM_RBLNRF51822 */
+	#define SUI_ARCH_NRF51822
+#endif /* RBL - NRF* platform */
+
+
+// DUE
+#if defined(ARDUINO_SAM_DUE) or defined(ARDUINO_ARCH_SAM) or defined(SUI_PLATFORM_ARDUINO_SAM)
+	#ifndef SUI_PLATFORM_ARDUINO_SAM
+		#define SUI_PLATFORM_ARDUINO_SAM
+		#define SUI_PLATFORM_AUTODETECTED
+		// is actually just standard Arduino +
+		// the SUI_ARCH_SAM flag
+		#define SUI_BUILDFOR_ARDUINO_STANDARD
+		/* SUI_ARCH_SAM
+		*/
+		#define SUI_ARCH_SAM
+	#endif
+#endif
+
+// Default (to AVR standard Arduino)
+#if ! ( \
+		   defined(SUI_PLATFORM_RBLNRF51822) \
+		or defined(SUI_PLATFORM_ARDUINO_SAM) \
+		or defined(SUI_PLATFORM_XMEGA) \
+		or defined(SUI_PLATFORM_DIGISPARKUSB) \
+		or defined(SUI_PLATFORM_ESP8266) \
+		or defined(SUI_PLATFORM_ARDUINO_AVR))
+		#error "Could not auto-detect platform... define an appropriate SUI_PLATFORM_ARDUINO_* in SUIConfig.h"
+#endif /* One SUI_PLATFORM_* defined */
+
 
 
 
@@ -395,7 +453,7 @@
 #undef SUI_MENU_ENABLE_SUBMENUS
 #undef SUI_ENABLE_MODES
 
-#undef SUI_PLATFORM_ARDUINOSTANDARD
+#undef SUI_BUILDFOR_ARDUINO_STANDARD
 #define SUI_PLATFORM_DIGISPARKUSB
 #endif
 
@@ -404,6 +462,15 @@
 #ifdef SUI_INCLUDE_DEBUG
 #warning "SUI_INCLUDE_DEBUG is enabled"
 #endif
+
+
+
+
+
+#define SERIAL_UI_VERSION			2
+#define SERIAL_UI_SUBVERSION		0
+#define SERIAL_UI_PATCHLEVEL		0
+
 
 
 #define SUIXSTR(s) SUISTR(s)
