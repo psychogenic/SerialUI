@@ -11,10 +11,13 @@
 #define SERIALUI_SRC_INCLUDES_SUIPLAT_NRF51822_H_
 
 #include "../SUIConfig.h"
-#include "../stream/DelegateDirect.h"
 
 #ifdef SUI_PLATFORM_RBLNRF51822
 
+#include "../stream/delegate/DelegateDirect.h"
+
+
+#define PLATFORM_NOW_MILLIS()		millis()
 
 #define SUI_FLASHSTRING_PTR		const __FlashStringHelper*
 
@@ -46,7 +49,7 @@ namespace SUI {
 
 
 
-typedef WStream SerialUIStreamBaseType;
+// typedef WStream SerialUIStreamBaseType;
 typedef WStream SerialUIUnderlyingStreamType;
 
 

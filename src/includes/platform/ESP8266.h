@@ -15,6 +15,7 @@
 #define SUI_FLASHSTRING_PTR		const __FlashStringHelper*
 
 
+#define PLATFORM_NOW_MILLIS()		millis()
 
 
 

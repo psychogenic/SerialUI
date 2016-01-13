@@ -33,6 +33,7 @@
 #include "SUIConfig.h"
 #include "SUIExtIncludes.h"
 #include "platform/PlatformExtIncludes.h"
+#include "platform/DefaultStream.h"
 
 #ifdef SUI_PLATFORM_ESP8266
 #include "platform/ESP8266.h"
@@ -76,19 +77,44 @@
 
 
 
+#ifdef SUI_INCLUDE_DEBUG
+#define SUI_OUTPUT_DEBUG_DEFAULTSTREAM(...)		SUI_PLATFORM_HARDWARESERIAL_DEFAULT.print(__VA_ARGS__)
+#define SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(...)		SUI_PLATFORM_HARDWARESERIAL_DEFAULT.println(__VA_ARGS__)
+#else
+#define SUI_OUTPUT_DEBUG_DEFAULTSTREAM(...)
+#define SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(...)
 
+#endif
 
 
 
 
 //if ( (SUI_FLASHSTRING_PTR) != SUI_PROGMEM_PTR)
-#if 0
+#ifdef SUI_PROGMEM_PTR
+/*
 #define PRINT_FLASHSTR(...)		print_P(__VA_ARGS__)
 #define PRINTLN_FLASHSTR(...)	println_P(__VA_ARGS__)
-#define STRLEN_FLASHSTR(...)	strlen_P(__VA_ARGS__)
+#define STRLEN_FLASHSTR(...)	strlen_P(reinterpret_cast<const char *>(__VA_ARGS__))
 #define STRCAT_FLASHSTR(...)	strcat_P(__VA_ARGS__)
 #define STRCMP_FLASHSTR(...)	strcmp_P(__VA_ARGS__)
 #define STRNCMP_FLASHSTR(...)	strncmp_P(__VA_ARGS__)
+*/
+
+
+#define PRINT_FLASHSTR(...)		print(__VA_ARGS__)
+#define PRINTLN_FLASHSTR(...)	println(__VA_ARGS__)
+#define STRLEN_FLASHSTR(...)	strlen_P(reinterpret_cast<const char *>(__VA_ARGS__))
+#define STRCAT_FLASHSTR(a, b)	strcat_P(reinterpret_cast<char *>(a), reinterpret_cast<const char *>(b))
+#define STRCMP_FLASHSTR(a, b)	strcmp_P(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b))
+#define STRNCMP_FLASHSTR(a, b, len)	strncmp_P(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b), (len))
+#define STRNCMP_FLASHSTR(a, b, len)	strncmp_P(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b), (len))
+
+
+
+
+
+
+
 #else
 #define PRINT_FLASHSTR(...)		print(__VA_ARGS__)
 #define PRINTLN_FLASHSTR(...)	println(__VA_ARGS__)
@@ -96,8 +122,25 @@
 #define STRCAT_FLASHSTR(a, b)	strcat(reinterpret_cast<char *>(a), reinterpret_cast<const char *>(b))
 #define STRCMP_FLASHSTR(a, b)	strcmp(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b))
 #define STRNCMP_FLASHSTR(a, b, len)	strncmp(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b), (len))
+#define STRNCMP_FLASHSTR(a, b, len)	strncmp(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b), (len))
 
 #endif
+
+
+
+
+#ifdef __GNUC__
+#define DEPRECATED __attribute__((deprecated))
+#define DEPRECATED_MACRO	_Pragma ("GCC warning \"This is deprecated SerialUI usage...\"")
+#elif defined(_MSC_VER)
+#define DEPRECATED __declspec(deprecated)
+#define DEPRECATED_MACRO
+#else
+#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
+#define DEPRECATED
+#define DEPRECATED_MACRO
+#endif
+
 
 
 #endif /* SERIALUI_PLATFORM_MAIN_H_ */

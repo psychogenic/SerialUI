@@ -21,9 +21,32 @@
 #define SERIALUI_SRC_INCLUDES_UTILS_CIRCULALBUFFER_H_
 
 #include "../SUIExtIncludes.h"
+#include "../SUIPlatform.h"
+#include "../SUIConfig.h"
+
+//define SUI_CIRCBUF_DEBUG
+#if defined(SUI_CIRCBUF_DEBUG) and defined(SUI_INCLUDE_DEBUG)
+#define SUI_CIRCBUF_OUTPUT_DEBUG(...)		SUI_OUTPUT_DEBUG_DEFAULTSTREAM(__VA_ARGS__)
+#define SUI_CIRCBUF_OUTPUTLN_DEBUG(...)		SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(__VA_ARGS__)
+#else
+
+#define SUI_CIRCBUF_OUTPUT_DEBUG(...)
+#define SUI_CIRCBUF_OUTPUTLN_DEBUG(...)
+#endif
+
+//define SUI_CIRCBUF_LOCKING
+#ifdef SUI_CIRCBUF_LOCKING
+#define SUI_CIRCBUF_LOCK()		while(locked){;} locked=true
+#define SUI_CIRCBUF_UNLOCK()	locked=false
+#else
+#define SUI_CIRCBUF_LOCK()
+#define SUI_CIRCBUF_UNLOCK()
+#endif
 
 namespace SUI {
 namespace Utils {
+
+
 
 typedef uint8_t BufferSize;
 
@@ -32,6 +55,10 @@ class CircularBuffer {
 
 public:
 	CircularBuffer() :
+
+#ifdef SUI_CIRCBUF_LOCKING
+	locked(false),
+#endif
 			head(1), tail(0), num_items(0)
 	{
 	}
@@ -46,6 +73,10 @@ public:
 		return !num_items;
 	}
 
+	inline BufferSize availableCapacity() const {
+		return (BUFSIZE - num_items);
+	}
+
 	inline ITEMTYPE & operator[](BufferSize n) {
 		return buffer[index_to_bufarray_idx(n)];
 	}
@@ -54,41 +85,58 @@ public:
 	}
 
 	void push_back(ITEMTYPE item) {
+		SUI_CIRCBUF_OUTPUT_DEBUG("cpb,");
+
+
+		SUI_CIRCBUF_LOCK();
 		buffer[tail_next()] = item;
 		if (num_items == BUFSIZE) {
 			head_increment();
 		}
 
 		tail_increment();
+		SUI_CIRCBUF_UNLOCK();
 	}
 	inline void pop_front() {
+		SUI_CIRCBUF_OUTPUT_DEBUG("cpop");
+		SUI_CIRCBUF_LOCK();
 		head_increment();
+		SUI_CIRCBUF_UNLOCK();
 		// Note: would need to destroy head pos if
 		// these were objects
 	}
 	void clear() {
 		// note: would need to descroy items, if they
 		// were objects and such
+		SUI_CIRCBUF_LOCK();
 		num_items = 0;
 		head = 1;
 		tail = 0;
+		SUI_CIRCBUF_UNLOCK();
 	}
 
-	void fillFrom(ITEMTYPE fromBuf[], BufferSize numElements)
+	BufferSize fillFrom(const ITEMTYPE fromBuf[], BufferSize numElements)
 	{
+		SUI_CIRCBUF_OUTPUT_DEBUG("cfill");
+		SUI_CIRCBUF_LOCK();
 		for (BufferSize i=0; i<numElements; i++)
 		{
 			push_back(fromBuf[i]);
 		}
-		return;
+		SUI_CIRCBUF_UNLOCK();
+		return numElements;
 	}
 
 	BufferSize transferTo(ITEMTYPE into[], BufferSize maxElements)
 	{
+		SUI_CIRCBUF_OUTPUT_DEBUG("cxfer");
+		SUI_CIRCBUF_LOCK();
 		BufferSize numToCopy = num_items < maxElements ? num_items : maxElements;
 
-		if (! numToCopy)
+		if (! numToCopy) {
+			SUI_CIRCBUF_UNLOCK();
 			return 0;
+		}
 
 		for (BufferSize i=0; i<numToCopy; i++)
 		{
@@ -96,6 +144,7 @@ public:
 			pop_front();
 		}
 
+		SUI_CIRCBUF_UNLOCK();
 		return numToCopy;
 	}
 
@@ -122,6 +171,9 @@ private:
 		return (next >= BUFSIZE) ? 0 : next;
 	}
 
+#ifdef SUI_CIRCBUF_LOCKING
+	volatile bool locked;
+#endif
 	BufferSize head;
 	BufferSize tail;
 	BufferSize num_items;

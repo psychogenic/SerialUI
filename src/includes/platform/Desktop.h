@@ -37,7 +37,7 @@ public:
 	    virtual size_t write(uint8_t i) { return 1;}
 	    virtual void begin(unsigned long speed) {}
 };
-typedef DummyStream SerialUIStreamBaseType;
+// typedef DummyStream SerialUIStreamBaseType;
 
 // used the standard base implementation of the SUIStream
 #define SUI_BASEIMPLEMENTATION_STANDARD

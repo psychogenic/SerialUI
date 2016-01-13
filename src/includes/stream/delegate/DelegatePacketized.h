@@ -1,0 +1,160 @@
+/*
+ * DelegatePacketized.h
+ *
+ *  Created on: Jan 12, 2016
+ *      Author: Pat Deegan
+ *      Part of the SerialUI Project
+ *      Copyright (C) 2015 Pat Deegan, http://psychogenic.com
+ */
+
+#ifndef SERIALUI_SRC_INCLUDES_STREAM_DELEGATE_DELEGATEPACKETIZED_H_
+#define SERIALUI_SRC_INCLUDES_STREAM_DELEGATE_DELEGATEPACKETIZED_H_
+
+
+#include "../../SUIExtIncludes.h"
+#include "DelegateBuffered.h"
+
+namespace SUI {
+namespace Delegate {
+
+typedef uint8_t PacketByteType;
+typedef uint8_t PacketBufferSize;
+
+template<PacketBufferSize PACKETBUFFERSIZE, PacketBufferSize MTU>
+class Packetized : public Buffered<PacketByteType, PACKETBUFFERSIZE> {
+public:
+	Packetized() {}
+	virtual ~Packetized() {}
+
+	virtual void flush() { flushPendingWrites(true); };
+	virtual void tick() {flushPendingWrites(true); this->yieldToOS();}
+
+    virtual size_t write(const uint8_t *buffer, size_t size);
+    virtual size_t write(uint8_t i);
+
+protected:
+
+    // override this for when data needs to go out (note size will always
+    // be <= MTU)
+    virtual bool sendOutgoing(PacketByteType * buf, PacketBufferSize size) = 0;
+
+
+    // use this when data comes in:
+    virtual bool storeIncoming(PacketByteType * buf, PacketBufferSize size);
+
+    virtual void yieldToOS() {}
+
+private:
+
+    void flushPendingWrites(bool force=false);
+
+
+};
+
+#define PACKETDELEGATE_NONFORCE_MIN_PACKETSIZE(singlepacket)	(singlepacket/2)
+#define PACKETDELEGATE_AUTO_TX_SIZE(bufsize)					(bufsize/2)
+
+
+//define PACKETDELEGATE_DEBUG_ENABLE
+#ifdef PACKETDELEGATE_DEBUG_ENABLE
+#define PACKETDELEGATE_DEBUG(...)		Serial.print(__VA_ARGS__)
+#define PACKETDELEGATE_DEBUGLN(...)	Serial.println(__VA_ARGS__)
+#define PACKETDELEGATE_DEBUG_BEGIN(baud) Serial.begin(baud)
+#else
+#define PACKETDELEGATE_DEBUG(...)
+#define PACKETDELEGATE_DEBUGLN(...)
+#define PACKETDELEGATE_DEBUG_BEGIN(baud)
+#endif
+
+
+// when we have pending writes in the queue, send
+// in blocks of up to MTU, by calling
+// sendOutgoing() for each
+template<PacketBufferSize PACKETBUFFERSIZE, PacketBufferSize MTU>
+void Packetized<PACKETBUFFERSIZE, MTU>::flushPendingWrites(bool force) {
+	PacketByteType tmpBuf[MTU + 1];
+
+	if (! this->writeQueue().size())
+		return;
+
+
+	if (force || (this->writeQueue().size() > (PACKETDELEGATE_AUTO_TX_SIZE(PACKETBUFFERSIZE)))) {
+
+		PacketBufferSize minSize = force ?  1 : PACKETDELEGATE_NONFORCE_MIN_PACKETSIZE(MTU);
+		if (this->writeQueue().size() < minSize)
+			return;
+
+		if (force)
+		{
+			PACKETDELEGATE_DEBUG("Forced flush...");
+		}
+		// we empty the thing...
+
+		while (this->writeQueue().size() >= minSize)
+		{
+			PACKETDELEGATE_DEBUG("Sending Q: ");
+
+			SUI::Utils::BufferSize numXfered = this->writeQueue().transferTo(tmpBuf, MTU);
+			if (numXfered)
+			{
+				PACKETDELEGATE_DEBUG("Sending ");
+				PACKETDELEGATE_DEBUGLN((int)numXfered);
+
+				tmpBuf[numXfered] = 0;
+				PACKETDELEGATE_DEBUG(" \t");
+				PACKETDELEGATE_DEBUGLN((const char*)tmpBuf);
+
+				this->sendOutgoing(tmpBuf, numXfered);
+
+			} else {
+
+				PACKETDELEGATE_DEBUGLN("nutin'");
+			}
+		}
+
+	}
+}
+
+
+// everytime data comes in, we push it onto our local read queue
+
+template<PacketBufferSize PACKETBUFFERSIZE, PacketBufferSize MTU>
+bool Packetized<PACKETBUFFERSIZE, MTU>::storeIncoming(PacketByteType * buf, PacketBufferSize size)
+{
+	if (size)
+	{
+		this->readQueue().fillFrom(buf, size);
+		return true;
+	}
+
+	return false;
+}
+
+
+template<PacketBufferSize PACKETBUFFERSIZE, PacketBufferSize MTU>
+size_t Packetized<PACKETBUFFERSIZE, MTU>::write(const uint8_t *buffer, size_t size) {
+
+	PACKETDELEGATE_DEBUG("write...");
+
+	bool force = ((size + this->writeQueue().size()) > PACKETDELEGATE_AUTO_TX_SIZE(PACKETBUFFERSIZE));
+	flushPendingWrites(force);
+	return this->Buffered<PacketByteType, PACKETBUFFERSIZE>::write(buffer, size);
+}
+template<PacketBufferSize PACKETBUFFERSIZE, PacketBufferSize MTU>
+size_t Packetized<PACKETBUFFERSIZE, MTU>::write(uint8_t i) {
+
+	PACKETDELEGATE_DEBUG("w");
+	flushPendingWrites();
+
+	return this->Buffered<PacketByteType, PACKETBUFFERSIZE>::write(i);
+
+}
+
+
+
+} /* namespace Delegate */
+}/* namespace SUI */
+
+
+
+#endif /* SERIALUI_SRC_INCLUDES_STREAM_DELEGATE_DELEGATEPACKETIZED_H_ */

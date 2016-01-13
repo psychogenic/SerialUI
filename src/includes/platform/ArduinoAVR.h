@@ -34,6 +34,6 @@
 
 #define SUI_FLASHSTRING_PTR		const __FlashStringHelper*
 #define SUI_PROGMEM_PTR			PGM_P
-//#define SUI_FLASHSTRING_PTR		PGM_P
+
 
 #endif /* SERIALUI_SRC_INCLUDES_SUIPLAT_ARDUINOSERIAL_H_ */

@@ -127,7 +127,11 @@ namespace SUI
 			 *          be added.
 			 */
 			bool addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback, SUI_FLASHSTRING_PTR help_str=NULL);
-
+#ifdef SUI_PROGMEM_PTR
+			bool addCommand(SUI_PROGMEM_PTR key_str, MenuCommand_Callback callback, SUI_PROGMEM_PTR help_str=NULL) {
+				return addCommand((SUI_FLASHSTRING_PTR)key_str, callback, (SUI_FLASHSTRING_PTR)help_str);
+			}
+#endif
 			bool addCommands(MenuItemDetails detailsList[], uint8_t number);
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS

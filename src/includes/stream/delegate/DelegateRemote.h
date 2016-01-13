@@ -12,7 +12,7 @@
 
 
 
-#include "../SUIConfig.h"
+#include "../../SUIConfig.h"
 #include "DelegateBuffered.h"
 
 namespace SUI {

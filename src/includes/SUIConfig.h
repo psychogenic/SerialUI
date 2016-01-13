@@ -212,7 +212,7 @@
  *
  * Disabled by default.
  */
-// #define SUI_INCLUDE_DEBUG
+//#define SUI_INCLUDE_DEBUG
 
 
 /*
@@ -311,6 +311,7 @@
  */
 #define SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS		1
 
+// #define SUI_STREAMDELEGATE_DUMMY_ENABLE
 
 
 

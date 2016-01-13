@@ -24,6 +24,8 @@
  */
 
 #include "SerialUI.h"
+#include "includes/SUIPlatform.h"
+
 
 #define SUI_SERIALUI_HANDLEREQ_DELAY_MS		3
 
@@ -110,7 +112,12 @@ void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SerialUIUnderlyingSt
 
 	if (underlying_stream != NULL)
 	{
-		delegate()->setStream(underlying_stream);
+		// would like to use dynamic_cast but ain't gonna happen, here... no-rtti
+		// pretty safe in any case, because of how we're setup
+		// for every other part of the program, we just use the delegate interface, so
+		// when you're doing fancy delegate stuff, the method is
+		//  default c'tor + useDelegate() later, no messing with underlying stream
+		static_cast<StreamDelegate*>(delegate())->setStream(underlying_stream);
 	}
 
 	top_lev_menu.init(this, SUI_STR(SUI_SERIALUI_TOP_MENU_NAME), num_top_level_menuitems_hint, NULL);
@@ -136,7 +143,7 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 	// a modified version of readBytesUntil, from Arduino Stream,  LGPLed
 	// Copyright (c) 2010 David A. Mellis.
 	size_t count = 0;
-	millisec_counter_start = millis();
+	millisec_counter_start = PLATFORM_NOW_MILLIS();
 
 	bool noTimeout = timeout() < 1;
 
@@ -165,7 +172,7 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 		*buffer++ = (char) c;
 		count++;
 
-	} while (count < max_length &&  (noTimeout || (millis() - millisec_counter_start) < timeout()));
+	} while (count < max_length &&  (noTimeout || (PLATFORM_NOW_MILLIS() - millisec_counter_start) < timeout()));
 
 	return count;
 
@@ -206,7 +213,7 @@ void SerialUI::exit(bool terminate_gui)
 		returnMessage(SUI_STR("\r\nThanks for using SerialUI! Goodbye."));
 	}
 	user_present = false;
-	user_presence_last_interaction_ms = 0;
+	user_presence_last_interaction_ms = PLATFORM_NOW_MILLIS();
 	// go back to top level menu, in case we re-enter SUI later...
 	current_menu = &top_lev_menu;
 
@@ -222,6 +229,8 @@ Menu * SerialUI::topLevelMenu(SUI_FLASHSTRING_PTR setNameTo) {
 }
 
 bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
+
+	delegate()->tick();
 	if (user_check_performed) {
 		// already done this...
 		return false;
@@ -237,6 +246,7 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 bool SerialUI::checkForUser(uint16_t timeout_ms) {
 	uint16_t ms_count = 0;
 	while (ms_count <= timeout_ms) {
+		delegate()->tick();
 		if (this->available() > 0) {
 			user_present = true;
 			return true;
@@ -260,7 +270,8 @@ bool SerialUI::userPresent() {
 		return false;
 	}
 
-	if (user_presence_last_interaction_ms >= user_presence_timeout_ms) {
+	if (user_presence_last_interaction_ms &&
+			((PLATFORM_NOW_MILLIS() - user_presence_last_interaction_ms) > user_presence_timeout_ms)) {
 		SERIALUI_DEBUG("User idles excessively, bumping out...");
 		exit(false);
 	}
@@ -277,14 +288,16 @@ void SerialUI::setCurrentMenu(Menu * setTo)
 	}
 }
 
-void SerialUI::handleRequests() {
+void SerialUI::handleRequests(uint8_t maxRequests) {
 	Menu * ret_menu;
-	for (uint8_t i = 0; i <= 100; i++) {
+	for (uint8_t i = 0; i <= maxRequests; i++) {
+
+
+		uint32_t timeNow = PLATFORM_NOW_MILLIS();
 
 #ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
 		if (heartbeat_function_cb != NULL)
 		{
-			uint32_t timeNow = millis();
 			if (timeNow >= (heartbeat_function_last_called + heartbeat_function_period))
 			{
 				// time to call again...
@@ -301,7 +314,7 @@ void SerialUI::handleRequests() {
 			SERIALUI_DEBUG("Handling pending request");
 
 			// we have input (and therefore a user), so we reset our presence counter to zero
-			user_presence_last_interaction_ms = 0;
+			user_presence_last_interaction_ms = timeNow;
 
 			ret_menu = current_menu->handleRequest();
 
@@ -318,6 +331,7 @@ void SerialUI::handleRequests() {
 				}
 			} else {
 				exit(false);
+				delegateSynch();
 				return;
 			}
 
@@ -328,10 +342,11 @@ void SerialUI::handleRequests() {
 		} else {
 
 			delay(SUI_SERIALUI_HANDLEREQ_DELAY_MS);
-			user_presence_last_interaction_ms += SUI_SERIALUI_HANDLEREQ_DELAY_MS;
 			//println(user_presence_last_interaction_ms, DEC);
 		}
 
+
+		delegateSynch();
 	}
 
 	return;
@@ -358,6 +373,7 @@ void SerialUI::showPrompt() {
 	}
 #endif
 
+	delegateSynch();
 }
 
 
@@ -371,11 +387,14 @@ void SerialUI::showEnterDataPrompt() {
 		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG));
 		// PRINTLN_FLASHSTR(moredata_prompt_prog_str);
 		PRINTLN_FLASHSTR(end_of_tx_str);
+
+		delegateSynch();
 		return;
 	}
 #endif
 
 	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT));
+	delegateSynch();
 }
 
 
@@ -392,12 +411,15 @@ void SerialUI::showEnterNumericDataPrompt() {
 		PRINTLN_FLASHSTR(moredata_prompt_prog_num);
 		PRINTLN_FLASHSTR(end_of_tx_str);
 		*/
+
+		delegateSynch();
 		return;
 	}
 #endif
 
 	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT));
 
+	delegateSynch();
 
 }
 
@@ -421,6 +443,7 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 	}
 #endif
 
+	delegateSynch();
 	stream_expected_size = this->parseInt();
 
 	if (stream_expected_size < 1)
@@ -437,14 +460,17 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 
 	stream_cur_count = 0;
 	// dump the terminator
+	delegateSynch();
 	while (this->available() && (this->peek() == '\r' || this->peek() == '\n'))
 	{
 		this->read();
+		delegateSynch();
 	}
 
 
 	while (stream_cur_count < stream_expected_size)
 	{
+		delegateSynch();
 		uint8_t lenToRead = (stream_expected_size - stream_cur_count) > bufferSize ? bufferSize : (stream_expected_size - stream_cur_count);
 		size_t lenRead = this->readBytes(bufferToUse, lenToRead);
 		if (! lenRead)
@@ -452,6 +478,9 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 			// looks like we timed out...
 			return stream_cur_count;
 		}
+
+
+		delegateSynch();
 		if (doPipedata)
 			callback(bufferToUse, lenRead, stream_cur_count, stream_expected_size);
 
@@ -488,35 +517,6 @@ void SerialUI::setEchoCommands(bool setTo)
 #endif
 
 
-
-#ifdef SUI_PROGMEM_PTR
-size_t SerialUI::print_P(SUI_PROGMEM_PTR message) {
-	char p_buffer[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN + 1];
-	strncpy_P(p_buffer, message, SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN);
-
-	SUI_PRINTANDRETURN(print, p_buffer);
-
-}
-
-
-size_t SerialUI::println_P(SUI_PROGMEM_PTR message) {
-	char p_buffer[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN + 1];
-	strncpy_P(p_buffer, message, SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN);
-
-	SUI_PRINTANDRETURN(println, p_buffer);
-
-
-}
-#ifdef SUI_INCLUDE_DEBUG
-
-void SerialUI::debug_P(SUI_PROGMEM_PTR debugmesg_p)
-{
-	print_P(SUI_STR("DEBUG: "));
-	println_P(debugmesg_p);
-
-}
-#endif
-#endif
 
 #ifdef SUI_ENABLE_STATE_TRACKER
 void SerialUI::initStateTrackedVars() {
@@ -640,6 +640,8 @@ bool SerialUI::showTrackedState()
 		println(outBuf);
 
 
+		delegateSynch();
+
 		return (totlen > 0);
 	}
 
@@ -692,6 +694,17 @@ void SerialUI::debug(SUI_FLASHSTRING_PTR debugmsg)
 	PRINT_FLASHSTR(SUI_STR("DEBUG: "));
 	println(debugmsg);
 }
+
+#ifdef SUI_PROGMEM_PTR
+
+void SerialUI::debug_P(SUI_PROGMEM_PTR debugmesg_p)
+{
+	print_P(SUI_STR("DEBUG: "));
+	println_P(debugmesg_p);
+
+}
+#endif
+
 
 } /* end namespace SUI */
 #endif

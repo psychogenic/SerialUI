@@ -14,6 +14,7 @@
 
 #if defined(SUI_BUILDFOR_ARDUINO_STANDARD) \
 	or defined(SUI_PLATFORM_RBLNRF51822) \
+	or defined(SUI_PLATFORM_ESP8266) \
 	or defined(SUI_PLATFORM_DIGISPARKUSB)
 
 // default "Serial" implementation to use

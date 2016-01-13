@@ -18,9 +18,14 @@
  * systems.
  */
 #include "../SUIConfig.h"
-#include "../stream/DelegateDirect.h"
 
 #ifdef SUI_BUILDFOR_ARDUINO_STANDARD
+#include "../stream/delegate/DelegateDirect.h"
+
+#ifndef PLATFORM_NOW_MILLIS
+#define PLATFORM_NOW_MILLIS()		millis()
+#endif
+
 
 #ifdef PLATFORM_DESKTOP
 
@@ -64,7 +69,6 @@ inline size_t _ard_float2str_and_len(double fl, char * intoptr) {
 	}
 #endif
 
-typedef Stream SerialUIStreamBaseType;
 typedef Stream SerialUIUnderlyingStreamType;
 
 

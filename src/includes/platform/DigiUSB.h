@@ -59,7 +59,7 @@ namespace SUI {
 
 // need a custom base implementation of the SUIStream
 #define SUI_BASEIMPLEMENTATION_CUSTOM_DIGI
-typedef Print SerialUIStreamBaseType;
+//typedef Print SerialUIStreamBaseType;
 
 inline size_t _ard_float2str_and_len(double fl, char * intoptr) {
 		return strlen(dtostrf(fl, 5, 2, intoptr));

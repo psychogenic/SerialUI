@@ -259,23 +259,12 @@
 
 // SerialUI includes
 #include "includes/SUIConfig.h"
+#include "includes/SUIExtIncludes.h"
 #include "includes/stream/SUIStream.h"
 #include "includes/SUIStrings.h"
 #include "includes/SUIMenu.h"
 #include "includes/SUIPlatform.h"
 #include "includes/SUIStateTracking.h"
-
-#ifdef __GNUC__
-#define DEPRECATED __attribute__((deprecated))
-#define DEPRECATED_MACRO	_Pragma ("GCC warning \"This is deprecated SerialUI usage...\"")
-#elif defined(_MSC_VER)
-#define DEPRECATED __declspec(deprecated)
-#define DEPRECATED_MACRO
-#else
-#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
-#define DEPRECATED
-#define DEPRECATED_MACRO
-#endif
 
 
 /*
@@ -485,7 +474,7 @@ public:
 	 * Handles any pending requests.  Should be called in a loop
 	 * that exits once userPresent() goes false (see sample code).
 	 */
-	void handleRequests();
+	void handleRequests(uint8_t maxRequests=3);
 
 	/*
 	 * currentMenu()
@@ -579,21 +568,6 @@ public:
 
 
 
-
-
-
-
-	/* Stream interface implementations */
-    virtual int available() { return delegate()->available();}
-    virtual int read() { return delegate()->read(); }
-    virtual int peek() { return delegate()->peek(); }
-    virtual void flush() { delegate()->flush(); }
-    void begin(unsigned long speed) { delegate()->begin(speed); }
-
-    /* Print (Stream parent) interface implementation */
-    virtual size_t write(uint8_t i) { return delegate()->write(i); }
-    virtual size_t write(const uint8_t *buffer, size_t size) { return delegate()->write(buffer, size);}
-
 #ifdef SUI_ENABLE_MODES
     void setMode(SUIMode setTo) { output_mode = setTo;}
     inline SUIMode mode() { return output_mode;}
@@ -620,8 +594,16 @@ public:
     int8_t trackState(SUI_FLASHSTRING_PTR name, bool * var) { return addStateTracking(name, SUITracked_Bool, (void*)var);}
     int8_t trackState(SUI_FLASHSTRING_PTR name, unsigned long * var) { return addStateTracking(name, SUITracked_UInt, (void*)var);}
     int8_t trackState(SUI_FLASHSTRING_PTR name, float * var) { return addStateTracking(name, SUITracked_Float, (void*)var);}
-
     bool showTrackedState();
+
+
+#ifdef SUI_PROGMEM_PTR
+    int8_t trackState(SUI_PROGMEM_PTR name, bool * var) { return addStateTracking((SUI_FLASHSTRING_PTR)name, SUITracked_Bool, (void*)var);}
+    int8_t trackState(SUI_PROGMEM_PTR name, unsigned long * var) { return addStateTracking((SUI_FLASHSTRING_PTR)name, SUITracked_UInt, (void*)var);}
+    int8_t trackState(SUI_PROGMEM_PTR name, float * var) { return addStateTracking((SUI_FLASHSTRING_PTR)name, SUITracked_Float, (void*)var);}
+
+#endif
+
 #endif
 
 
@@ -631,22 +613,6 @@ public:
 	DEPRECATED void returnError_P(SUI_PROGMEM_PTR errmsg) {
 		current_menu->returnError_P(errmsg);
 	}
-
-    /* Stream interface extensions for progmem strings */
-	/*
-	 * print_P(PGM_STRING)
-	 * Same as Serial.print() but for progmem strings.
-	 */
-	DEPRECATED size_t print_P(SUI_PROGMEM_PTR msg);
-	DEPRECATED size_t print_P(SUI_FLASHSTRING_PTR msg) { return this->print(msg);}
-
-	/*
-	 * println_P(PGM_STRING)
-	 * Same as Serial.println() but for progmem strings.
-	 *
-	 */
-	DEPRECATED size_t println_P(SUI_PROGMEM_PTR msg);
-	DEPRECATED size_t println_P(SUI_FLASHSTRING_PTR msg) { return this->println(msg);}
 
 #ifdef SUI_INCLUDE_DEBUG
 	void debug_P(SUI_PROGMEM_PTR debugmesg_p);
@@ -692,6 +658,8 @@ private:
 	int8_t addStateTracking(SUI_FLASHSTRING_PTR name, TrackedType type, void* var);
 
 #endif
+
+	inline void delegateSynch() { delegate()->tick();}
 
 
 };

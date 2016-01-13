@@ -507,7 +507,13 @@ bool Menu::addMenuItem(MenuItem * itm) {
 
 	num_menu_items++;
 
-	SUI_MENU_DEBUG_OUTPUT("Added menu item");
+	SUI_MENU_DEBUG_OUTPUT("Added menu item for ");
+#ifdef SUI_INCLUDE_DEBUG
+	sui_driver->print(itm->key);
+	sui_driver->print(SUI_STR(" KSize: "));
+	sui_driver->println((int)itm->key_size);
+
+#endif
 
 	return true;
 
@@ -627,6 +633,12 @@ Menu * Menu::handleRequest() {
 		sui_driver->println(' ');
 		return this;
 	}
+
+#ifdef SUI_INCLUDE_DEBUG
+	sui_driver->debug("KEY: ");
+	sui_driver->debug(key_entered);
+	sui_driver->debug("\n");
+#endif
 
 #ifdef SUI_SERIALUI_ECHO_ON
 	// echo
@@ -965,11 +977,20 @@ MenuItem * Menu::itemForKey(char * key_found) {
 	for (uint8_t i = 0; i < num_menu_items; i++) {
 		MenuItem * itm = &(MENUITEMLIST[i]);
 
+#ifdef SUI_INCLUDE_DEBUG
+		sui_driver->debug("Checking key: ");
+		sui_driver->debug(itm->key);
+#endif
 		// compare up to smallest of len(key entered) and len(key of this item)
 		cmp_size = (key_size < itm->key_size) ? key_size : itm->key_size;
 
 		if (STRNCMP_FLASHSTR(key_found, itm->key, cmp_size) == 0) {
 			// have a match...
+
+#ifdef SUI_INCLUDE_DEBUG
+
+			sui_driver->debug("IS match");
+#endif
 			return itm;
 		}
 	}
@@ -1025,6 +1046,22 @@ char * Menu::mallocReadKey() {
 		MENUFREE(akey);
 		return NULL;
 	}
+#if 0
+	DEADBEEF
+	if (sui_driver->available() > 0)
+	{
+		Serial.print("DUMPING NEWLINES");
+		int buffedVal = sui_driver->peek();
+		while (buffedVal == '\r' || buffedVal == '\n')
+		{
+			Serial.print("d");
+			sui_driver->read(); // dump that return/newline
+			buffedVal = sui_driver->peek();
+		}
+
+		Serial.println("done");
+	}
+#endif
 
 	// make sure we don't include any return/newlines in our key
 	uint8_t num_nonEOL = 0;

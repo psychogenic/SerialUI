@@ -5,6 +5,7 @@
 #include "includes/SUIConfig.h"
 #include "includes/SUIPlatform.h"
 #include "includes/SerialUI.h"
+#include "includes/stream/delegate/all.h"
 
 
 
