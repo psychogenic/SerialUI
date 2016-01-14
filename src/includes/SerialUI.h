@@ -277,11 +277,6 @@
 	DEPRECATED_MACRO const char name[] PROGMEM = value;
 
 
-typedef enum SUIModeEnum {
-	SUIMode_User=0,
-	SUIMode_Program
-} SUIMode;
-
 
 
 #ifndef NULL
@@ -410,7 +405,7 @@ public:
 	 * terminate early (as can happen on slow serial lines, like
 	 * at 9600baud).
 	 */
-	size_t readBytesToEOL(char* buffer, size_t max_length);
+	size_t readBytesToEOL(char* buffer, size_t max_length, bool left_trim=false);
 
 
 
@@ -447,8 +442,7 @@ public:
 	 * Return boolean true if a user is present, false otherwise.
 	 *
 	 */
-	bool checkForUser(uint16_t timeout_ms =
-			SUI_SERIALUI_USERCHECK_MAXDELAY_DEFAULT_MS);
+	bool checkForUser(uint16_t timeout_ms = 0);
 	/*
 	 * checkForUserOnce([TIMEOUTMS])
 	 *
@@ -569,8 +563,8 @@ public:
 
 
 #ifdef SUI_ENABLE_MODES
-    void setMode(SUIMode setTo) { output_mode = setTo;}
-    inline SUIMode mode() { return output_mode;}
+    void setMode(Mode::Selection setTo) { output_mode = setTo;}
+    inline Mode::Selection mode() { return output_mode;}
 #endif
 
     inline bool echoCommands() { return echo_commands;}
@@ -625,14 +619,14 @@ private:
 
 
 
-    SUIMode output_mode;
+    Mode::Selection output_mode;
 	SUI_FLASHSTRING_PTR greeting_msg;
 	Menu top_lev_menu;
 	Menu * current_menu;
 	bool user_check_performed;
 	bool user_present;
 	uint16_t user_presence_timeout_ms;
-	uint16_t user_presence_last_interaction_ms;
+	uint32_t user_presence_last_interaction_ms;
 	char read_terminator_char;
 	unsigned long millisec_counter_start;
 	bool echo_commands;

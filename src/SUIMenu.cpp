@@ -31,25 +31,22 @@
 #include "includes/SUIMenu.h"
 #include "includes/SUIStrings.h"
 #include "includes/SUIPlatform.h"
+#include "includes/MenuItem.h"
+
 
 
 #ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 // dynamic memory management enabled
-// stdlib included for malloc
+// stdlib included for new
 #include <stdlib.h>
 #define MENUITEMLIST	item_list
-#define MENUFREE(pointer)	free(pointer)
+#define MENUFREE(pointer)	delete pointer
+#define MENUFREESTRING(pointer)	delete [] pointer
+#define MENUFREEKEY(k)	MENUFREESTRING(k)
+
 #define MENUMEMSET(pointer, value, len)		memset(pointer, value, len);
 #else
-// using static memory, so we'll set
-// MENUITEMLIST to the static list.
-#define MENUITEMLIST	item_staticlist
-#define MENUFREE(pointer)	;
-#define MENUMEMSET(pointer, value, len)		\
-		for (uint8_t _pi=0; _pi<len; _pi++) \
-		{ \
-			pointer[_pi] = value; \
-		}
+#error "SerialUI: Must use dynamic mem for v2.0+"
 
 #endif
 
@@ -71,83 +68,7 @@ DEADBEEF
 #define SUI_MENU_DEBUG_OUTPUT(msg) ;
 #endif
 
-
-
 namespace SUI {
-
-#if 0
-DEADBEEF ...
-SUI_DeclareString(help_key, SUI_SERIALUI_HELP_KEY);
-SUI_DeclareString(help_help, SUI_SERIALUI_HELP_HELP);
-
-#ifdef SUI_MENU_ENABLE_SUBMENUS
-SUI_DeclareString(up_key, SUI_SERIALUI_UP_KEY);
-SUI_DeclareString(up_help, SUI_SERIALUI_UP_HELP);
-SUI_DeclareString(submenu_help, SUI_SERIALUI_SUBMENU_HELP);
-#endif
-
-SUI_DeclareString(help_title_prefix, SUI_SERIALUI_HELP_TITLE_PREFIX);
-SUI_DeclareString(help_key_commandprefix, SUI_SERIALUI_KEYHELP_COMMAND_PREFIX);
-SUI_DeclareString(help_key_submenuprefix, SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX);
-
-SUI_DeclareString(unknown_sel, SUI_SERIALUI_UNKNOWN_SELECTION);
-SUI_DeclareString(unknown_inmenu, SUI_SERIALUI_UNKNOWN_INMENU);
-SUI_DeclareString(help_hint, SUI_SERIALUI_HELP_HINT);
-
-SUI_DeclareString(ok_msg, SUI_SERIALUI_MESSAGE_OK);
-SUI_DeclareString(error_generic, SUI_SERIALUI_MESSAGE_ERROR_GENERIC);
-SUI_DeclareString(error_prefix, SUI_SERIALUI_MESSAGE_ERROR_PREFIX);
-SUI_DeclareString(help_sep, SUI_SERIALUI_KEYHELP_SEP);
-
-
-
-SUI_DeclareString(exit_key, SUI_SERIALUI_EXIT_KEY);
-SUI_DeclareString(exit_help, SUI_SERIALUI_EXIT_HELP);
-
-#ifdef SUI_SERIALUI_ECHO_WARNINGS
-SUI_DeclareString(error_cantalloc_submenu, SUI_ERRORMSG_CANTALLOCATE_SUBMENU);
-SUI_DeclareString(error_cantalloc_menuitem, SUI_ERRORMSG_CANTALLOCATE_MENUITEM);
-SUI_DeclareString(error_cantalloc_key, SUI_ERRORMSG_CANTALLOCATE_KEY);
-
-SUI_DeclareString(error_nomenuitems, SUI_ERRORMSG_NO_MENUITEMS_SET);
-
-#endif
-
-
-
-
-#ifdef SUI_ENABLE_MODES
-// Mode related strings
-SUI_DeclareString(key_mode_user, SUI_STRINGS_MODE_USER);
-SUI_DeclareString(key_mode_program, SUI_STRINGS_MODE_PROGRAM);
-SUI_DeclareString(key_ping_command, SUI_STRINGS_PING_COMMAND);
-
-// program-mode strings...
-SUI_DeclareString(help_key_prog_commandprefix, SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG);
-SUI_DeclareString(help_key_prog_submenuprefix, SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX_PROG);
-
-SUI_DeclareString(help_sep_prog, SUI_SERIALUI_KEYHELP_SEP_PROG);
-
-
-// prog-mode enter info output
-SUI_DeclareString(prog_mode_info_helpkey, SUI_SERIALUI_HELP_KEY);
-SUI_DeclareString(prog_mode_info_moreprompt_string, SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG);
-SUI_DeclareString(prog_mode_info_moreprompt_num, SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG);
-
-SUI_DeclareString(prog_mode_terminate_gui, SUI_SERIALUI_TERMINATE_GUI_PROG);
-
-#ifdef SUI_ENABLE_STREAMPROMPTING
-SUI_DeclareString(prog_mode_info_moreprompt_stream, SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG);
-#endif
-
-SUI_DeclareString(prog_mode_info_EOT, SUI_SERIALUI_PROG_ENDOFTRANSMISSION);
-
-SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
-
-#endif
-
-
-#endif /* DEADBEEF */
 
 
 #define help_key SUI_STR(SUI_SERIALUI_HELP_KEY)
@@ -160,8 +81,10 @@ SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
 #endif
 
 #define help_title_prefix SUI_STR(SUI_SERIALUI_HELP_TITLE_PREFIX)
+
+
 #define help_key_commandprefix SUI_STR(SUI_SERIALUI_KEYHELP_COMMAND_PREFIX)
-#define help_key_submenuprefix SUI_STR(SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX)
+//#define help_key_submenuprefix SUI_STR(SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX)
 
 #define unknown_sel SUI_STR(SUI_SERIALUI_UNKNOWN_SELECTION)
 #define unknown_inmenu SUI_STR(SUI_SERIALUI_UNKNOWN_INMENU)
@@ -198,6 +121,7 @@ SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
 // program-mode strings...
 #define help_key_prog_commandprefix SUI_STR(SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG)
 #define help_key_prog_submenuprefix SUI_STR(SUI_SERIALUI_KEYHELP_SUBMENU_PREFIX_PROG)
+#define help_key_prog_requestbaseprefix SUI_STR(SUI_SERIALUI_KEYHELP_REQUEST_BASE_PREFIX_PROG)
 
 #define help_sep_prog SUI_STR(SUI_SERIALUI_KEYHELP_SEP_PROG)
 
@@ -221,14 +145,6 @@ SUI_DeclareString(prog_mode_info_VERSION, SERIAL_UI_VERSION_STRING);
 
 
 
-#ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
-#ifdef SUI_MENU_ENABLE_SUBMENUS
-// dynamic memory is DISABLED and we want sub-menus
-Menu Menu::submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM] = {};
-uint8_t Menu::submenu_static_idx = 0;
-#endif
-#endif
-
 
 //define SUIDRIVER_PRINTLN_FLASH(msg)	sui_driver->println_P(msg)
 
@@ -245,6 +161,8 @@ uint8_t Menu::submenu_static_idx = 0;
 
 size_t Menu::max_key_len = 0;
 
+#if 0
+DEADBEEF
 MenuItemDetailsStruct::MenuItemDetailsStruct(SUI_FLASHSTRING_PTR key, MenuCommand_Callback cb, SUI_FLASHSTRING_PTR help) :
 			key_str(key), callback(cb), help_str(help)
 {
@@ -266,10 +184,7 @@ MenuItemStruct::MenuItemStruct(SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR
 }
 
 
-
-
-
-
+#endif
 
 
 
@@ -301,13 +216,10 @@ void Menu::clear()
 	{
 		for (uint8_t i=0; i<num_menu_items; i++)
 		{
-			if (item_list[i].subMenu)
-			{
-				item_list[i].subMenu->clear();
-				item_list[i].subMenu = NULL;
-			}
+			if (item_list[i])
+				MENUFREE(item_list[i]);
 		}
-		MENUFREE(item_list);
+		delete [] item_list;
 		item_list = NULL;
 	}
 
@@ -317,6 +229,7 @@ void Menu::clear()
 }
 #endif
 
+
 void Menu::init(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) {
 
 
@@ -324,11 +237,7 @@ void Menu::init(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_h
 	menu_name = name;
 	parent_menu = parent;
 	num_menu_items = 0;
-#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 	max_menu_items = 0;
-#else
-	max_menu_items = SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM;
-#endif
 
 	expand_list_amount = SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT;
 	item_list = NULL;
@@ -386,6 +295,72 @@ Menu * Menu::parent() {
 	return parent_menu;
 }
 
+
+bool Menu::addRequest(long int * val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(long int &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::RequestLong * aReq = new MenuItem::RequestLong(val, key_pstr, help_pstr, validator, valueChangedCb);
+	if (! aReq)
+		returnMessage(SUI_STR("Can't req!"));
+
+	return addMenuItem(aReq);
+
+}
+bool Menu::addRequest(long unsigned int * val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(long unsigned int &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::RequestULong * aReq = new MenuItem::RequestULong(val, key_pstr, help_pstr, validator, valueChangedCb);
+	if (! aReq)
+		returnMessage(SUI_STR("Can't req!"));
+
+	return addMenuItem(aReq);
+
+}
+
+bool Menu::addRequest(char* val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(char &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::RequestChar * aReq = new MenuItem::RequestChar(val, key_pstr, help_pstr, validator, valueChangedCb);
+	if (! aReq)
+		returnMessage(SUI_STR("Can't req!"));
+
+	return addMenuItem(aReq);
+}
+
+bool Menu::addRequest(bool* val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(bool &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::RequestBool * aReq = new MenuItem::RequestBool(val, key_pstr, help_pstr, validator, valueChangedCb);
+	if (! aReq)
+		returnMessage(SUI_STR("Can't req!"));
+
+	return addMenuItem(aReq);
+
+}
+
+bool Menu::addRequest(float* val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(float &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::RequestFloat * aReq = new MenuItem::RequestFloat(val, key_pstr, help_pstr, validator, valueChangedCb);
+	if (! aReq)
+		returnMessage(SUI_STR("Can't req!"));
+
+	return addMenuItem(aReq);
+}
+
+bool Menu::addRequest(String* val, uint8_t stringLength, SUI_FLASHSTRING_PTR key_pstr,
+		SUI_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(String &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::RequestString * aReq = new MenuItem::RequestString(val, stringLength, key_pstr, help_pstr, validator, valueChangedCb);
+	if (! aReq)
+		returnMessage(SUI_STR("Can't req!"));
+
+	return addMenuItem(aReq);
+}
+
+
+/*
 bool Menu::addCommands(MenuItemDetails detailsList[], uint8_t number)
 {
 
@@ -399,14 +374,16 @@ bool Menu::addCommands(MenuItemDetails detailsList[], uint8_t number)
 	return true;
 
 }
+*/
 
 bool Menu::addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback,
 		SUI_FLASHSTRING_PTR help_str) {
 
-	MenuItem itm(key_str, help_str, NULL, callback);
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
-	if (itm.key_size > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
+
+	MenuItem::Command testCom(callback, key_str, help_str);
+	if (testCom.key_size > SUI_MENU_PROGMEM_STRING_ABS_MAXLEN) {
 
 		returnMessage(SUI_STR(SUI_ERRORMSG_MENUITEM_KEY_TOOLONG));
 	}
@@ -418,8 +395,11 @@ bool Menu::addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback
 
 #endif
 
+	MenuItem::Command * aCommand = new MenuItem::Command(callback, key_str, help_str);
+	if (! aCommand)
+		returnMessage(SUI_STR("Can't create command!"));
 
-	return addMenuItem(&itm);
+	return addMenuItem(aCommand);
 
 }
 
@@ -443,19 +423,11 @@ void Menu::returnError_P(SUI_PROGMEM_PTR errmsg) {
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 Menu * Menu::subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str) {
 
-#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
-	// dynamic memory is enabled, so we malloc a pointer to fresh
+
+	// dynamic memory is enabled, so we new a pointer to fresh
 	// memory, and keep a reference to this block within the
 	// MenuItem:
-	Menu * sub_men = (Menu*) malloc(sizeof(Menu));
-#else
-	// we'll just use the next available sub-menu slot
-	if (submenu_static_idx >= SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM)
-		return NULL;
-
-	Menu * sub_men = &(submenu_staticlist[submenu_static_idx]);
-	submenu_static_idx++;
-#endif
+	Menu * sub_men = new Menu(sui_driver, key_str, 0, this);
 
 	if (!sub_men) {
 
@@ -465,11 +437,21 @@ Menu * Menu::subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str) 
 #endif
 		return NULL;
 	}
-	sub_men->init(sui_driver, key_str, 0, this);
 
-	MenuItem itm(key_str, help_str, sub_men, NULL);
+	MenuItem::SubMenu * itm = new MenuItem::SubMenu(sub_men, key_str, help_str);
 
-	if (!addMenuItem(&itm)) {
+	if (! itm)
+	{
+
+		SUI_MENU_DEBUG_OUTPUT("Submenu item creation fail");
+#ifdef SUI_SERIALUI_ECHO_WARNINGS
+		returnMessage(error_cantalloc_submenu);
+#endif
+		MENUFREE(sub_men); // free our old guy
+		return NULL;
+	}
+
+	if (!addMenuItem(itm)) {
 		MENUFREE(sub_men);
 
 		return NULL;
@@ -484,7 +466,7 @@ Menu * Menu::subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str) 
 }
 #endif
 
-bool Menu::addMenuItem(MenuItem * itm) {
+bool Menu::addMenuItem(MenuItem::Base * itm) {
 
 	if (num_menu_items >= max_menu_items) {
 		// we need some more space for this item...
@@ -497,7 +479,7 @@ bool Menu::addMenuItem(MenuItem * itm) {
 	}
 
 	// no dynamic mem... we'll be using a static array
-	MENUITEMLIST[num_menu_items] = *(itm);
+	MENUITEMLIST[num_menu_items] = itm;
 
 
 	if (itm->key_size > max_key_len) {
@@ -521,23 +503,46 @@ bool Menu::addMenuItem(MenuItem * itm) {
 
 bool Menu::expandItemList(uint8_t by_amount) {
 
-#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
-	// using dynamic memory allocations
-	int menuitm_size = sizeof(MenuItem);
-	MenuItem * new_list = NULL;
+	MenuItem::Base ** new_list = NULL;
 
 	if (!by_amount) {
 		// set optional param to default value
 		by_amount = expand_list_amount;
 	}
 
+	new_list = new MenuItem::Base* [num_menu_items + by_amount];
+
+	if (! new_list)
+	{
+#ifdef SUI_INCLUDE_DEBUG
+
+		if (parent_menu)
+		{
+			// can't start doing output before SerialUI is initialized
+			// so we only do this stuff for sub-menus
+			SUI_MENU_DEBUG_OUTPUT("Can't alloc new item list for ");
+			showName();
+			sui_driver->println(" ");
+
+			sui_driver->showFreeRAM();
+
+		}
+#endif
+		returnMessage(error_cantalloc_menuitem);
+
+		return false;
+	}
+
 
 	if (item_list) {
-		// we've already got a list in hand... we want to expand it a bit
-		new_list = (MenuItem*) realloc(item_list,
-				menuitm_size * (num_menu_items + by_amount));
+		// have old list to get move/get rid of
+		for (uint8_t i=0; i< num_menu_items; i++)
+		{
+			new_list[i] = item_list[i];
+		}
 
-
+		delete [] item_list;
+		item_list = NULL;
  #ifdef SUI_INCLUDE_DEBUG
 
 		if (parent_menu)
@@ -553,53 +558,20 @@ bool Menu::expandItemList(uint8_t by_amount) {
  #endif
 
 
-	} else {
-		// no list yet, malloc one please:
-		new_list = (MenuItem*) malloc(menuitm_size * by_amount);
-
- #ifdef SUI_INCLUDE_DEBUG
-		if (parent_menu)
-		{
-			// can't start doing output before SerialUI is initialized
-			// so we only do this stuff for sub-menus
-			SUI_MENU_DEBUG_OUTPUT("Allocating list of menu items for ");
-			showName();
-			sui_driver->println(" ");
-
-			sui_driver->showFreeRAM();
-		}
- #endif
 	}
 
-
-	if (new_list != NULL) {
 		// we gots a new list, huzzah.
 
 		// make note of our new space...
 		max_menu_items += by_amount;
-
-
-		// zero the newly allocated memory
-		MENUMEMSET(&(new_list[num_menu_items]), 0, menuitm_size * by_amount);
+		for (uint8_t i=num_menu_items; i<max_menu_items; i++)
+			new_list[i] = NULL;
 
 		// keep that pointer
 		item_list = new_list;
 
 		// success!
 		return true;
-	}
-
-
-	// abject failure...
-
- #ifdef SUI_SERIALUI_ECHO_WARNINGS
-	returnMessage(error_cantalloc_menuitem);
- #endif
-
-#endif
-	// either there was an error, or we aren't using
-	// dynamic memory allocations... in both cases:
-	return false;
 
 }
 
@@ -626,7 +598,7 @@ Menu * Menu::handleRequest() {
 	}
 #endif
 
-	char * key_entered = mallocReadKey();
+	char * key_entered = newReadKey();
 
 	if (!key_entered) {
 		// nothing entered
@@ -645,7 +617,7 @@ Menu * Menu::handleRequest() {
 	if (sui_driver->echoCommands())
 	{
 #ifdef SUI_ENABLE_MODES
-		if (sui_driver->mode() == SUIMode_User)
+		if (sui_driver->mode() == Mode::User)
 #endif
 		{
 			sui_driver->println(key_entered);
@@ -654,29 +626,14 @@ Menu * Menu::handleRequest() {
 
 #endif
 
-	MenuItem * itm = itemForKey(key_entered);
+	MenuItem::Base * itm = itemForKey(key_entered);
 	if (itm) {
-		// get rid of our malloc'ed key
-		MENUFREE(key_entered);
-		if (itm->command) {
+		// get rid of our new'ed key
+		MENUFREEKEY(key_entered);
+		Menu * switchTo =  itm->call(this);
+		if (switchTo)
+			return switchTo;
 
-			SUI_MENU_DEBUG_OUTPUT("Running command");
-
-			(itm->command)();
-			return this;
-		}
-#ifdef SUI_MENU_ENABLE_SUBMENUS
-		else if (itm->subMenu) {
-
-			SUI_MENU_DEBUG_OUTPUT("Entering submenu");
-
-			itm->subMenu->enter();
-			return itm->subMenu;
-		}
-#endif
-		SUI_MENU_DEBUG_OUTPUT("Itm4key, but neither cmd nor sub??");
-		// get here, we have a problem.
-		// error
 		return this;
 	}
 
@@ -684,11 +641,11 @@ Menu * Menu::handleRequest() {
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 	if (parent_menu && STRNCMP_FLASHSTR(key_entered, up_key, STRLEN_FLASHSTR(up_key)) == 0) {
-		// get rid of our malloc'ed key
+		// get rid of our new'ed key
 
 		SUI_MENU_DEBUG_OUTPUT("Going up a level");
 
-		MENUFREE(key_entered);
+		MENUFREEKEY(key_entered);
 		return upLevel();
 	}
 #endif
@@ -697,8 +654,8 @@ Menu * Menu::handleRequest() {
 
 		SUI_MENU_DEBUG_OUTPUT("Help request");
 
-		// get rid of our malloc'ed key
-		MENUFREE(key_entered);
+		// get rid of our new'ed key
+		MENUFREEKEY(key_entered);
 		showHelp();
 		return this;
 	}
@@ -717,7 +674,7 @@ Menu * Menu::handleRequest() {
 
 			SUI_MENU_DEBUG_OUTPUT("Exit request");
 
-			MENUFREE(key_entered);
+			MENUFREEKEY(key_entered);
 			return NULL; // a null return indicates that this is it
 		}
 
@@ -729,8 +686,8 @@ Menu * Menu::handleRequest() {
 	if (STRNCMP_FLASHSTR(key_entered, key_mode_program, STRLEN_FLASHSTR(key_mode_program)) == 0)
 	{
 			SUI_MENU_DEBUG_OUTPUT("Entering program mode");
-			sui_driver->setMode(SUIMode_Program);
-			MENUFREE(key_entered);
+			sui_driver->setMode(Mode::Program);
+			MENUFREEKEY(key_entered);
 
 			char sepChar[2];
 			sepChar[0] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
@@ -797,6 +754,10 @@ Menu * Menu::handleRequest() {
 			STRCAT_FLASHSTR(outBuf, prog_mode_terminate_gui);
 			strcat(outBuf, sepChar);
 
+			STRCAT_FLASHSTR(outBuf, help_key_prog_requestbaseprefix);
+			strcat(outBuf, sepChar);
+
+
 			sui_driver->print(strlen(outBuf) + 1, DEC);
 			sui_driver->println(outBuf);
 
@@ -805,46 +766,55 @@ Menu * Menu::handleRequest() {
 
 	if (STRNCMP_FLASHSTR(key_entered, key_mode_user, STRLEN_FLASHSTR(key_mode_user)) == 0) {
 		SUI_MENU_DEBUG_OUTPUT("Entering 'user' mode");
-		sui_driver->setMode(SUIMode_User);
-		MENUFREE(key_entered);
+		sui_driver->setMode(Mode::User);
+		MENUFREEKEY(key_entered);
 		return this;
 	}
 #endif	/* SUI_ENABLE_MODES */
 
 	if (STRNCMP_FLASHSTR(key_entered, key_ping_command, STRLEN_FLASHSTR(key_ping_command)) == 0) {
 
-			MENUFREE(key_entered);
+		MENUFREEKEY(key_entered);
 			pingRespond();
 			return this;
 		}
 
 
-	// get rid of our malloc'ed key
+	// get rid of our new'ed key
 	unknownCommand(key_entered);
-	MENUFREE(key_entered);
+	MENUFREEKEY(key_entered);
 	return this;
 
 }
 
-void Menu::printHelpKey(MenuItem * menuitem) {
+void Menu::printHelpKey(MenuItem::Base * menuitem) {
 
 
+	/*
 	SUI_FLASHSTRING_PTR prefix_cmd;
 	SUI_FLASHSTRING_PTR prefix_submenu;
 	SUI_FLASHSTRING_PTR help_sep_to_use;
+*/
+	SUI_FLASHSTRING_PTR help_sep_to_use;
 
 	bool include_pretty_print = true;
+	SUI::Mode::Selection curMode = Mode::User;
 #ifdef SUI_ENABLE_MODES
-	if (sui_driver->mode() == SUIMode_User)
+	curMode = sui_driver->mode();
+	if (sui_driver->mode() == Mode::User)
 	{
 		help_sep_to_use = help_sep;
+		/*
 		prefix_cmd = help_key_commandprefix;
 		prefix_submenu = help_key_submenuprefix;
+		*/
 	} else {
 
 		help_sep_to_use = help_sep_prog;
+		/*
 		prefix_cmd = help_key_prog_commandprefix;
 		prefix_submenu = help_key_prog_submenuprefix;
+		*/
 		include_pretty_print = false;
 	}
 #else
@@ -854,18 +824,20 @@ void Menu::printHelpKey(MenuItem * menuitem) {
 	prefix_submenu = help_key_submenuprefix;
 #endif
 
+	menuitem->printPrefix(this, curMode);
+	/*
 
-
-	if (menuitem->subMenu)
+	if (menuitem->is(MenuItem::Type::SubMenu))
 	{
 		SUIDRIVER_PRINT_FLASH(prefix_submenu);
 	} else {
 		SUIDRIVER_PRINT_FLASH(prefix_cmd);
 	}
+	*/
 
 	SUIDRIVER_PRINT_FLASH(menuitem->key);
 
-	if (menuitem->help || menuitem->subMenu) {
+	if (menuitem->help || menuitem->is(MenuItem::Type::SubMenu)) {
 		if (include_pretty_print)
 		{
 			// we need to put in some spacing, for the help message
@@ -887,7 +859,7 @@ void Menu::showHelp() {
 	bool in_program_mode = false;
 
 #ifdef SUI_ENABLE_MODES
-	if (sui_driver->mode() == SUIMode_Program)
+	if (sui_driver->mode() == Mode::Program)
 	{
 		in_program_mode = true;
 	}
@@ -901,14 +873,14 @@ void Menu::showHelp() {
 	}
 
 	for (uint8_t i = 0; i < num_menu_items; i++) {
-		MenuItem * itm = &(MENUITEMLIST[i]);
+		MenuItem::Base * itm = MENUITEMLIST[i];
 
 		printHelpKey(itm);
 		if (itm->help) {
 			SUIDRIVER_PRINTLN_FLASH(itm->help);
 		}
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-		else if (itm->subMenu) {
+		else if (itm->is(MenuItem::Type::SubMenu)) {
 			SUIDRIVER_PRINTLN_FLASH(submenu_help);
 		}
 #endif
@@ -969,13 +941,13 @@ Menu * Menu::upLevel() {
 }
 #endif
 
-MenuItem * Menu::itemForKey(char * key_found) {
+MenuItem::Base * Menu::itemForKey(char * key_found) {
 
 	size_t key_size = strlen(key_found);
 	size_t cmp_size = 0;
 
 	for (uint8_t i = 0; i < num_menu_items; i++) {
-		MenuItem * itm = &(MENUITEMLIST[i]);
+		MenuItem::Base * itm = MENUITEMLIST[i];
 
 #ifdef SUI_INCLUDE_DEBUG
 		sui_driver->debug("Checking key: ");
@@ -1009,7 +981,7 @@ void Menu::unknownCommand(char * key) {
 	SUIDRIVER_PRINTLN_FLASH(help_hint);
 }
 
-char * Menu::mallocReadKey() {
+char * Menu::newReadKey() {
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
 	if (max_key_len < 1) {
@@ -1017,12 +989,9 @@ char * Menu::mallocReadKey() {
 	}
 #endif
 
-#ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
 	// we'll need--at most--a container that is the size of our largest key for the menu
-	char * akey = (char*) malloc(sizeof(char) * (max_key_len + 2));
-#else
-	char * akey = key_staticstr;
-#endif
+	char * akey = new char[(max_key_len + 2)];
+
 
 #ifdef SUI_INCLUDE_DEBUG
 	SUI_MENU_DEBUG_OUTPUT("Post read key allocation")
@@ -1041,27 +1010,12 @@ char * Menu::mallocReadKey() {
 
 	MENUMEMSET(akey, 0, max_key_len + 2);
 
-	uint8_t numRead = sui_driver->readBytesToEOL(akey, max_key_len + 1);
+	uint8_t numRead = sui_driver->readBytesToEOL(akey, max_key_len + 1, true);
 	if (!numRead) {
-		MENUFREE(akey);
+		MENUFREEKEY(akey);
 		return NULL;
 	}
-#if 0
-	DEADBEEF
-	if (sui_driver->available() > 0)
-	{
-		Serial.print("DUMPING NEWLINES");
-		int buffedVal = sui_driver->peek();
-		while (buffedVal == '\r' || buffedVal == '\n')
-		{
-			Serial.print("d");
-			sui_driver->read(); // dump that return/newline
-			buffedVal = sui_driver->peek();
-		}
 
-		Serial.println("done");
-	}
-#endif
 
 	// make sure we don't include any return/newlines in our key
 	uint8_t num_nonEOL = 0;
@@ -1080,7 +1034,7 @@ char * Menu::mallocReadKey() {
 	}
 
 	// no non-EOL
-	MENUFREE(akey);
+	MENUFREEKEY(akey);
 	return NULL;
 }
 

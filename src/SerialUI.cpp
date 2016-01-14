@@ -51,7 +51,7 @@ static StreamDelegate _suiDefaultDelegate(&SUI_PLATFORM_HARDWARESERIAL_DEFAULT);
 SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 		SerialUIUnderlyingStreamType * underlying_stream) :
 		SUI::SUIStream(&_suiDefaultDelegate),
-		output_mode(SUIMode_User),
+		output_mode(Mode::User),
 		greeting_msg(NULL),top_lev_menu(), current_menu(NULL),
 				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
@@ -79,7 +79,7 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 SerialUI::SerialUI(SUI_PROGMEM_PTR greeting_message, uint8_t num_top_level_menuitems_hint,
 		SerialUIUnderlyingStreamType * underlying_stream) :
 		SUI::SUIStream(&_suiDefaultDelegate),
-		output_mode(SUIMode_User),
+		output_mode(Mode::User),
 		greeting_msg(SUI_STR("Use v2.0 SerialUI API")),top_lev_menu(), current_menu(NULL),
 				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
@@ -138,7 +138,7 @@ void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SerialUIUnderlyingSt
 }
 
 
-size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
+size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length, bool left_trim)
 {
 	// a modified version of readBytesUntil, from Arduino Stream,  LGPLed
 	// Copyright (c) 2010 David A. Mellis.
@@ -151,6 +151,19 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length)
 	if (max_length < 1)
 	{
 		return 0;
+	}
+
+	if (left_trim && this->available())
+	{
+		int c = this->peek();
+
+		while (this->available() && (c == '\r' || c == '\n' || c == ' ' || c == '\t'))
+		{
+			// discard
+			this->read();
+			// check next
+			c = this->peek();
+		}
 	}
 
 	do {
@@ -194,7 +207,7 @@ void SerialUI::exit(bool terminate_gui)
 {
 #ifdef SUI_ENABLE_MODES
 
-	if (mode() == SUIMode_Program) {
+	if (mode() == Mode::Program) {
 
 		if (terminate_gui)
 			PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_TERMINATE_GUI_PROG));
@@ -203,7 +216,7 @@ void SerialUI::exit(bool terminate_gui)
 
 
 		// ensure we always restart in "user" mode...
-		setMode(SUIMode_User);
+		setMode(Mode::User);
 
 	} else
 
@@ -213,7 +226,7 @@ void SerialUI::exit(bool terminate_gui)
 		returnMessage(SUI_STR("\r\nThanks for using SerialUI! Goodbye."));
 	}
 	user_present = false;
-	user_presence_last_interaction_ms = PLATFORM_NOW_MILLIS();
+	user_presence_last_interaction_ms = 0;
 	// go back to top level menu, in case we re-enter SUI later...
 	current_menu = &top_lev_menu;
 
@@ -249,6 +262,7 @@ bool SerialUI::checkForUser(uint16_t timeout_ms) {
 		delegate()->tick();
 		if (this->available() > 0) {
 			user_present = true;
+			this->enter();
 			return true;
 		}
 
@@ -271,7 +285,10 @@ bool SerialUI::userPresent() {
 	}
 
 	if (user_presence_last_interaction_ms &&
-			((PLATFORM_NOW_MILLIS() - user_presence_last_interaction_ms) > user_presence_timeout_ms)) {
+			((PLATFORM_NOW_MILLIS() - user_presence_last_interaction_ms)
+					> user_presence_timeout_ms)) {
+
+
 		SERIALUI_DEBUG("User idles excessively, bumping out...");
 		exit(false);
 	}
@@ -290,6 +307,7 @@ void SerialUI::setCurrentMenu(Menu * setTo)
 
 void SerialUI::handleRequests(uint8_t maxRequests) {
 	Menu * ret_menu;
+
 	for (uint8_t i = 0; i <= maxRequests; i++) {
 
 
@@ -314,9 +332,9 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 			SERIALUI_DEBUG("Handling pending request");
 
 			// we have input (and therefore a user), so we reset our presence counter to zero
-			user_presence_last_interaction_ms = timeNow;
 
 			ret_menu = current_menu->handleRequest();
+			user_presence_last_interaction_ms = PLATFORM_NOW_MILLIS();
 
 			if (ret_menu) {
 				if (menu_manual_override)
@@ -365,7 +383,7 @@ void SerialUI::showPrompt() {
 
 	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_PROMPT));
 #ifdef SUI_ENABLE_MODES
-	if (mode() == SUIMode_Program)
+	if (mode() == Mode::Program)
 	{
 		println(' ');
 		PRINTLN_FLASHSTR(end_of_tx_str);
@@ -381,7 +399,7 @@ void SerialUI::showPrompt() {
 void SerialUI::showEnterDataPrompt() {
 
 #ifdef SUI_ENABLE_MODES
-	if (mode() == SUIMode_Program)
+	if (mode() == Mode::Program)
 	{
 
 		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG));
@@ -402,7 +420,7 @@ void SerialUI::showEnterNumericDataPrompt() {
 
 
 #ifdef SUI_ENABLE_MODES
-	if (mode() == SUIMode_Program)
+	if (mode() == Mode::Program)
 	{
 
 		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG));
@@ -430,7 +448,7 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 {
 
 #ifdef SUI_ENABLE_MODES
-	if (mode() == SUIMode_Program)
+	if (mode() == Mode::Program)
 	{
 
 		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG));
@@ -564,7 +582,7 @@ bool SerialUI::showTrackedState()
 
 #ifdef SUI_ENABLE_MODES
 
-	if (mode() == SUIMode_Program) {
+	if (mode() == Mode::Program) {
 
 		char numBuf[8 * sizeof(long) + 1];
 

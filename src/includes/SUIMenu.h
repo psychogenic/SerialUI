@@ -44,8 +44,7 @@
 
 #include "SUIConfig.h"
 #include "SUIPlatform.h"
-
-
+#include "SUITypes.h"
 /*
  * SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX
  * Maximum amount of SUI_SERIALUI_KEYHELP_SEP repeats between key and help,
@@ -57,9 +56,9 @@
 /*
  * SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT
  * Increment to use when creating/expanding the memory held for the list
- * of menu items (reduces the number of calls to malloc/realloc).
+ * of menu items.
  */
-#define SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT		3
+#define SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT		4
 
 
 
@@ -67,12 +66,17 @@
 namespace SUI
 {
 
+namespace MenuItem {
+class Base; // forward decl
+}
+
+#if 0
+DEADBEEF
+
 	/*
 	 * MenuItem struct is used internally
 	 * to hold menu item data.
 	 */
-	class Menu; // forward decl
-	typedef void (*MenuCommand_Callback)(void);
 
 	typedef struct MenuItemDetailsStruct {
 		SUI_FLASHSTRING_PTR key_str;
@@ -95,6 +99,7 @@ namespace SUI
 
 
 	} MenuItem;
+#endif
 
 	class SerialUI; // forward decl
 
@@ -106,6 +111,7 @@ namespace SUI
 	 *
 	 */
 	class Menu {
+
 
 
 		public:
@@ -132,7 +138,46 @@ namespace SUI
 				return addCommand((SUI_FLASHSTRING_PTR)key_str, callback, (SUI_FLASHSTRING_PTR)help_str);
 			}
 #endif
-			bool addCommands(MenuItemDetails detailsList[], uint8_t number);
+			// bool addCommands(MenuItemDetails detailsList[], uint8_t number);
+
+
+
+
+
+
+
+			bool addRequest(long int * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, bool(*validator)(long int &), MenuRequest_Callback valueChangedCb=NULL);
+			bool addRequest(long unsigned int * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, bool(*validator)(long unsigned int &), MenuRequest_Callback valueChangedCb=NULL);
+			bool addRequest(char * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, bool(*validator)(char &), MenuRequest_Callback valueChangedCb=NULL);
+			bool addRequest(bool * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, bool(*validator)(bool &), MenuRequest_Callback valueChangedCb=NULL);
+			bool addRequest(float * val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, bool(*validator)(float &), MenuRequest_Callback valueChangedCb=NULL);
+			bool addRequest(String * val,  uint8_t stringLength, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, bool(*validator)(String &), MenuRequest_Callback valueChangedCb=NULL);
+
+
+
+
+
+			inline bool addRequest(long int * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, MenuRequest_Callback valueChangedCb=NULL)
+			{ return addRequest(val, key_pstr, help_pstr, NULL, valueChangedCb); }
+
+			inline bool addRequest(long unsigned int * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, MenuRequest_Callback valueChangedCb=NULL)
+			{ return addRequest(val, key_pstr, help_pstr, NULL, valueChangedCb); }
+			inline bool addRequest(char * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, MenuRequest_Callback valueChangedCb=NULL)
+			{ return addRequest(val, key_pstr, help_pstr, NULL, valueChangedCb); }
+			inline bool addRequest(bool * val,  SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, MenuRequest_Callback valueChangedCb=NULL)
+			{ return addRequest(val, key_pstr, help_pstr, NULL, valueChangedCb); }
+			inline bool addRequest(float * val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, MenuRequest_Callback valueChangedCb=NULL)
+			{ return addRequest(val, key_pstr, help_pstr, NULL, valueChangedCb); }
+			inline bool addRequest(String * val,  uint8_t stringLength, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr, MenuRequest_Callback valueChangedCb=NULL)
+			{ return addRequest(val, stringLength, key_pstr, help_pstr, NULL, valueChangedCb); }
+
+
+
+
+
+
+
+
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 			/*
@@ -243,14 +288,22 @@ namespace SUI
 			void clear();
 #endif
 
+
+			// used internally:
+			inline SerialUI * driver() { return sui_driver;}
+			void enter();
+
 		private:
+
+
+
 			SerialUI * sui_driver;
 			SUI_FLASHSTRING_PTR menu_name;
 			uint8_t num_menu_items;
 			uint8_t max_menu_items;
 			uint8_t expand_list_amount;
 
-			MenuItem * item_list;
+			MenuItem::Base ** item_list;
 
 			Menu * parent_menu;
 
@@ -270,21 +323,7 @@ namespace SUI
 			// 6 error messages, breaking it up into "off"-sized chunks.
 			static size_t max_key_len;
 
-#ifndef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
-			// we're not using dynamic memory, so we need a few
-			// arrays for menu items and such, with hard-coded lengths
-			MenuItem item_staticlist[SUI_STATIC_MEMORY_NUM_ITEMS_MAXIMUM];
-			char key_staticstr[SUI_STATIC_MEMORY_KEY_LENGTH_MAXIMUM + 1];
- #ifdef SUI_MENU_ENABLE_SUBMENUS
-			// we also want sub-menus... this is a bit tough without
-			// malloc and company, especially since we have an "incomplete type" at
-			// this stage.  So we use a static block of memory, to hold all the sub-menus
-			// the SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM define (in SUIConfig.h)
-			// sets the total number of possible sub-menus in the ENTIRE UI (not per-menu)!
-			static Menu submenu_staticlist[SUI_STATIC_MEMORY_NUM_SUBMENUS_TOTAL_MAXIMUM];
-			static uint8_t submenu_static_idx;
- #endif
-#endif
+
 
 
 
@@ -300,10 +339,6 @@ namespace SUI
 			Menu(SerialUI * SUIDriver, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint=0, Menu* parent_menu_ptr=NULL);
 			Menu();
 
-			/*
-			 * init
-			 * Performs Menu initialisation, used internally when malloc'ing Menus.
-			 */
 			void init(SerialUI * SUIdrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent);
 
 
@@ -343,11 +378,6 @@ namespace SUI
 			void unknownCommand(char * key);
 
 
-			/*
-			 * enter
-			 * Executed on entering this Menu.
-			 */
-			void enter();
 
 
 			/*
@@ -356,7 +386,7 @@ namespace SUI
 			 *
 			 * Returns boolean true on success, false otherwise.
 			 */
-			bool addMenuItem(MenuItem * itm);
+			bool addMenuItem(MenuItem::Base * itm);
 
 			// DEADBEEF: bool createNewItem();
 
@@ -374,13 +404,13 @@ namespace SUI
 			/* ******************* MENU ITEM KEY MANIP ******************* */
 
 			/*
-			 * mallocReadKey()
+			 * newReadKey()
 			 * Allocates space for any of the keys in this menu, and reads it in
 			 * from the SerialUI input.
 			 *
-			 * Returns a pointer to a malloc'ed char* on success (must be freed), NULL otherwise.
+			 * Returns a pointer to a new char* on success (must be freed), NULL otherwise.
 			 */
-			char * mallocReadKey();
+			char * newReadKey();
 
 			/*
 			 * itemForKey(KEY)
@@ -404,14 +434,14 @@ namespace SUI
 			 *
 			 * Returns a MenuItem pointer if found, NULL otherwise.
 			 */
-			MenuItem * itemForKey(char * key);
+			MenuItem::Base * itemForKey(char * key);
 			
 
 			/*
 			 * printHelpKey(MENUITEM)
 			 * Convenience function for pretty-printing the help menu keys.
 			 */
-			void printHelpKey(MenuItem * menuitem);
+			void printHelpKey(MenuItem::Base * menuitem);
 
 
 			/*
