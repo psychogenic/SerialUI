@@ -190,7 +190,7 @@ SUI_DeclareString(label_time, "time");
 **
 ** The constructor is called with two (optional) parameters:
 **
-**  SerialUI([PGM_P greeting_message, [uint8_t num_top_level_menuitems_hint]]);
+**  SerialUI([SUI_FLASHSTRING_PTR greeting_message, [uint8_t num_top_level_menuitems_hint]]);
 **
 **   - a message string to show on entry, declared with SUI_DeclareString
 **   - a hint concerning the number of top level menu items (to avoid the cost

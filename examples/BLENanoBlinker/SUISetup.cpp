@@ -1,165 +1,15 @@
 /*
-**  SerialUI demo/test and tutorial.
-**  Copyright (C) 2013, 2014 Pat Deegan.  All rights reserved.
-**
-** http://www.flyingcarsandstuff.com/projects/SerialUI
-**
-** Please let me know if you use SerialUI in your projects, and
-** provide a URL if you'd like me to link to it from the SerialUI
-** home.
-**
-** This program (and accompanying library) is free software;
-** you can redistribute it and/or modify it under the terms of
-** the GNU Lesser General Public License as published by the
-** Free Software Foundation; either version 3 of the License,
-** or (at your option) any later version.
-**
-** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-**
-** See file LICENSE.txt for further informations on licensing terms.
-**
-**
-** ************************* OVERVIEW *************************
-**
-** SerialUI is useful when you want to provide a user interface
-** through the serial channel, i.e menus, submenus and commands.
-** It provides built-in support for setting everything up, as
-** well as navigation and online help.
-**
-** This example demonstrates usage by creating the UI for a
-** fictitious "SuperBlinker" device--some sort of RGB
-** illumination system.
-**
-**
-** ************************** USAGE **************************
-**
-** To use, simply adjust your serial connection to the settings
-** specified in the "Serial Settings" section below (defaults
-** to 115200 baud and newline terminators) and set the
-** ledpin define to a pin that tied to an LED (pin 13 by
-** default).
-**
-** Next, compile, upload and connect using the serial monitor
-** (ensuring the settings match those specified below) and
-** press "enter".
-**
-**
-** ************************** MENUS **************************
-**
-** The menu structure we'll create here looks like:
-**
-**  * information
-**  |
-**  |
-**  + enable -----* on
-**  |             |
-**  |             * off
-**  |
-**  |
-**  + settings ----------* red
-**  |                    |
-**  |                    * green
-**  |                    |
-**  |                    * blue
-**  |                    |
-**  |                    * deviceid
-**  |                    |
-**  |                    * show
-**  * exit
-**
-** So, a three-option top level menu (information, enable, settings) with
-** two of those options leading to sub-menus.  Every "leaf" (option that
-** doesn't lead to a submenu) is a command that uses one of the callbacks
-** defined below to do its work (see the Callbacks section).
-**
-**
-**
-** ********************* SAMPLE TRANSCRIPT **********************
-**
-** Here's a sample of the interaction through the serial
-** connection:
+   SUISetup.cpp
 
-  +++ Welcome to the SuperBlinker +++
-  Enter '?' to list available options.
-  > ?
-  *** Help for SuperBlinker Main Menu
 
-    information         Retrieve data and current settings
-    enable              Enable/disable device
-    settings            Perform setup and config
-
-    quit                Exit SerialUI
-    ?                   List available menu items
-  > settings
-  SuperBlinker Settings
-  > ?
-  *** Help for SuperBlinker Settings
-
-  red                 Set color [0-255]
-  green
-  blue
-  deviceid            Set dev ID [string]
-  show
-
-  ..                  Move up to parent menu
-  ?                   List available menu items
-
-  > red
-  ... 10
-  OK
-  > green
-  ... 20
-  OK
-  > blue
-  ... 30
-  > deviceid
-  ... YayDevice
-  OK
-  > show
-  (Called 'show_info' from menu: SuperBlinker Settings)
-  ID: YayDevice
-  Color--> R:10 G:20 B:30
-  Device is OFF
-  > ..
-  SuperBlinker Main Menu
-  > quit
-**
-**
-** The code is fully commented, see below.
-** Enjoy!
-** Pat Deegan
+    Created on: Jan 13, 2016
+        Author: Pat Deegan
+        Part of the SerialUI Project
+        Copyright (C) 2015 Pat Deegan, http://psychogenic.com
 */
 
-// to use SerialUI, you need to include the main header:
-#include <SerialUI.h>
+#include "BLENanoBlinker.h"
 
-
-/*
-** ***************** Serial Settings ******************
-**
-** Make sure you're serial port/serial monitor is setup
-** with the correct baud rate or redefine the
-**  serial_baud_rate (integer)
-**
-** You may also set
-**  serial_input_terminator (character)
-** according to your environment, though this latest
-** version handles all the regular EOL situations
-** automatically, with readBytesToEOL().
-**
-** NOTE: Setting the correct serial_input_terminator is
-** only important if you are using a "strange" (i.e not
-** NL, CR, or CR+NL) input terminator.
-*/
-#define serial_baud_rate           115200
-#define serial_input_terminator   '\n'
-
-/* We'll be using a blinker to show that we're alive,
-** so set the ledpin to something connected to an LED
-*/
-#define ledpin  13
 
 
 /*
@@ -183,28 +33,16 @@
 SUI::SerialUI mySUI(4);
 
 
+// A remote delegate, to do our biding over the air (magic!)
+SUI::Delegate::NRF51822 MyBLEDelegate(&ble);
 
-// We'll also define a struct to hold our "SuperBlinker" settings, just
-// to excercise various functions in this example.
-// It will hold RGB settings, a device id and an on/off state.
 
-// dev_id_maxlen, max string length for the device id:
-#define dev_id_maxlen  30
 
-// deviceInfo struct, a place to store our settings
-typedef struct deviceInfo {
 
-  unsigned long red;
-  unsigned long green;
-  unsigned long blue;
-  String dev_id;
-  bool state;
-}
-deviceInfo;
 
 // Just declare a global deviceInfo structure for
 // use below, initialized to all-zeros:
-deviceInfo myDevice = {0};
+DeviceInfo myDevice = {0};
 // NOTE: In real life, I think the device resets as we
 // close the serial connection, meaning that if you want
 // your config to be permanent, you probably have to save
@@ -213,123 +51,9 @@ deviceInfo myDevice = {0};
 
 
 
-/*
-** ********************* setup() ***********************
-**
-** The standard Arduino setup() function.  Here we'll
-** setup serial comm and the menu structure.
-*/
-
-
-void setup()
-{
-
-  mySUI.setGreeting(F("+++ Welcome to the SuperBlinker +++\r\nEnter '?' to list available options."));
-
-  // SerialUI acts just like (is actually a facade for)
-  // Serial.  Use it, rather than Serial, throughout the
-  // program.
-  // Setup of SerialUI:
-  mySUI.begin(serial_baud_rate); // serial line open/setup
-  mySUI.setTimeout(20000);      // timeout for reads (in ms), same as for Serial.
-  mySUI.setMaxIdleMs(30000);    // timeout for user (in ms)
-  // how we are marking the "end-of-line" (\n, by default):
-  mySUI.setReadTerminator(serial_input_terminator);
-
-
-  // Setup variable state tracking -- will report changes to
-  // Druid4Arduino (v >= 1.3.0) so it can automatically display
-  // these in GUI.  See the VariableTracking example for more on this...
-  mySUI.trackState(F("enabled"), &(myDevice.state));
-  mySUI.trackState(F("red"), &(myDevice.red));
-  mySUI.trackState(F("green"), &(myDevice.green));
-  mySUI.trackState(F("blue"), &(myDevice.blue));
 
 
 
-  // The SerialUI menu setup is a bit involved, and it
-  // needs to know about the functions we'll be using as
-  // callbacks. Instead of having a bunch of function
-  // declarations, all the work is contained in a function
-  // of its own at the bottom of the program.
-  // Yes: *DO* check it out!
-  setupMenus();
-
-
-  // set our blinker pin as an output.
-  pinMode(ledpin, OUTPUT);
-
-}
-
-
-
-/*
-** ********************* loop() ***********************
-**
-** The standard Arduino loop() function.  Here we'll
-** handle SerialUI user interaction, and blink our
-** blinker when nothing is going on.
-*/
-
-// we'll keep the blinker state in a boolean global
-boolean cur_blink_state = true;
-uint8_t on_print_count = 0;
-void loop()
-{
-
-  /* We checkForUser() periodically, to see
-  ** if anyone is attempting to send us some
-  ** data through the serial port.
-  **
-  ** This code checks at every pass of the main
-  ** loop, meaning a user can interact with the 
-  ** system at any time.  Should you want to
-  ** check for user access only once (say have a
-  ** N second wait on startup, and then forgo
-  ** allowing SerialUI access), then increase the
-  ** delay parameter and use checkForUserOnce(), e.g.
-  **
-  **    mySUI.checkForUserOnce(15000);
-  **
-  ** to allow 15 seconds to connect on startup only.
-  **
-  ** Called without parameters, or with 0, checkForUser 
-  ** won't delay the program, as it won't block at all.
-  ** Using a parameter > 0:
-  **	checkForUser(MAX_MS);
-  ** will wait for up to MAX_MS milliseconds for a user,
-  ** so is equivalent to having a delay(MAX_MS) in the loop,
-  ** when no user is present.
-  */
-  if (mySUI.checkForUser())
-  {
-    
-    /* Now we keep handling the serial user's
-    ** requests until they exit or timeout.
-    */
-    while (mySUI.userPresent())
-    {
-      // actually respond to requests, using
-      mySUI.handleRequests();
-
-      if (myDevice.state && on_print_count++ > 10)
-      {
-        on_print_count = 0;
-        mySUI.print(F("ON at "));
-        mySUI.println(millis());
-      }
-    }
-
-  } /* end if we had a user on the serial line */
-
-
-  // we toggle the LED pin just to show we're alive
-  // and not currently processing serial interaction
-  cur_blink_state = !cur_blink_state;
-  digitalWrite(ledpin, cur_blink_state);
-
-
-}
 
 
 /*
@@ -398,6 +122,40 @@ void turn_off()
   mySUI.returnOK();
 }
 
+#if 0
+
+// callback: set_devid
+// Get a string from the user to set as the
+// device id
+void set_devid()
+{
+  // Here, we want some additional input from
+  // the user, so we show the "enter data prompt"
+  // using... showEnterDataPrompt
+  mySUI.showEnterDataPrompt();
+
+
+  // Now, we actually get the input
+  // We want a string (of up to dev_id_maxlen
+  // characters), so you can use readBytesToEOL().
+  // to ensure we get the whole string
+  // no matter what the serial line terminator settings are
+  // (newline, carriage return or both) we can use readBytesUntil().
+  //
+  // readBytesToEOL: works in all line termination setups and won't
+  //  mess up with a slow serial line (like 9600baud)
+  //
+  // readBytesUntil: needs the correct line termination char
+  byte numRead = mySUI.readBytesToEOL(myDevice.dev_id, dev_id_maxlen);
+
+  // make sure the string is null-terminated
+  myDevice.dev_id[numRead] = '\0';
+
+  // provide some feedback
+  mySUI.println(myDevice.dev_id);
+  mySUI.returnOK();
+}
+#endif
 
 void color_has_changed()
 {
@@ -589,8 +347,6 @@ void setupMenus()
   settingsMenu->setName(F("Settings"));
 
   SUI_FLASHSTRING_PTR SetColorHelp = F("Set color [0-255]");
-
-
   SUI_FLASHSTRING_PTR CouldntAddRequset = F("Could not add request?");
 
   // we could use a regular command callback to get the device info
@@ -612,7 +368,6 @@ void setupMenus()
       return mySUI.returnError(CouldntAddRequset);
   }
 
-
   // the String version of addRequest requires an addition param: the max size of the
   // string entered
   settingsMenu->addRequest(&(myDevice.dev_id), dev_id_maxlen, F("deviceid"), F("Set dev id [string]"));
@@ -629,3 +384,38 @@ void setupMenus()
   // Done setting up the menus!
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+void SUISetup() {
+
+
+  OUTPUTLN_SERIAL_DEBUG("SUISetup() begins...");
+
+  mySUI.useDelegate(&MyBLEDelegate);
+  mySUI.setGreeting(F("+++ Welcome to the BLEBlinker +++\r\nEnter '?' to list available options."));
+
+  mySUI.begin(9600);
+
+  mySUI.setTimeout(35000);      // timeout for reads (in ms), same as for Serial.
+  mySUI.setMaxIdleMs(40000);    // timeout for user (in ms)
+  // how we are marking the "end-of-line" (\n, by default):
+  mySUI.setReadTerminator(serial_input_terminator);
+
+  setupMenus();
+
+
+  OUTPUTLN_SERIAL_DEBUG("SUI Setup done.");
+}
+
+
