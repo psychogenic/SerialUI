@@ -17,7 +17,7 @@ To really get a taste of what you can do with SerialUI, check out
 the Device Druid site, which provides an automatic GUI for any SerialUI
 project:
 
-	https://devicedruid.com/
+https://devicedruid.com/
 
 
 With SerialUI, you can create a hierarchy of menus and
