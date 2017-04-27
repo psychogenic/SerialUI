@@ -1,7 +1,7 @@
 /*
  *
  * SerialUI.cpp -- SerialUI implementation
- * Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com. All rights reserved.
  *
  * See SerialUI.h for usage details.
  *
@@ -38,20 +38,23 @@
 #endif
 
 
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+#define SUI_TRIGGERHEARTBEAT(timeNow)	triggerHeartbeat( (timeNow) )
+#else
+#define SUI_TRIGGERHEARTBEAT(timeNow)
+#endif
+
+
+
 
 namespace SUI {
 
-// Our default delegate... this is basically a wrapper around our
-// Serial port... the indirection allows little gain in the standard
-// setup (AVR-based Arduino) but it gives us some flexibility we can use
-// for other platforms and for some neat tricks--like "wireless" serial ports etc.
-static StreamDelegate _suiDefaultDelegate(&SUI_PLATFORM_HARDWARESERIAL_DEFAULT);
-
 
 SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
-		SerialUIUnderlyingStreamType * underlying_stream) :
-		SUI::SUIStream(&_suiDefaultDelegate),
+		SovA::SovAStandardSysStreamType * underlying_stream) : SovA::Stream(),
 		output_mode(Mode::User),
+		response_transmitted(false),
+		uid(NULL),
 		greeting_msg(NULL),top_lev_menu(), current_menu(NULL),
 				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
@@ -67,33 +70,8 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
 				heartbeat_function_last_called(0),
 #endif
-				menu_manual_override(false),
-				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
-{
-
-	doInit(num_top_level_menuitems_hint, underlying_stream);
-}
-
-
-#ifdef SUI_PROGMEM_PTR
-SerialUI::SerialUI(SUI_PROGMEM_PTR greeting_message, uint8_t num_top_level_menuitems_hint,
-		SerialUIUnderlyingStreamType * underlying_stream) :
-		SUI::SUIStream(&_suiDefaultDelegate),
-		output_mode(Mode::User),
-		greeting_msg(SUI_STR("Use v2.0 SerialUI API")),top_lev_menu(), current_menu(NULL),
-				user_check_performed(false), user_present(false),
-				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
-				user_presence_last_interaction_ms(0),
-				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT),
-#ifdef SUI_SERIALUI_ECHO_ON
-				echo_commands(true),
-#else
-				echo_commands(false),
-#endif
-#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
-				heartbeat_function_cb(NULL),
-				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
-				heartbeat_function_last_called(0),
+#ifdef SUI_ENABLE_STATE_TRACKER
+				force_state_tracking_fulldump(false),
 #endif
 				menu_manual_override(false),
 				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
@@ -102,10 +80,21 @@ SerialUI::SerialUI(SUI_PROGMEM_PTR greeting_message, uint8_t num_top_level_menui
 	doInit(num_top_level_menuitems_hint, underlying_stream);
 }
 
+
+SerialUI::~SerialUI() {
+#ifdef SUI_ENABLE_STATE_TRACKER
+	for (uint8_t i=0; i<SUI_STATE_TRACKER_MAX_VARIABLES; i++)
+	{
+		if (stateTrackedVars[i] && stateTrackedVars[i]->systemGenerated())
+		{
+			delete stateTrackedVars[i];
+		}
+	}
 #endif
 
+}
 
-void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SerialUIUnderlyingStreamType * underlying_stream)
+void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SovA::SovAStandardSysStreamType * underlying_stream)
 {
 
 
@@ -117,7 +106,7 @@ void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SerialUIUnderlyingSt
 		// for every other part of the program, we just use the delegate interface, so
 		// when you're doing fancy delegate stuff, the method is
 		//  default c'tor + useDelegate() later, no messing with underlying stream
-		static_cast<StreamDelegate*>(delegate())->setStream(underlying_stream);
+		static_cast<SovA::StreamDelegate*>(delegate())->setStream(underlying_stream);
 	}
 
 	top_lev_menu.init(this, SUI_STR(SUI_SERIALUI_TOP_MENU_NAME), num_top_level_menuitems_hint, NULL);
@@ -195,6 +184,11 @@ void SerialUI::enter() {
 		current_menu->returnMessage(greeting_msg);
 	}
 
+#ifdef SUI_ENABLE_STATE_TRACKER
+	force_state_tracking_fulldump = true;
+
+#endif
+
 #ifdef SUI_SERIALUI_SHOW_PROMPTS
 	showPrompt();
 #endif
@@ -233,7 +227,7 @@ void SerialUI::exit(bool terminate_gui)
 
 }
 
-Menu * SerialUI::topLevelMenu(SUI_FLASHSTRING_PTR setNameTo) {
+Menu * SerialUI::topLevelMenu(SOVA_FLASHSTRING_PTR setNameTo) {
 	if (setNameTo) {
 		top_lev_menu.setName(setNameTo);
 	}
@@ -246,6 +240,9 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 	delegate()->tick();
 	if (user_check_performed) {
 		// already done this...
+#ifdef SUI_NOUSER_HEARTBEAT_ENABLE
+		SUI_TRIGGERHEARTBEAT(PLATFORM_NOW_MILLIS());
+#endif
 		return false;
 	}
 
@@ -267,10 +264,23 @@ bool SerialUI::checkForUser(uint16_t timeout_ms) {
 		}
 
 		// nothing on serial line, as of yet
+
+		// if we're tripping the heartbeat regardless of
+		// user presence, then do so here.
+		// when a user *is* present, the heartbeat will
+		// be handled within handleRequests().
+#ifdef SUI_NOUSER_HEARTBEAT_ENABLE
+		SUI_TRIGGERHEARTBEAT(PLATFORM_NOW_MILLIS());
+#endif
+
+
 		// if this was a "non-blocking" check, return immediately
+
 		if (! timeout_ms)
 			return false;
 
+		// ok, a delay is set... so we'll break it up into smaller
+		// chunks and keep checking until we run out of time
 		delay(SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS);
 		ms_count += SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS;
 	}
@@ -281,17 +291,24 @@ bool SerialUI::checkForUser(uint16_t timeout_ms) {
 
 bool SerialUI::userPresent() {
 	if (!user_present) {
+		// already determined they're outta here
 		return false;
 	}
 
+	// there _was_ a user, but let's see how long it's
+	// been since they performed any actions
 	if (user_presence_last_interaction_ms &&
 			((PLATFORM_NOW_MILLIS() - user_presence_last_interaction_ms)
 					> user_presence_timeout_ms)) {
 
+		// yeah, looks like they're gone for coffee...
 
 		SERIALUI_DEBUG("User idles excessively, bumping out...");
+		// this will set user_present to false and
+		// perform other work
 		exit(false);
 	}
+
 
 	return user_present;
 
@@ -305,15 +322,10 @@ void SerialUI::setCurrentMenu(Menu * setTo)
 	}
 }
 
-void SerialUI::handleRequests(uint8_t maxRequests) {
-	Menu * ret_menu;
-
-	for (uint8_t i = 0; i <= maxRequests; i++) {
-
-
-		uint32_t timeNow = PLATFORM_NOW_MILLIS();
 
 #ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+void SerialUI::triggerHeartbeat(uint32_t timeNow) {
+
 		if (heartbeat_function_cb != NULL)
 		{
 			if (timeNow >= (heartbeat_function_last_called + heartbeat_function_period))
@@ -323,9 +335,19 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 				heartbeat_function_last_called = timeNow;
 			}
 		}
+
+}
 #endif
 
+void SerialUI::handleRequests(uint8_t maxRequests) {
+	Menu * ret_menu;
 
+	for (uint8_t i = 0; i <= maxRequests; i++) {
+
+
+		uint32_t timeNow = PLATFORM_NOW_MILLIS();
+
+		SUI_TRIGGERHEARTBEAT(timeNow);
 
 		if (this->available() > 0) {
 
@@ -425,11 +447,6 @@ void SerialUI::showEnterNumericDataPrompt() {
 
 		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG));
 		PRINTLN_FLASHSTR(end_of_tx_str);
-		/*
-		PRINTLN_FLASHSTR(moredata_prompt_prog_num);
-		PRINTLN_FLASHSTR(end_of_tx_str);
-		*/
-
 		delegateSynch();
 		return;
 	}
@@ -550,123 +567,174 @@ int8_t SerialUI::stateTrackedVarsNextAvailableSlot() {
 	return -1;
 
 }
-
-int8_t SerialUI::addStateTracking(SUI_FLASHSTRING_PTR name, TrackedType type, void* var)
+int8_t SerialUI::trackState(SOVA_FLASHSTRING_PTR name, bool * var)
 {
-	int8_t slot = stateTrackedVarsNextAvailableSlot();
-	if (slot < 0)
-		return slot;
 
-	TrackedStateVariableDetails * trackedDets = new TrackedStateVariableDetails(name, type, var);
+	Tracked::State * tState = new Tracked::Boolean(name, var);
 
-	if (! trackedDets)
+	if (! tState)
 		return -1;
 
-	stateTrackedVars[slot] = trackedDets;
+	tState->setSystemGenerated(true);
 
-	return slot;
+	return this->addStateTracking(tState) ;
+
+
+}
+int8_t SerialUI::trackState(SOVA_FLASHSTRING_PTR name, unsigned long * var) {
+
+	Tracked::State * tState = new Tracked::UInteger(name, var);
+
+	if (! tState)
+		return -1;
+
+	tState->setSystemGenerated(true);
+
+	return this->addStateTracking(tState) ;
 
 }
 
-bool SerialUI::showTrackedState()
+
+int8_t SerialUI::trackState(SOVA_FLASHSTRING_PTR name, float * var) {
+	Tracked::State * tState = new Tracked::Float(name, var);
+
+	if (! tState)
+		return -1;
+
+	tState->setSystemGenerated(true);
+
+	return this->addStateTracking(tState) ;
+
+}
+
+int8_t SerialUI::trackState(SOVA_FLASHSTRING_PTR name, char * var) {
+	Tracked::State * tState = new Tracked::CString(name, var);
+
+	if (! tState)
+	return -1;
+
+	tState->setSystemGenerated(true);
+
+	return this->addStateTracking(tState);
+
+}
+
+int8_t SerialUI::trackState(SOVA_FLASHSTRING_PTR name, ::String * var) {
+	Tracked::State * tState = new Tracked::AString(name, var);
+
+	if (! tState)
+		return -1;
+
+	tState->setSystemGenerated(true);
+
+	return this->addStateTracking(tState);
+
+
+}
+
+int8_t SerialUI::addStateTracking(Tracked::State* var)
 {
 
-	char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN];
+	if (! var)
+		return -1;
 
-	if (stateTrackedVarsNextAvailableSlot() == 0)
+	int8_t slot = stateTrackedVarsNextAvailableSlot();
+	if (slot < 0) {
+
+		if (var->systemGenerated())
+		{
+			delete var;
+		}
+		return slot;
+	}
+
+
+	if (! var)
+		return -1;
+
+	stateTrackedVars[slot] = var;
+
+	return slot;
+}
+
+
+
+
+bool SerialUI::showTrackedState(bool force)
+{
+
+#if defined(SUI_ENABLE_STATE_TRACKER) and defined(SUI_ENABLE_MODES)
+
+	char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN] = {0,};
+	// char numBuf[8 * sizeof(long) + 1];
+	uint8_t idx = 0;
+	uint8_t totlen = 0;
+
+	if ( (mode() != Mode::Program) || stateTrackedVarsNextAvailableSlot() == 0)
 	{
 		// nothing to show...
 		return false;
 	}
 
+	if (force_state_tracking_fulldump) {
+		// only do this once, first time 'round
+		force = true;
+		force_state_tracking_fulldump = false;
+	}
 
-#ifdef SUI_ENABLE_MODES
-
-	if (mode() == Mode::Program) {
-
-		char numBuf[8 * sizeof(long) + 1];
-
-		outBuf[0] = '\0';
-		uint8_t totlen = 0;
-		uint8_t idx = 0;
-		unsigned long m;
-		unsigned long tmpInt;
-		while (stateTrackedVars[idx] != NULL)
+	outBuf[0] = '\0';
+	while (stateTrackedVars[idx] != NULL && (totlen < (SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN -1 )))
+	{
+		Tracked::State * st = stateTrackedVars[idx++];
+		if (! (force || st->hasChanged()) )
 		{
-			outBuf[totlen++] = (char)stateTrackedVars[idx]->type;
-
-			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-			outBuf[totlen] = '\0';
-
-			STRCAT_FLASHSTR(outBuf, stateTrackedVars[idx]->name);
-			totlen += STRLEN_FLASHSTR(stateTrackedVars[idx]->name);
-
-			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-			outBuf[totlen] = '\0';
-
-			//double dval = 0; // Assumes 8-bit chars plus zero byte.
-			float dval = 0; // Assumes 8-bit chars plus zero byte.
-			char *str = &numBuf[sizeof(numBuf) - 1];
-
-			switch (stateTrackedVars[idx]->type)
-			{
-			case SUITracked_Bool:
-				outBuf[totlen++] = (*(stateTrackedVars[idx]->ptr_bool) ? '1' : '0');
-				break;
-			case SUITracked_UInt:
-#ifdef PLATFORM_DESKTOP
-				totlen += sprintf(&(outBuf[totlen]), "%i", *(stateTrackedVars[idx]->ptr_int));
-#else
-				*str = '\0';
-				tmpInt = *(stateTrackedVars[idx]->ptr_int);
-				do {
-					m = tmpInt;
-					tmpInt /= 10;
-					char c = m - 10 * tmpInt;
-					*--str = c + '0';
-				} while (tmpInt);
-
-				strcat(&(outBuf[totlen]), str);
-				totlen += strlen(str);
-
-#endif
-				break;
-
-			case SUITracked_Float:
-#ifdef PLATFORM_DESKTOP
-				totlen += sprintf(&(outBuf[totlen]), "%.2f", *(stateTrackedVars[idx]->ptr_float));
-#else
-				dval = *(stateTrackedVars[idx]->ptr_float);
-				totlen += SUI_CONVERT_FLOAT_TO_STRING_AND_RETLEN(dval, &(outBuf[totlen]));
-
-						// strlen(dtostrf(dval, 5, 2, &(outBuf[totlen])));
-#endif
-
-				break;
-			}
-
-			outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-			outBuf[totlen] = '\0';
-
-			idx++;
+			continue;
 		}
 
+		outBuf[totlen++] = (char)st->type();
+
+		outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+		outBuf[totlen] = '\0';
+
+		STRCAT_FLASHSTR(outBuf,st->name());
+		totlen += STRLEN_FLASHSTR(st->name());
+
+		outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+		outBuf[totlen] = '\0';
+
+		totlen += st->toString(&(outBuf[totlen]), (SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN - (totlen + 2)));
+
+		outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+		outBuf[totlen] = '\0';
+
+		st->updateCache();
+
+
+	}
+
+	if (totlen) {
 
 		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_TRACKEDSTATE_PREFIX_PROG));
 		print(strlen(outBuf) + 1);
 		print(SUI_SERIALUI_PROG_STR_SEP_CHAR);
 		println(outBuf);
-
-
-		delegateSynch();
-
-		return (totlen > 0);
 	}
 
-#endif
 
+	PRINTLN_FLASHSTR(end_of_tx_str);
+
+	delegateSynch();
+
+	return (totlen > 0);
+
+#else
 	return false;
+
+#endif
 }
+
+
+
 
 #endif
 
@@ -706,22 +774,13 @@ void SerialUI::debug(const char * debugmsg)
 	println(debugmsg);
 }
 
-void SerialUI::debug(SUI_FLASHSTRING_PTR debugmsg)
+void SerialUI::debug(SOVA_FLASHSTRING_PTR debugmsg)
 {
 
 	PRINT_FLASHSTR(SUI_STR("DEBUG: "));
 	println(debugmsg);
 }
 
-#ifdef SUI_PROGMEM_PTR
-
-void SerialUI::debug_P(SUI_PROGMEM_PTR debugmesg_p)
-{
-	print_P(SUI_STR("DEBUG: "));
-	println_P(debugmesg_p);
-
-}
-#endif
 
 
 } /* end namespace SUI */

@@ -1,7 +1,7 @@
 /*
  *
  * SUIConfig.h -- SerialUI compile time configuration.
- * Copyright (C) 2013-2016 Pat Deegan.  All rights reserved.
+ * Copyright (C) 2013-2017 Pat Deegan.  All rights reserved.
  *
  * http://www.flyingcarsandstuff.com/projects/SerialUI/
  *
@@ -212,7 +212,7 @@
  *
  * Disabled by default.
  */
-//#define SUI_INCLUDE_DEBUG
+// #define SUI_INCLUDE_DEBUG
 
 
 /*
@@ -283,7 +283,23 @@
  */
 #define SUI_ENABLE_USER_PRESENCE_HEARTBEAT
 
+/*
+ * SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS
+ * Default period for heartbeat calls, if not set with
+ * SerialUI.setUserPresenceHeartbeatPeriod(NNN)
+ */
 #define SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS		500
+
+/*
+ * SUI_NOUSER_HEARTBEAT_ENABLE
+ *
+ * Enable the "heartbeat" even when no user present.
+ *
+ * Disabled by default, uncomment to enable
+ */
+// #define SUI_NOUSER_HEARTBEAT_ENABLE
+
+
 
 /*
  * SUI_ENABLE_STATE_TRACKER
@@ -311,7 +327,20 @@
  */
 #define SUI_SERIALUI_USERCHECK_BLOCKFORINPUTDELAY_MS		1
 
-// #define SUI_STREAMDELEGATE_DUMMY_ENABLE
+
+
+
+
+
+/* **************** end user/compile-time config ****************** */
+
+
+
+
+
+
+
+
 
 
 
@@ -357,7 +386,6 @@
 // #define SUI_PLATFORM_DIGISPARKUSB
 // #define SUI_PLATFORM_XMEGA
 // #define SUI_PLATFORM_ESP8266
-
 
 // Auto-detection stuff...
 
@@ -433,7 +461,8 @@
 		or defined(SUI_PLATFORM_DIGISPARKUSB) \
 		or defined(SUI_PLATFORM_ESP8266) \
 		or defined(SUI_PLATFORM_ARDUINO_AVR))
-		#error "Could not auto-detect platform... define an appropriate SUI_PLATFORM_ARDUINO_* in SUIConfig.h"
+		#warning "Could not auto-detect platform... define an appropriate SUI_PLATFORM_ARDUINO_* in SUIConfig.h"
+#define SUI_PLATFORM_ARDUINO_AVR
 #endif /* One SUI_PLATFORM_* defined */
 
 
@@ -462,6 +491,10 @@
 
 #ifdef SUI_INCLUDE_DEBUG
 #warning "SUI_INCLUDE_DEBUG is enabled"
+#ifndef SUI_PLATFORM_HARDWARESERIAL_DEFAULT
+#define SUI_PLATFORM_HARDWARESERIAL_DEFAULT 	Serial
+#endif
+
 #endif
 
 
@@ -469,8 +502,8 @@
 
 
 #define SERIAL_UI_VERSION			2
-#define SERIAL_UI_SUBVERSION		0
-#define SERIAL_UI_PATCHLEVEL		0
+#define SERIAL_UI_SUBVERSION		1
+#define SERIAL_UI_PATCHLEVEL		3
 
 
 

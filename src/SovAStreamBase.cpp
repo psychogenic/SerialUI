@@ -1,8 +1,8 @@
 /*
- * SUIExtIncludes.h -- External dependencies for SerialUI.
- * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com.
+ * SovAStreamBase.cpp
+ * Copyright (C) 2016-2017 Pat Deegan, psychogenic.com.
  *
- *
+ * Part of SovA, released as a supporting component of SerialUI.
  * http://www.flyingcarsandstuff.com/projects/SerialUI
  *
  *
@@ -21,15 +21,40 @@
  *
  */
 
-#ifndef SERIALUI_SRC_INCLUDES_SUIEXTINCLUDES_H_
 
-#define SERIALUI_SRC_INCLUDES_SUIEXTINCLUDES_H_
-
-
-#include <Arduino.h>
-#include <inttypes.h>
-#include <stdint.h>
-#include "sova/SovA.h"
+#include "includes/sova/stream/SovAStream.h"
 
 
-#endif /* SERIALUI_SRC_INCLUDES_SUIEXTINCLUDES_H_ */
+namespace SovA {
+
+const char * Sink::endl  = "\r\n";
+Sink & Sink::operator<<(Source & src) {
+
+	uint8_t buf[SOVA_PIPE_BUFFER_SIZE];
+	while (src.available())
+	{
+		this->write(buf, src.readBytes(buf, SOVA_PIPE_BUFFER_SIZE));
+	}
+	return *this;
+}
+Sink & Sink::operator<<(const Uint8Buffer & ubuf)
+{
+
+	this->write(ubuf.buf, ubuf.len);
+
+	return *this;
+
+}
+
+Source & Source::operator>>(Sink & snk)
+{
+
+	snk << *this;
+
+	return *this;
+}
+
+}
+
+
+

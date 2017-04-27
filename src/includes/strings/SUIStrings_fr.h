@@ -1,7 +1,7 @@
 /*
  *
  * SUIStrings_en.h -- SerialUI system strings, english version.
- * Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com. All rights reserved.
  *
  *
  * http://www.flyingcarsandstuff.com/projects/SerialUI

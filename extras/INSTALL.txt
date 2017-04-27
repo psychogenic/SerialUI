@@ -1,7 +1,8 @@
 SerialUI Installation
 
  SerialUI: Serial User Interface.
- Copyright (C) 2013-2016 Pat Deegan.  All rights reserved.
+ Copyright (C) 2013-2017 Pat Deegan.  
+ Released under the LGPL, see LICENSE.txt for details.
  http://flyingcarsandstuff.com/projects/SerialUI/
 
 
@@ -25,8 +26,7 @@ Do have a look at the
 
 	File -> Examples -> SerialUI -> SuperBlinker
 
-example, the README.txt and/or the SerialUI.h header
-file.
+example or any of the others available.
 
 For other platforms/dev environments, just include 
 the contents of the SerialUI directory wherever 

@@ -1,6 +1,5 @@
 /*
- *
- * SerialUI.h -- SerialUI main include.
+ * Command.cpp -- Command menu items.
  * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com.
  *
  *
@@ -22,17 +21,41 @@
  *
  */
 
-#ifndef SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
-#define SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
 
 
-#include "includes/SUIConfig.h"
-#include "includes/SUIPlatform.h"
-#include "includes/SerialUI.h"
-#include "includes/SUIMenu.h"
 #include "includes/menuitem/Command.h"
-#include "includes/menuitem/SubMenu.h"
-#include "includes/menuitem/Request.h"
+#include "includes/SUIMenu.h"
+#include "includes/SerialUI.h"
+
+namespace SUI {
+namespace MenuItem {
 
 
-#endif /* SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_ */
+
+
+Menu * Command::call(Menu * callingMenu) {
+
+	SerialUI * driver = callingMenu->driver();
+
+	driver->markResponseRequired();
+	command();
+	if (! driver->responseTransmitted() )
+	{
+		callingMenu->returnOK();
+	}
+	return NULL;
+}
+
+void Command::printPrefix(Menu * callingMenu, SUI::Mode::Selection curMode) {
+	if (curMode == SUI::Mode::User)
+	{
+		callingMenu->driver()->print(SUI_STR(SUI_SERIALUI_KEYHELP_COMMAND_PREFIX));
+		return;
+	}
+
+	callingMenu->driver()->print(SUI_STR(SUI_SERIALUI_KEYHELP_COMMAND_PREFIX_PROG));
+
+}
+
+}
+}

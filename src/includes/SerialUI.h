@@ -1,7 +1,7 @@
 /*
  *
  * SerialUI.h -- Serial User Interface for Arduino-compatible devices.
- * Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com. All rights reserved.
  *
  * http://www.flyingcarsandstuff.com/projects/SerialUI
  *
@@ -260,7 +260,6 @@
 // SerialUI includes
 #include "includes/SUIConfig.h"
 #include "includes/SUIExtIncludes.h"
-#include "includes/stream/SUIStream.h"
 #include "includes/SUIStrings.h"
 #include "includes/SUIMenu.h"
 #include "includes/SUIPlatform.h"
@@ -286,7 +285,7 @@
 
 
 
-#ifdef SUI_PROGMEM_PTR
+#ifdef SOVA_PROGMEM_PTR
 #define SUI_STR(conts)		F(conts)
 #else
 #define SUI_STR(conts)		F(conts)
@@ -331,7 +330,7 @@ typedef void(*heartbeatFunction)(void);
 #endif
 
 
-class SerialUI : public SUI::SUIStream
+class SerialUI : public SovA::Stream
 
 {
 
@@ -353,17 +352,20 @@ public:
 	 * As mentioned all are optional but a greeting is nice as it lets you know
 	 * everything is working.
 	 */
-	SerialUI(uint8_t num_top_level_menuitems_hint = 0, SerialUIUnderlyingStreamType * underlying_stream=NULL);
+	SerialUI(uint8_t num_top_level_menuitems_hint = 0, SovA::SovAStandardSysStreamType * underlying_stream=NULL);
 
-#ifdef SUI_PROGMEM_PTR
-	DEPRECATED SerialUI(SUI_PROGMEM_PTR greeting_message,
-				uint8_t num_top_level_menuitems_hint = 0, SerialUIUnderlyingStreamType * underlying_stream=NULL);
+#ifdef DEADBEEF
+#ifdef SOVA_PROGMEM_PTR
+	DEPRECATED SerialUI(SOVA_PROGMEM_PTR greeting_message,
+				uint8_t num_top_level_menuitems_hint = 0, SovA::SovAStandardSysStreamType * underlying_stream=NULL);
+#endif
 #endif
 
-	virtual ~SerialUI() {};
+	virtual ~SerialUI();
 
 
-	void setGreeting(SUI_FLASHSTRING_PTR greets) { greeting_msg = greets;}
+	inline void setGreeting(SOVA_FLASHSTRING_PTR greets) { greeting_msg = greets;}
+	inline void setUID(SOVA_FLASHSTRING_PTR u) { uid = u;}
 	/* ****************** configuration methods ***************** */
 	/*
 	 * setMaxIdleMs(MAXIDLETIME)
@@ -420,7 +422,11 @@ public:
 	 *
 	 * Returns a pointer to the Menu object.
 	 */
-	Menu * topLevelMenu(SUI_FLASHSTRING_PTR setNameTo = NULL);
+	Menu * topLevelMenu(SOVA_FLASHSTRING_PTR setNameTo = NULL);
+
+	inline void goToTopLevelMenu() {
+		current_menu = &top_lev_menu;
+	}
 
 	/*
 	 * checkForUser([TIMEOUTMS])
@@ -479,6 +485,26 @@ public:
 	}
 
 	/*
+	 * currentMenuItem()
+	 * Returns a pointer to the menu item active during
+	 * the call to callback/validation/changed.
+	 * This is a (MenuItem::Base*) so you can access
+	 * 	key and
+	 * 	help
+	 * (flash) strings, but if you know what you're doing, you
+	 * may cast this to the appropriate type and thus get access
+	 * to more juice.  E.g.
+	 *  	// since we *know* this is an options list, in this scenario
+	 *  	// cast and get access to the display string:
+	 * 		MySUI.println(
+	 *	((SUI::MenuItem::Request::OptionsList*)MySUI.currentMenuItem())->optionBySelection(2));
+	 *
+	 *
+	 */
+	inline MenuItem::Base * currentMenuItem() { return current_menu->currentItem();}
+
+
+	/*
 	 * Manually force the current SUI::Menu -- useful for things like
 	 * "top" commands, to jump back to top level menu.
 	 */
@@ -514,7 +540,7 @@ public:
 	 * Return (print) a message to user.  MESSAGE must be a
 	 * progmem string (most likely created with SUI_DeclareString).
 	 */
-	void returnMessage(SUI_FLASHSTRING_PTR message) {
+	void returnMessage(SOVA_FLASHSTRING_PTR message) {
 		current_menu->returnMessage(message);
 	}
 
@@ -531,7 +557,7 @@ public:
 		current_menu->returnError(errmsg);
 	}
 
-	void returnError(SUI_FLASHSTRING_PTR errmsg) {
+	void returnError(SOVA_FLASHSTRING_PTR errmsg) {
 		current_menu->returnError(errmsg);
 
 	}
@@ -573,7 +599,7 @@ public:
     void showFreeRAM();
 #ifdef SUI_INCLUDE_DEBUG
     void debug(const char * debugmsg);
-    void debug(SUI_FLASHSTRING_PTR debugmsg);
+    void debug(SOVA_FLASHSTRING_PTR debugmsg);
 
 #endif
 
@@ -585,42 +611,35 @@ public:
 #endif
 
 #ifdef SUI_ENABLE_STATE_TRACKER
-    int8_t trackState(SUI_FLASHSTRING_PTR name, bool * var) { return addStateTracking(name, SUITracked_Bool, (void*)var);}
-    int8_t trackState(SUI_FLASHSTRING_PTR name, unsigned long * var) { return addStateTracking(name, SUITracked_UInt, (void*)var);}
-    int8_t trackState(SUI_FLASHSTRING_PTR name, float * var) { return addStateTracking(name, SUITracked_Float, (void*)var);}
-    bool showTrackedState();
+    int8_t trackState(SOVA_FLASHSTRING_PTR name, bool * var) ;
+    int8_t trackState(SOVA_FLASHSTRING_PTR name, unsigned long * var);
+    int8_t trackState(SOVA_FLASHSTRING_PTR name, float * var) ;
+    int8_t trackState(SOVA_FLASHSTRING_PTR name, char * var) ;
+    int8_t trackState(SOVA_FLASHSTRING_PTR name, ::String * var) ;
+    int8_t trackState(Tracked::State * obj) { return addStateTracking(obj);}
+    bool showTrackedState(bool force=false);
 
-
-#ifdef SUI_PROGMEM_PTR
-    int8_t trackState(SUI_PROGMEM_PTR name, bool * var) { return addStateTracking((SUI_FLASHSTRING_PTR)name, SUITracked_Bool, (void*)var);}
-    int8_t trackState(SUI_PROGMEM_PTR name, unsigned long * var) { return addStateTracking((SUI_FLASHSTRING_PTR)name, SUITracked_UInt, (void*)var);}
-    int8_t trackState(SUI_PROGMEM_PTR name, float * var) { return addStateTracking((SUI_FLASHSTRING_PTR)name, SUITracked_Float, (void*)var);}
 
 #endif
 
-#endif
-
-
-
-
-#ifdef SUI_PROGMEM_PTR
-	DEPRECATED void returnError_P(SUI_PROGMEM_PTR errmsg) {
-		current_menu->returnError_P(errmsg);
-	}
-
-#ifdef SUI_INCLUDE_DEBUG
-	void debug_P(SUI_PROGMEM_PTR debugmesg_p);
-#endif
-#endif
+	inline bool responseTransmitted() { return response_transmitted;}
+	inline void markResponseTransmitted() { response_transmitted = true;}
+	inline void markResponseRequired() { response_transmitted = false;}
 
 
 private:
-    void doInit(uint8_t num_top_level_menuitems_hint, SerialUIUnderlyingStreamType * underlying_stream);
+    void doInit(uint8_t num_top_level_menuitems_hint, SovA::SovAStandardSysStreamType * underlying_stream);
+
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+    void triggerHeartbeat(uint32_t timeNow);
+#endif
 
 
 
     Mode::Selection output_mode;
-	SUI_FLASHSTRING_PTR greeting_msg;
+    bool response_transmitted;
+	SOVA_FLASHSTRING_PTR uid;
+	SOVA_FLASHSTRING_PTR greeting_msg;
 	Menu top_lev_menu;
 	Menu * current_menu;
 	bool user_check_performed;
@@ -640,18 +659,21 @@ private:
 	uint32_t		  heartbeat_function_last_called;
 #endif
 
-
-	bool menu_manual_override;
-	SUI_FLASHSTRING_PTR end_of_tx_str;
-
-
 #ifdef SUI_ENABLE_STATE_TRACKER
-	TrackedStateVariableDetails * stateTrackedVars[SUI_STATE_TRACKER_MAX_VARIABLES];
+	bool force_state_tracking_fulldump;
+	Tracked::State * stateTrackedVars[SUI_STATE_TRACKER_MAX_VARIABLES];
 	void initStateTrackedVars();
 	int8_t stateTrackedVarsNextAvailableSlot();
-	int8_t addStateTracking(SUI_FLASHSTRING_PTR name, TrackedType type, void* var);
+	// int8_t addStateTracking(SOVA_FLASHSTRING_PTR name, TrackedType type, void* var);
+	int8_t addStateTracking(Tracked::State* var);
 
+	// int8_t addStateTracking(int8_t slot, TrackedStateVariableDetails* dets);
 #endif
+
+	bool menu_manual_override;
+	SOVA_FLASHSTRING_PTR end_of_tx_str;
+
+
 
 	inline void delegateSynch() { delegate()->tick();}
 

@@ -1,10 +1,10 @@
 /*
+ * SovATypes.h
  *
- * SerialUI.h -- SerialUI main include.
- * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com.
- *
- *
- * http://www.flyingcarsandstuff.com/projects/SerialUI
+ *  Created on: Jan 15, 2016
+ *      Author: Pat Deegan
+ *      Part of SovA, supporting the SerialUI library
+ *      Copyright (C) 2016-2017 Pat Deegan, http://psychogenic.com
  *
  *
  * This program library is free software; you can redistribute it and/or
@@ -22,17 +22,24 @@
  *
  */
 
-#ifndef SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
-#define SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
+#ifndef SRC_INCLUDES_SOVATYPES_H_
+#define SRC_INCLUDES_SOVATYPES_H_
+
+#include "SovAExtIncludes.h"
 
 
-#include "includes/SUIConfig.h"
-#include "includes/SUIPlatform.h"
-#include "includes/SerialUI.h"
-#include "includes/SUIMenu.h"
-#include "includes/menuitem/Command.h"
-#include "includes/menuitem/SubMenu.h"
-#include "includes/menuitem/Request.h"
+namespace SovA {
+
+typedef uint16_t NumBytes;
 
 
-#endif /* SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_ */
+namespace Utils {
+typedef NumBytes BufferSize;
+}
+
+} /* namespace SovA */
+
+
+
+
+#endif /* SRC_INCLUDES_SOVATYPES_H_ */

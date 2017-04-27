@@ -1,10 +1,11 @@
 /*
+ * PlatformExtIncludes.h
  *
- * SerialUI.h -- SerialUI main include.
- * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com.
+ *  Created on: Jan 8, 2016
+ *      Author: Pat Deegan
+ *      Part of SovA, supporting the SerialUI library
+ *      Copyright (C) 2016-2017 Pat Deegan, http://psychogenic.com
  *
- *
- * http://www.flyingcarsandstuff.com/projects/SerialUI
  *
  *
  * This program library is free software; you can redistribute it and/or
@@ -22,17 +23,21 @@
  *
  */
 
-#ifndef SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
-#define SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
+#ifndef SOVA_SRC_INCLUDES_PLATFORM_PLATFORMEXTINCLUDES_H_
+
+#define SOVA_SRC_INCLUDES_PLATFORM_PLATFORMEXTINCLUDES_H_
+
+#include "../SovAConfig.h"
+
+#ifdef SOVA_ARCH_AVR
+#include <avr/pgmspace.h>
+#endif
+
+#ifdef SOVA_ARCH_ESP8266
+#include <pgmspace.h>
+#endif
+
+#include <Arduino.h>
 
 
-#include "includes/SUIConfig.h"
-#include "includes/SUIPlatform.h"
-#include "includes/SerialUI.h"
-#include "includes/SUIMenu.h"
-#include "includes/menuitem/Command.h"
-#include "includes/menuitem/SubMenu.h"
-#include "includes/menuitem/Request.h"
-
-
-#endif /* SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_ */
+#endif /* SOVA_SRC_INCLUDES_PLATFORM_PLATFORMEXTINCLUDES_H_ */

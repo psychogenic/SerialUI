@@ -1,7 +1,7 @@
 /*
  *
  * SUIMenu.cpp -- SerialUI Menu implementation
- * Copyright (C) 2013 Pat Deegan.  All rights reserved.
+ * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com. All rights reserved.
  *
  * See SUIMenu.h for usage details.
  *
@@ -23,16 +23,14 @@
  *
  */
 
-
-
 #include "includes/SUIConfig.h"
-
 #include "SerialUI.h"
 #include "includes/SUIMenu.h"
 #include "includes/SUIStrings.h"
 #include "includes/SUIPlatform.h"
-#include "includes/MenuItem.h"
-
+#include "includes/menuitem/Command.h"
+#include "includes/menuitem/SubMenu.h"
+#include "includes/menuitem/Request.h"
 
 
 #ifdef SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE
@@ -47,7 +45,6 @@
 #define MENUMEMSET(pointer, value, len)		memset(pointer, value, len);
 #else
 #error "SerialUI: Must use dynamic mem for v2.0+"
-
 #endif
 
 
@@ -56,16 +53,12 @@
 #ifdef SUI_INCLUDE_DEBUG
 
 // debug is ON
+#define SUI_MENU_DEBUG_OUTPUT(...)	SUI_OUTPUT_DEBUG_DEFAULTSTREAM(__VA_ARGS__)
 
-#if 0
-DEADBEEF
-#define SUI_MENU_DEBUG_OUTPUT(msg)	sui_driver->debug_P(PSTR(msg));
-#else
-#define SUI_MENU_DEBUG_OUTPUT(msg)	sui_driver->debug(F(msg));
-#endif
+
 #else
 // debug is OFF, send debug messages into the void
-#define SUI_MENU_DEBUG_OUTPUT(msg) ;
+#define SUI_MENU_DEBUG_OUTPUT(msg)
 #endif
 
 namespace SUI {
@@ -134,22 +127,15 @@ namespace SUI {
 #define prog_mode_terminate_gui SUI_STR(SUI_SERIALUI_TERMINATE_GUI_PROG)
 
 #ifdef SUI_ENABLE_STREAMPROMPTING
-#define prog_mode_info_moreprompt_stream SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG)
+	#define prog_mode_info_moreprompt_stream SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG)
 #endif
 
 #define prog_mode_info_EOT SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION)
-
 #define prog_mode_info_VERSION SUI_STR(SERIAL_UI_VERSION_STRING)
-
 #endif
 
-
-
-
-//define SUIDRIVER_PRINTLN_FLASH(msg)	sui_driver->println_P(msg)
-
-
 #if 0
+// deadbeef
 #define SUIDRIVER_PRINTLN_FLASH(msg)	sui_driver->println_P(msg)
 #define SUIDRIVER_PRINT_FLASH(msg)	sui_driver->print_P(msg)
 #else
@@ -161,37 +147,13 @@ namespace SUI {
 
 size_t Menu::max_key_len = 0;
 
-#if 0
-DEADBEEF
-MenuItemDetailsStruct::MenuItemDetailsStruct(SUI_FLASHSTRING_PTR key, MenuCommand_Callback cb, SUI_FLASHSTRING_PTR help) :
-			key_str(key), callback(cb), help_str(help)
-{
-
-}
-
-MenuItemStruct::MenuItemStruct()
-{
-
-}
-MenuItemStruct::MenuItemStruct(SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
-		Menu * submenu_ptr, MenuCommand_Callback cmd_ptr)
-{
-	key = key_pstr;
-	help = help_pstr;
-	subMenu = submenu_ptr;
-	command = cmd_ptr;
-	key_size = STRLEN_FLASHSTR(key);
-}
 
 
-#endif
-
-
-
-Menu::Menu(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) :
+Menu::Menu(SerialUI * suidrv, SOVA_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) :
 		sui_driver(suidrv),
 		menu_name(name), num_menu_items(0), max_menu_items(0), expand_list_amount(
 				SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
+				current_item(NULL),
 				parent_menu(parent) {
 	init(suidrv, name, num_items_hint, parent);
 }
@@ -199,6 +161,7 @@ Menu::Menu() :
 	sui_driver(NULL),
 	menu_name(NULL), num_menu_items(0), max_menu_items(0), expand_list_amount(
 					SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
+					current_item(NULL),
 					parent_menu(NULL)
 {
 
@@ -230,7 +193,7 @@ void Menu::clear()
 #endif
 
 
-void Menu::init(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) {
+void Menu::init(SerialUI * suidrv, SOVA_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) {
 
 
 	sui_driver = suidrv;
@@ -276,18 +239,18 @@ void Menu::init(SerialUI * suidrv, SUI_FLASHSTRING_PTR name, uint8_t num_items_h
 		// so we only do this stuff for sub-menus
 		SUI_MENU_DEBUG_OUTPUT("Initializing Menu ");
 		showName();
-		sui_driver->println(" ");
+		sui_driver->println(' ');
 	}
 #endif
 
 	expandItemList(num_items_hint);
 }
 
-SUI_FLASHSTRING_PTR Menu::name() {
+SOVA_FLASHSTRING_PTR Menu::name() {
 	return menu_name;
 }
 
-void Menu::setName(SUI_FLASHSTRING_PTR namestr) {
+void Menu::setName(SOVA_FLASHSTRING_PTR namestr) {
 	menu_name = namestr;
 }
 
@@ -296,88 +259,120 @@ Menu * Menu::parent() {
 }
 
 
-bool Menu::addRequest(long int * val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
-		bool(*validator)(long int &),
-		MenuRequest_Callback valueChangedCb) {
-	MenuItem::RequestLong * aReq = new MenuItem::RequestLong(val, key_pstr, help_pstr, validator, valueChangedCb);
-	if (! aReq)
-		returnMessage(SUI_STR("Can't req!"));
-
-	return addMenuItem(aReq);
-
-}
-bool Menu::addRequest(long unsigned int * val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
-		bool(*validator)(long unsigned int &),
-		MenuRequest_Callback valueChangedCb) {
-	MenuItem::RequestULong * aReq = new MenuItem::RequestULong(val, key_pstr, help_pstr, validator, valueChangedCb);
-	if (! aReq)
-		returnMessage(SUI_STR("Can't req!"));
-
-	return addMenuItem(aReq);
-
-}
-
-bool Menu::addRequest(char* val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
-		bool(*validator)(char &),
-		MenuRequest_Callback valueChangedCb) {
-	MenuItem::RequestChar * aReq = new MenuItem::RequestChar(val, key_pstr, help_pstr, validator, valueChangedCb);
-	if (! aReq)
-		returnMessage(SUI_STR("Can't req!"));
-
-	return addMenuItem(aReq);
-}
-
-bool Menu::addRequest(bool* val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
-		bool(*validator)(bool &),
-		MenuRequest_Callback valueChangedCb) {
-	MenuItem::RequestBool * aReq = new MenuItem::RequestBool(val, key_pstr, help_pstr, validator, valueChangedCb);
-	if (! aReq)
-		returnMessage(SUI_STR("Can't req!"));
-
-	return addMenuItem(aReq);
-
-}
-
-bool Menu::addRequest(float* val, SUI_FLASHSTRING_PTR key_pstr, SUI_FLASHSTRING_PTR help_pstr,
-		bool(*validator)(float &),
-		MenuRequest_Callback valueChangedCb) {
-	MenuItem::RequestFloat * aReq = new MenuItem::RequestFloat(val, key_pstr, help_pstr, validator, valueChangedCb);
-	if (! aReq)
-		returnMessage(SUI_STR("Can't req!"));
-
-	return addMenuItem(aReq);
-}
-
-bool Menu::addRequest(String* val, uint8_t stringLength, SUI_FLASHSTRING_PTR key_pstr,
-		SUI_FLASHSTRING_PTR help_pstr,
-		bool(*validator)(String &),
-		MenuRequest_Callback valueChangedCb) {
-	MenuItem::RequestString * aReq = new MenuItem::RequestString(val, stringLength, key_pstr, help_pstr, validator, valueChangedCb);
-	if (! aReq)
-		returnMessage(SUI_STR("Can't req!"));
-
-	return addMenuItem(aReq);
-}
 
 
-/*
-bool Menu::addCommands(MenuItemDetails detailsList[], uint8_t number)
+bool Menu::_doAddRequest(long int * val,
+		SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		SOVA_FLASHSTRING_PTR opt1, SOVA_FLASHSTRING_PTR opt2,
+		SOVA_FLASHSTRING_PTR opt3, SOVA_FLASHSTRING_PTR opt4,
+		SOVA_FLASHSTRING_PTR opt5, SOVA_FLASHSTRING_PTR opt6,
+		bool(*vcb)(long int & newVal),
+		MenuRequest_Callback cb)
 {
 
-	for (uint8_t i=0; i<number; i++)
-	{
-		if (! this->addCommand(detailsList[i].key_str, detailsList[i].callback, detailsList[i].help_str))
-			return false;
+	MenuItem::Request::OptionsList * aReq = NULL;
 
+	if (vcb)
+	{
+		aReq = new MenuItem::Request::OptionsList(val, key_pstr, help_pstr, vcb, opt1, opt2, opt3, opt4, opt5, opt6, cb);
+	} else {
+		aReq = new MenuItem::Request::OptionsList(val, key_pstr, help_pstr, opt1, opt2, opt3, opt4, opt5, opt6, cb);
 	}
 
-	return true;
+
+	return addMenuItem(aReq);
+}
+
+
+bool Menu::addRequest(long int * val, SOVA_FLASHSTRING_PTR key_pstr,
+		SOVA_FLASHSTRING_PTR help_pstr,
+		long int min_allowed,
+		long int max_allowed,
+		bool(*vcb)(long int & newVal),
+		MenuRequest_Callback valueChangedCb)
+{
+
+	MenuItem::Request::BoundedLong * aReq = NULL;
+	if (vcb != NULL) {
+		aReq = new MenuItem::Request::BoundedLong(val,
+				min_allowed, max_allowed, key_pstr, help_pstr, vcb, valueChangedCb);
+	} else {
+		aReq = new MenuItem::Request::BoundedLong(val,
+				min_allowed, max_allowed, key_pstr, help_pstr, valueChangedCb);
+	}
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+}
+
+bool Menu::addRequest(long int * val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(long int &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::Request::Long * aReq = new MenuItem::Request::Long(val, key_pstr, help_pstr, validator, valueChangedCb);
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
 
 }
-*/
+bool Menu::addRequest(long unsigned int * val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(long unsigned int &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::Request::ULong * aReq = new MenuItem::Request::ULong(val, key_pstr, help_pstr, validator, valueChangedCb);
 
-bool Menu::addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback,
-		SUI_FLASHSTRING_PTR help_str) {
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+
+}
+
+bool Menu::addRequest(char* val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(char &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::Request::Char * aReq = new MenuItem::Request::Char(val, key_pstr, help_pstr, validator, valueChangedCb);
+
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+}
+
+bool Menu::addRequest(bool* val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(bool &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::Request::Bool * aReq =
+			new MenuItem::Request::Bool(val, key_pstr, help_pstr, validator, valueChangedCb);
+
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+
+}
+
+bool Menu::addToggle(bool* val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::Request::Toggle * aReq = new MenuItem::Request::Toggle(val, key_pstr, help_pstr, NULL, valueChangedCb);
+
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+
+}
+
+bool Menu::addRequest(float* val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		bool(*validator)(float &),
+		MenuRequest_Callback valueChangedCb) {
+	MenuItem::Request::Float * aReq = new MenuItem::Request::Float(val, key_pstr, help_pstr, validator, valueChangedCb);
+
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+}
+
+bool Menu::addRequest(String * val,  SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
+		uint8_t stringLength,
+		bool(*validator)(String &), MenuRequest_Callback valueChangedCb)
+{
+
+	MenuItem::Request::String * aReq = new MenuItem::Request::String(val, stringLength, key_pstr, help_pstr, validator, valueChangedCb);
+
+	// new obj alloc checked for in addMenuItem
+	return addMenuItem(aReq);
+}
+
+bool Menu::addCommand(SOVA_FLASHSTRING_PTR key_str, MenuCommand_Callback callback,
+		SOVA_FLASHSTRING_PTR help_str) {
 
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
@@ -403,25 +398,8 @@ bool Menu::addCommand(SUI_FLASHSTRING_PTR key_str, MenuCommand_Callback callback
 
 }
 
-
-#ifdef SUI_PROGMEM_PTR
-void Menu::returnError_P(SUI_PROGMEM_PTR errmsg) {
-	if (errmsg) {
-		SUIDRIVER_PRINT_FLASH(error_prefix);
-		SUIDRIVER_PRINTLN_FLASH(errmsg);
-	} else {
-		SUIDRIVER_PRINTLN_FLASH(error_generic);
-	}
-}
-#endif
-
-
-
-
-
-
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-Menu * Menu::subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str) {
+Menu * Menu::subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str) {
 
 
 	// dynamic memory is enabled, so we new a pointer to fresh
@@ -467,6 +445,13 @@ Menu * Menu::subMenu(SUI_FLASHSTRING_PTR key_str, SUI_FLASHSTRING_PTR help_str) 
 #endif
 
 bool Menu::addMenuItem(MenuItem::Base * itm) {
+
+	if (! itm)
+	{
+		SUI_MENU_DEBUG_OUTPUT("No menu item passed to addMenuItem! ");
+		returnMessage(SUI_STR("No itm!"));
+		return false;
+	}
 
 	if (num_menu_items >= max_menu_items) {
 		// we need some more space for this item...
@@ -582,19 +567,23 @@ void Menu::enter() {
 	returnMessage(menu_name);
 }
 
+#define STRCAT_FLASHANDSEP(intoBuffer, theflshstr, seperatorChar)	\
+	STRCAT_FLASHSTR(intoBuffer, theflshstr); \
+	strcat(intoBuffer, seperatorChar)
+
 Menu * Menu::handleRequest() {
 
 	SUI_MENU_DEBUG_OUTPUT("Menu req rcvd.");
 
 #ifdef SUI_INCLUDE_EXTRA_SAFETYCHECKS
-
 	if (!num_menu_items) {
+		// hm, this can't be great...
+		SUI_MENU_DEBUG_OUTPUT("Empty Menu:you have failed!");
 
 	#ifdef SUI_SERIALUI_ECHO_WARNINGS
 		returnMessage(error_nomenuitems);
 	#endif
-		// error!
-		return this;
+
 	}
 #endif
 
@@ -627,9 +616,11 @@ Menu * Menu::handleRequest() {
 #endif
 
 	MenuItem::Base * itm = itemForKey(key_entered);
+	current_item = NULL;
 	if (itm) {
 		// get rid of our new'ed key
 		MENUFREEKEY(key_entered);
+		current_item = itm;
 		Menu * switchTo =  itm->call(this);
 		if (switchTo)
 			return switchTo;
@@ -697,10 +688,7 @@ Menu * Menu::handleRequest() {
 			outBuf[0] = '\0';
 			strcat(outBuf, sepChar);
 
-			STRCAT_FLASHSTR(outBuf, prog_mode_info_VERSION);
-			strcat(outBuf, sepChar);
-
-
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_VERSION, sepChar);
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 				STRCAT_FLASHSTR(outBuf, up_key);
@@ -709,59 +697,36 @@ Menu * Menu::handleRequest() {
 #endif	/* SUI_MENU_ENABLE_SUBMENUS */
 			strcat(outBuf, sepChar);
 
-			STRCAT_FLASHSTR(outBuf, exit_key);
-			strcat(outBuf, sepChar);
-
-			STRCAT_FLASHSTR(outBuf, error_generic);
-			strcat(outBuf, sepChar);
-
-
-			STRCAT_FLASHSTR(outBuf, prog_mode_info_helpkey);
-			strcat(outBuf, sepChar);
-
-			STRCAT_FLASHSTR(outBuf, help_key_prog_commandprefix);
-			strcat(outBuf, sepChar);
-
-			STRCAT_FLASHSTR(outBuf, help_key_prog_submenuprefix);
-			strcat(outBuf, sepChar);
-
-
-			STRCAT_FLASHSTR(outBuf, help_sep_prog);
-			strcat(outBuf, sepChar);
-
-
-
-			STRCAT_FLASHSTR(outBuf, prog_mode_info_moreprompt_string);
-			strcat(outBuf, sepChar);
-
-
-
-			STRCAT_FLASHSTR(outBuf, prog_mode_info_moreprompt_num);
-			strcat(outBuf, sepChar);
+			// TODO: loop over an array, dammit...
+			STRCAT_FLASHANDSEP(outBuf, exit_key, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, error_generic, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_helpkey, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, help_key_prog_commandprefix, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, help_key_prog_submenuprefix, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, help_sep_prog, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_string, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_num, sepChar);
 
 			strcat(outBuf, SUI_SERIALUI_PROMPT);
 			strcat(outBuf, sepChar);
 
-			STRCAT_FLASHSTR(outBuf, prog_mode_info_EOT);
-			strcat(outBuf, sepChar);
+
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_EOT, sepChar);
 
 #ifdef SUI_ENABLE_STREAMPROMPTING
-			STRCAT_FLASHSTR(outBuf, prog_mode_info_moreprompt_stream);
-			strcat(outBuf, sepChar);
+
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_stream, sepChar);
+
 #endif
-
-
-			STRCAT_FLASHSTR(outBuf, prog_mode_terminate_gui);
-			strcat(outBuf, sepChar);
-
-			STRCAT_FLASHSTR(outBuf, help_key_prog_requestbaseprefix);
-			strcat(outBuf, sepChar);
-
+			STRCAT_FLASHANDSEP(outBuf, prog_mode_terminate_gui, sepChar);
+			STRCAT_FLASHANDSEP(outBuf, help_key_prog_requestbaseprefix, sepChar);
 
 			sui_driver->print(strlen(outBuf) + 1, DEC);
 			sui_driver->println(outBuf);
 
-			return this;
+
+
+			return sui_driver->topLevelMenu();
 	}
 
 	if (STRNCMP_FLASHSTR(key_entered, key_mode_user, STRLEN_FLASHSTR(key_mode_user)) == 0) {
@@ -788,14 +753,7 @@ Menu * Menu::handleRequest() {
 }
 
 void Menu::printHelpKey(MenuItem::Base * menuitem) {
-
-
-	/*
-	SUI_FLASHSTRING_PTR prefix_cmd;
-	SUI_FLASHSTRING_PTR prefix_submenu;
-	SUI_FLASHSTRING_PTR help_sep_to_use;
-*/
-	SUI_FLASHSTRING_PTR help_sep_to_use;
+	SOVA_FLASHSTRING_PTR help_sep_to_use;
 
 	bool include_pretty_print = true;
 	SUI::Mode::Selection curMode = Mode::User;
@@ -804,36 +762,20 @@ void Menu::printHelpKey(MenuItem::Base * menuitem) {
 	if (sui_driver->mode() == Mode::User)
 	{
 		help_sep_to_use = help_sep;
-		/*
-		prefix_cmd = help_key_commandprefix;
-		prefix_submenu = help_key_submenuprefix;
-		*/
+
 	} else {
 
 		help_sep_to_use = help_sep_prog;
-		/*
-		prefix_cmd = help_key_prog_commandprefix;
-		prefix_submenu = help_key_prog_submenuprefix;
-		*/
 		include_pretty_print = false;
 	}
 #else
-
+	// no modes...
 	help_sep_to_use = help_sep;
 	prefix_cmd = help_key_commandprefix;
 	prefix_submenu = help_key_submenuprefix;
 #endif
 
 	menuitem->printPrefix(this, curMode);
-	/*
-
-	if (menuitem->is(MenuItem::Type::SubMenu))
-	{
-		SUIDRIVER_PRINT_FLASH(prefix_submenu);
-	} else {
-		SUIDRIVER_PRINT_FLASH(prefix_cmd);
-	}
-	*/
 
 	SUIDRIVER_PRINT_FLASH(menuitem->key);
 
@@ -877,16 +819,21 @@ void Menu::showHelp() {
 
 		printHelpKey(itm);
 		if (itm->help) {
-			SUIDRIVER_PRINTLN_FLASH(itm->help);
+			SUIDRIVER_PRINT_FLASH(itm->help);
 		}
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 		else if (itm->is(MenuItem::Type::SubMenu)) {
-			SUIDRIVER_PRINTLN_FLASH(submenu_help);
+			SUIDRIVER_PRINT_FLASH(submenu_help);
 		}
 #endif
-		else {
-			sui_driver->println(' ');
+
+		if (in_program_mode)
+		{
+			itm->printMetaInfo(this);
 		}
+
+		sui_driver->println(' ');
+
 	}
 
 	if (in_program_mode)
@@ -1039,6 +986,7 @@ char * Menu::newReadKey() {
 }
 
 void Menu::returnError(const char * errmsg) {
+	sui_driver->markResponseTransmitted();
 	if (errmsg) {
 		SUIDRIVER_PRINT_FLASH(error_prefix);
 		sui_driver->println(errmsg);
@@ -1047,7 +995,9 @@ void Menu::returnError(const char * errmsg) {
 	}
 }
 
-void Menu::returnError(SUI_FLASHSTRING_PTR errmsg) {
+void Menu::returnError(SOVA_FLASHSTRING_PTR errmsg) {
+
+	sui_driver->markResponseTransmitted();
 	SUIDRIVER_PRINT_FLASH(error_prefix);
 	sui_driver->println(errmsg);
 
@@ -1056,15 +1006,19 @@ void Menu::returnError(SUI_FLASHSTRING_PTR errmsg) {
 
 
 void Menu::returnOK() {
+
+	sui_driver->markResponseTransmitted();
 	sui_driver->println(F(SUI_SERIALUI_MESSAGE_OK));
 
 }
 
 
-void Menu::returnMessage(SUI_FLASHSTRING_PTR message) { SUIDRIVER_PRINTLN_FLASH(message);}
+void Menu::returnMessage(SOVA_FLASHSTRING_PTR message) {
 
+	sui_driver->markResponseTransmitted();
+	SUIDRIVER_PRINTLN_FLASH(message);
 
-
+}
 
 
 void Menu::showName() { SUIDRIVER_PRINT_FLASH(menu_name); }
@@ -1076,11 +1030,7 @@ void Menu::pingRespond() {
 		return;
 	}
 #endif
-
 	sui_driver->println(' ');
-
-
-
 
 }
 

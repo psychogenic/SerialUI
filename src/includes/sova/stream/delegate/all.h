@@ -1,10 +1,10 @@
 /*
+ * all.h
  *
- * SerialUI.h -- SerialUI main include.
- * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com.
- *
- *
- * http://www.flyingcarsandstuff.com/projects/SerialUI
+ *  Created on: Jan 11, 2016
+ *      Author: Pat Deegan
+ *      Part of SovA, supporting the SerialUI library
+ *      Copyright (C) 2016-2017 Pat Deegan, http://psychogenic.com
  *
  *
  * This program library is free software; you can redistribute it and/or
@@ -22,17 +22,15 @@
  *
  */
 
-#ifndef SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
-#define SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_
+#ifndef SOVA_SRC_INCLUDES_STREAM_DELEGATE_ALL_H_
+
+#define SOVA_SRC_INCLUDES_STREAM_DELEGATE_ALL_H_
 
 
-#include "includes/SUIConfig.h"
-#include "includes/SUIPlatform.h"
-#include "includes/SerialUI.h"
-#include "includes/SUIMenu.h"
-#include "includes/menuitem/Command.h"
-#include "includes/menuitem/SubMenu.h"
-#include "includes/menuitem/Request.h"
+
+#include "DelegateDirect.h"
+#include "DelegateDummy.h"
+// include "includes/stream/delegate/DelegateNRF51822.h"
 
 
-#endif /* SUI_SERIALUI_MAIN_INCLUDE_HEADER_H_ */
+#endif /* SOVA_SRC_INCLUDES_STREAM_DELEGATE_ALL_H_ */

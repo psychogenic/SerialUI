@@ -19,6 +19,9 @@ addCommand	KEYWORD2
 subMenu	KEYWORD2
 name	KEYWORD2
 setName	KEYWORD2
+addRequest	KEYWORD2
+addToggle	KEYWORD2
+trackState	KEYWORD2
 checkForUserOnce	KEYWORD2
 checkForUser	KEYWORD2
 userPresent	KEYWORD2
