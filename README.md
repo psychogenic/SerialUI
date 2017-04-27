@@ -1,5 +1,5 @@
 SerialUI: Serial User Interface.
-Copyright (C) 2013,2014 Pat Deegan.  All rights reserved.
+Copyright (C) 2013-2017 Pat Deegan.  All rights reserved.
 
 http://flyingcarsandstuff.com/projects/SerialUI
 
@@ -9,19 +9,28 @@ LICENSE.txt for details.
 *********************  SerialUI Overview  *********************
  
 SerialUI is useful when you want to provide a user interface
-through the serial channel (menus, sub-menus and command
-execution). It provides built-in support for navigation
-through the menu hierarchy and online help.
+through the serial channel (menus/sub-menus, command
+execution and input requests). It provides built-in support for 
+navigation through the menu hierarchy and online help.
+
+To really get a taste of what you can do with SerialUI, check out 
+the Device Druid site, which provides an automatic GUI for any SerialUI
+project:
+
+	https://devicedruid.com/
+
 
 With SerialUI, you can create a hierarchy of menus and
 submenus of arbitrary depth (limited only by ROM/RAM space).
 
-Each menu contains a list of menu items. There are two
+Each menu contains a list of menu items. There are three general
 types of SerialUI menu items:
 
   Sub menus: lead you to another level of menu items
 
   Commands: actually perform some type of action.
+
+  Input Requests: expect you to feed them some type of input
 
 Exactly _what_ happens when a user issues a command is
 determined by the callback implementations.
