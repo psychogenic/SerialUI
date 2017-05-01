@@ -27,7 +27,14 @@
 
 
 // overrides for ESP8266
-#define SOVA_FLASHSTRING_PTR		const __FlashStringHelper*
+// #define SOVA_FLASHSTRING_PTR		const __FlashStringHelper*
+#define SOVA_FLASHSTRING_PTR		const char *
+#define SOVA_FLASHSTRING_DISABLE
+
+#ifdef F
+	#undef F
+	#define F(arg)	(arg)
+#endif
 
 
 #define PLATFORM_NOW_MILLIS()		millis()

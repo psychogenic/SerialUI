@@ -557,10 +557,12 @@ public:
 		current_menu->returnError(errmsg);
 	}
 
+#ifndef SOVA_FLASHSTRING_DISABLE
 	void returnError(SOVA_FLASHSTRING_PTR errmsg) {
 		current_menu->returnError(errmsg);
 
 	}
+#endif
 
 	/*
 	 * showPrompt()

@@ -362,7 +362,9 @@ public:
 	void returnError(const char * errmsg=NULL);
 
 
+#ifndef SOVA_FLASHSTRING_DISABLE
 	void returnError(SOVA_FLASHSTRING_PTR errmsg);
+#endif
 
 	/*
 	 * returnError(ERRORMESSAGE)

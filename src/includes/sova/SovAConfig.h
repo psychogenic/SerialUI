@@ -83,8 +83,16 @@
 //define SOVA_PLATFORM_XMEGA
 // Auto-detection stuff...
 
+
 // most standard arduinos
-#if defined(ARDUINO_ARCH_AVR) or defined (SOVA_PLATFORM_ARDUINO_AVR)
+#if not defined(ARDUINO_ARCH_AVR)
+#include "platform/AVRDetection.h"
+#endif
+
+
+#if defined(ARDUINO_ARCH_AVR) \
+	or defined (SOVA_PLATFORM_ARDUINO_AVR) \
+	or defined (SOVA_ATMEGA_AUTODECTED)
 
 	#define SOVA_ARCH_AVR
 
@@ -97,17 +105,20 @@
 	#endif
 #endif
 
+#ifndef SOVA_ARCH_AVR
+#include "platform/XMegaDetection.h"
+	// XMEGADUINO
+	#if defined(ARDUINO_ARCH_XMEGA) or defined(SOVA_PLATFORM_XMEGA) \
+		or defined(SOVA_XMEGA_AUTODECTED)
 
-// XMEGADUINO
-#if defined(ARDUINO_ARCH_XMEGA) or defined(SOVA_PLATFORM_XMEGA)
-	#define SOVA_ARCH_AVR
+		#define SOVA_ARCH_AVR
 
-	#ifndef SOVA_PLATFORM_XMEGA
-		#define SOVA_PLATFORM_AUTODETECTED
-		#define SOVA_PLATFORM_XMEGA
-		#error "Please #define SOVA_PLATFORM_XMEGA in SovAConfig.h because the xmegaduino makefile is buggy and doesn't allow for auto-detection."
+		#ifndef SOVA_PLATFORM_XMEGA
+			#define SOVA_PLATFORM_AUTODETECTED
+			#define SOVA_PLATFORM_XMEGA
+		#endif
+		#define SOVA_BUILDFOR_ARDUINO_STANDARD
 	#endif
-	#define SOVA_BUILDFOR_ARDUINO_STANDARD
 #endif
 
 

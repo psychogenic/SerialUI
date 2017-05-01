@@ -40,7 +40,7 @@
 #endif
 
 
-#ifdef SOVA_PLATFORM_ARDUINO_AVR
+#if defined(SOVA_PLATFORM_ARDUINO_AVR ) or defined(SOVA_PLATFORM_XMEGA)
 #include "platform/ArduinoAVR.h"
 #endif
 

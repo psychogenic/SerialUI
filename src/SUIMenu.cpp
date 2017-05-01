@@ -941,7 +941,7 @@ char * Menu::newReadKey() {
 
 
 #ifdef SUI_INCLUDE_DEBUG
-	SUI_MENU_DEBUG_OUTPUT("Post read key allocation")
+	SUI_MENU_DEBUG_OUTPUT("Post read key allocation");
 	sui_driver->showFreeRAM();
 #endif
 
@@ -995,6 +995,7 @@ void Menu::returnError(const char * errmsg) {
 	}
 }
 
+#ifndef SOVA_FLASHSTRING_DISABLE
 void Menu::returnError(SOVA_FLASHSTRING_PTR errmsg) {
 
 	sui_driver->markResponseTransmitted();
@@ -1002,6 +1003,7 @@ void Menu::returnError(SOVA_FLASHSTRING_PTR errmsg) {
 	sui_driver->println(errmsg);
 
 }
+#endif
 
 
 
