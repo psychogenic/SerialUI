@@ -3,7 +3,7 @@
  * SovAConfig.h -- SovA compile time configuration.
  * Copyright (C) 2013-2016 Pat Deegan.  All rights reserved.
  *
- * http://www.flyingcarsandstuff.com/projects/SovA/
+ * http://www.flyingcarsandstuff.com/projects/SerialUI/
  *
  * Please let me know if you use SerialUI/SovA in your projects, and
  * provide a URL if you'd like me to link to it from the SovA

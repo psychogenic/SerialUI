@@ -4,7 +4,7 @@
  * Copyright (C) 2013-2017 Pat Deegan, psychogenic.com. All rights reserved.
  *
  *
- * http://www.flyingcarsandstuff.com/projects/SovA
+ * http://www.flyingcarsandstuff.com/projects/SerialUI/
  *
  *
  * This program library is free software; you can redistribute it and/or
