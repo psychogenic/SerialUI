@@ -329,6 +329,9 @@ typedef void(*streamInputEndCallback)(size_t total_len);
 typedef void(*heartbeatFunction)(void);
 #endif
 
+typedef SovA::Utils::SinkBuffer<SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN> SinkBuf;
+typedef SovA::SovAStandardSysStreamType	SerialUIUnderStream;
+
 
 class SerialUI : public SovA::Stream
 
@@ -352,7 +355,9 @@ public:
 	 * As mentioned all are optional but a greeting is nice as it lets you know
 	 * everything is working.
 	 */
-	SerialUI(uint8_t num_top_level_menuitems_hint = 0, SovA::SovAStandardSysStreamType * underlying_stream=NULL);
+	SerialUI(uint8_t num_top_level_menuitems_hint = 0, SerialUIUnderStream * underlying_stream=NULL);
+	SerialUI(uint8_t num_top_level_menuitems_hint, SovA::Delegate::Interface * useDelegate);
+
 
 #ifdef DEADBEEF
 #ifdef SOVA_PROGMEM_PTR
@@ -630,7 +635,7 @@ public:
 
 
 private:
-    void doInit(uint8_t num_top_level_menuitems_hint, SovA::SovAStandardSysStreamType * underlying_stream);
+    void doInit(uint8_t num_top_level_menuitems_hint);
 
 #ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
     void triggerHeartbeat(uint32_t timeNow);
@@ -662,7 +667,7 @@ private:
 #endif
 
 #ifdef SUI_ENABLE_STATE_TRACKER
-	bool force_state_tracking_fulldump;
+	uint8_t force_state_tracking_fulldump;
 	Tracked::State * stateTrackedVars[SUI_STATE_TRACKER_MAX_VARIABLES];
 	void initStateTrackedVars();
 	int8_t stateTrackedVarsNextAvailableSlot();
@@ -677,7 +682,7 @@ private:
 
 
 
-	inline void delegateSynch() { delegate()->tick();}
+	inline void delegateSynch(bool forceFlush=true) { delegate()->tick(forceFlush);}
 
 
 };

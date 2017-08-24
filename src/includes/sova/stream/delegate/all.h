@@ -30,6 +30,7 @@
 
 #include "DelegateDirect.h"
 #include "DelegateDummy.h"
+#include "DelegatePacketized.h"
 // include "includes/stream/delegate/DelegateNRF51822.h"
 
 

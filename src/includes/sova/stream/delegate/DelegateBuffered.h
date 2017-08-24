@@ -53,7 +53,9 @@ protected:
     virtual void yieldToOS() {}
 
     inline bool hasDataAfterYield(Utils::CircularBuffer<BYTETYPE, BUFSIZE> * buf) {
-    	return false;
+
+    	this->poll();
+    	return (inBuffer.size()) ? true : false;
     	/*
     	this->yieldToOS();
     	if (buf->empty())

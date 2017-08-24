@@ -752,16 +752,24 @@ Menu * Menu::handleRequest() {
 
 }
 
+#define SUI_MEN_PRINTSPACES(num)	stopIdx = (num); spacesBuf[stopIdx] = '\0'; \
+	sui_driver->print(spacesBuf); spacesBuf[stopIdx] = ' ';
+
 void Menu::printHelpKey(MenuItem::Base * menuitem) {
 	SOVA_FLASHSTRING_PTR help_sep_to_use;
-
+	uint8_t stopIdx;
+	char spacesBuf[SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX + 1];
 	bool include_pretty_print = true;
 	SUI::Mode::Selection curMode = Mode::User;
+
+
 #ifdef SUI_ENABLE_MODES
 	curMode = sui_driver->mode();
 	if (sui_driver->mode() == Mode::User)
 	{
 		help_sep_to_use = help_sep;
+
+		memset(spacesBuf, ' ', SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX + 1);
 
 	} else {
 
@@ -783,12 +791,8 @@ void Menu::printHelpKey(MenuItem::Base * menuitem) {
 		if (include_pretty_print)
 		{
 			// we need to put in some spacing, for the help message
-			for (uint8_t i = 0;
-				i < (SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - menuitem->key_size);
-				i++) {
+			SUI_MEN_PRINTSPACES((SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - menuitem->key_size));
 
-				SUIDRIVER_PRINT_FLASH(help_sep_to_use);
-			}
 		} else {
 
 			SUIDRIVER_PRINT_FLASH(help_sep_to_use);
@@ -798,8 +802,11 @@ void Menu::printHelpKey(MenuItem::Base * menuitem) {
 
 void Menu::showHelp() {
 
+	char spacesBuf[SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX + 1];
+
 	bool in_program_mode = false;
 
+	memset(spacesBuf, ' ', SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX + 1);
 #ifdef SUI_ENABLE_MODES
 	if (sui_driver->mode() == Mode::Program)
 	{
@@ -841,38 +848,30 @@ void Menu::showHelp() {
 
 	sui_driver->println(' ');
 
+	uint8_t stopIdx;
+
 	if (parent_menu) {
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 		SUIDRIVER_PRINT_FLASH(help_key_commandprefix);
 		SUIDRIVER_PRINT_FLASH(up_key);
-		for (uint8_t i = 0;
-					i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(up_key);
-					i++) {
 
-			SUIDRIVER_PRINT_FLASH(help_sep);
-		}
+		SUI_MEN_PRINTSPACES(SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(up_key));
 
 		SUIDRIVER_PRINTLN_FLASH(up_help);
 #endif
 	} else {
 		SUIDRIVER_PRINT_FLASH(help_key_commandprefix);
 		SUIDRIVER_PRINT_FLASH(exit_key);
-		for (uint8_t i = 0;
-				i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(exit_key);
-				i++) {
 
-			SUIDRIVER_PRINT_FLASH(help_sep);
-		}
+		SUI_MEN_PRINTSPACES(SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(exit_key));
+
 		SUIDRIVER_PRINTLN_FLASH(exit_help);
 	}
 
 	SUIDRIVER_PRINT_FLASH(help_key_commandprefix);
 	SUIDRIVER_PRINT_FLASH(help_key);
-	for (uint8_t i = 0;
-			i < SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(help_key);
-			i++) {
-		SUIDRIVER_PRINT_FLASH(help_sep);
-	}
+	SUI_MEN_PRINTSPACES(SUI_SERIALUI_KEYHELP_SEP_REPEATS_MAX - STRLEN_FLASHSTR(help_key));
+
 	SUIDRIVER_PRINTLN_FLASH(help_help);
 
 }
@@ -1025,9 +1024,14 @@ void Menu::returnMessage(SOVA_FLASHSTRING_PTR message) {
 
 void Menu::showName() { SUIDRIVER_PRINT_FLASH(menu_name); }
 
+#ifdef SUI_STATE_TRACK_ALWAYSFULL
+#define SUIMENU_SHOWTRACKSTATE_FORCE		true
+#else
+#define SUIMENU_SHOWTRACKSTATE_FORCE		false
+#endif
 void Menu::pingRespond() {
 #ifdef SUI_ENABLE_STATE_TRACKER
-	if (sui_driver->showTrackedState())
+	if (sui_driver->showTrackedState(SUIMENU_SHOWTRACKSTATE_FORCE))
 	{
 		return;
 	}

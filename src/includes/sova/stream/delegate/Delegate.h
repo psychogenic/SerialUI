@@ -36,9 +36,11 @@ namespace Delegate {
 /*
  * Interface -- interface common to al delegates
  */
+typedef void(*DelegatePollCallback)(void);
+
 class Interface {
 public:
-	Interface() : timeout_ms(SOVA_DEFAULT_TIMEOUT_VALUE_MS) {}
+	Interface() : timeout_ms(SOVA_DEFAULT_TIMEOUT_VALUE_MS), poll_cb(NULL) {}
 
 	virtual ~Interface() {}
     virtual void begin(unsigned long speed) = 0;
@@ -51,12 +53,13 @@ public:
     virtual size_t write(const uint8_t *buffer, size_t size) = 0;
     virtual size_t write(uint8_t i) = 0;
 
-
+    inline void setPollCallback(DelegatePollCallback setTo) { poll_cb = setTo;}
+    inline void poll() { if (poll_cb) { poll_cb(); }};
 
     virtual float parseFloat() = 0;
     virtual long parseInt() = 0;
 
-    virtual void tick(bool doFlush=true) = 0;
+    virtual void tick(bool doFlush=false) = 0;
 
 
     size_t readBytes(char *buffer, size_t length);
@@ -121,6 +124,8 @@ protected:
 
 private:
 	unsigned long timeout_ms;
+	DelegatePollCallback poll_cb;
+
 };
 
 class InterfaceParsingImpl : public Interface {

@@ -31,7 +31,7 @@
 
 #ifdef SUI_INCLUDE_DEBUG
 // debug is ON, call the debug() method:
-#define SERIALUI_DEBUG(msg)		debug(F(msg));
+#define SERIALUI_DEBUG(...)		SOVA_DEBUGSERIALPORT.println(__VA_ARGS__);
 #else
 // debug is OFF, nullify all the debug output:
 #define SERIALUI_DEBUG(msg)		;
@@ -48,6 +48,60 @@
 
 
 namespace SUI {
+
+/*
+class SUISinkBuffer : public SovA::Utils::SinkBuffer<SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN>  {
+public:
+
+	SUISinkBuffer() : SovA::Utils::SinkBuffer<SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN>() {
+
+	}
+	 Sink & operator<<(Tracked::State & st) {
+		 char rBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN / 2] = {0,};
+		 uint8_t maxLen = this->spaceAvailable() > (SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN / 2) ?
+				 	 this->spaceAvailable() : (SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN / 2);
+		 if (st.toString(rBuf, maxLen))
+		 {
+			 *this << &(rBuf[0]);
+		 }
+		 return *this;
+	 }
+};
+*/
+
+
+
+
+SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
+		SovA::Delegate::Interface * aDelegate) : SovA::Stream(),
+		output_mode(Mode::User),
+		response_transmitted(false),
+		uid(NULL),
+		greeting_msg(NULL),top_lev_menu(), current_menu(NULL),
+				user_check_performed(false), user_present(false),
+				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
+				user_presence_last_interaction_ms(0),
+				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT),
+#ifdef SUI_SERIALUI_ECHO_ON
+				echo_commands(true),
+#else
+				echo_commands(false),
+#endif
+#ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
+				heartbeat_function_cb(NULL),
+				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
+				heartbeat_function_last_called(0),
+#endif
+#ifdef SUI_ENABLE_STATE_TRACKER
+				force_state_tracking_fulldump(0),
+#endif
+				menu_manual_override(false),
+				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
+{
+	this->useDelegate(aDelegate);
+
+	doInit(num_top_level_menuitems_hint);
+}
 
 
 SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
@@ -71,13 +125,25 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 				heartbeat_function_last_called(0),
 #endif
 #ifdef SUI_ENABLE_STATE_TRACKER
-				force_state_tracking_fulldump(false),
+				force_state_tracking_fulldump(0),
 #endif
 				menu_manual_override(false),
 				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
 {
 
-	doInit(num_top_level_menuitems_hint, underlying_stream);
+
+	if (underlying_stream != NULL)
+	{
+		// would like to use dynamic_cast but ain't gonna happen, here... no-rtti
+		// pretty safe in any case, because of how we're setup
+		// for every other part of the program, we just use the delegate interface, so
+		// when you're doing fancy delegate stuff, the method is
+		//  default c'tor + useDelegate() later, no messing with underlying stream
+		static_cast<SovA::StreamDelegate*>(delegate())->setStream(underlying_stream);
+	}
+
+
+	doInit(num_top_level_menuitems_hint);
 }
 
 
@@ -94,20 +160,9 @@ SerialUI::~SerialUI() {
 
 }
 
-void SerialUI::doInit(uint8_t num_top_level_menuitems_hint, SovA::SovAStandardSysStreamType * underlying_stream)
-{
+void SerialUI::doInit(uint8_t num_top_level_menuitems_hint) {
 
 
-
-	if (underlying_stream != NULL)
-	{
-		// would like to use dynamic_cast but ain't gonna happen, here... no-rtti
-		// pretty safe in any case, because of how we're setup
-		// for every other part of the program, we just use the delegate interface, so
-		// when you're doing fancy delegate stuff, the method is
-		//  default c'tor + useDelegate() later, no messing with underlying stream
-		static_cast<SovA::StreamDelegate*>(delegate())->setStream(underlying_stream);
-	}
 
 	top_lev_menu.init(this, SUI_STR(SUI_SERIALUI_TOP_MENU_NAME), num_top_level_menuitems_hint, NULL);
 
@@ -185,7 +240,7 @@ void SerialUI::enter() {
 	}
 
 #ifdef SUI_ENABLE_STATE_TRACKER
-	force_state_tracking_fulldump = true;
+	force_state_tracking_fulldump = 8;
 
 #endif
 
@@ -246,7 +301,7 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 		return false;
 	}
 
-	SERIALUI_DEBUG("Checking for user (once)");
+	SERIALUI_DEBUG(F("Checking for user (once)"));
 
 	user_check_performed = true;
 
@@ -256,7 +311,7 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 bool SerialUI::checkForUser(uint16_t timeout_ms) {
 	uint16_t ms_count = 0;
 	while (ms_count <= timeout_ms) {
-		delegate()->tick();
+		delegate()->tick(true);
 		if (this->available() > 0) {
 			user_present = true;
 			this->enter();
@@ -303,7 +358,7 @@ bool SerialUI::userPresent() {
 
 		// yeah, looks like they're gone for coffee...
 
-		SERIALUI_DEBUG("User idles excessively, bumping out...");
+		SERIALUI_DEBUG(F("User idles excessively, bumping out..."));
 		// this will set user_present to false and
 		// perform other work
 		exit(false);
@@ -347,17 +402,18 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 
 		uint32_t timeNow = PLATFORM_NOW_MILLIS();
 
-		SUI_TRIGGERHEARTBEAT(timeNow);
+		delegateSynch(true);
 
 		if (this->available() > 0) {
 
-			SERIALUI_DEBUG("Handling pending request");
+			SERIALUI_DEBUG(F("Handling pending request"));
 
 			// we have input (and therefore a user), so we reset our presence counter to zero
 
 			ret_menu = current_menu->handleRequest();
 			user_presence_last_interaction_ms = PLATFORM_NOW_MILLIS();
 
+			delegateSynch(true);
 			if (ret_menu) {
 				if (menu_manual_override)
 				{
@@ -376,8 +432,10 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 			}
 
 #ifdef SUI_SERIALUI_SHOW_PROMPTS
+
 			showPrompt();
-#endif
+
+#endif /* end if show prompts */
 
 		} else {
 
@@ -385,6 +443,9 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 			//println(user_presence_last_interaction_ms, DEC);
 		}
 
+		// trigger heartbeat--after handling any pending requests
+		// so they don't interfere with any transactions coming in
+		SUI_TRIGGERHEARTBEAT(timeNow);
 
 		delegateSynch();
 	}
@@ -395,21 +456,27 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 
 
 void SerialUI::showPrompt() {
+
+
+
+#ifdef SUI_ENABLE_MODES
+	if (mode() == Mode::Program)
+	{
+		// println(' ');
+		PRINTLN_FLASHSTR(end_of_tx_str);
+		return;
+	} else {
+#endif
+
 #ifdef SUI_SERIALUI_SHOW_PROMPT_SUBMENU_NAME
 	if (current_menu->parent())
 	{
 		current_menu->showName();
 	}
 #endif
+		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_PROMPT));
 
-
-	PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_PROMPT));
 #ifdef SUI_ENABLE_MODES
-	if (mode() == Mode::Program)
-	{
-		println(' ');
-		PRINTLN_FLASHSTR(end_of_tx_str);
-		// return;
 	}
 #endif
 
@@ -424,7 +491,7 @@ void SerialUI::showEnterDataPrompt() {
 	if (mode() == Mode::Program)
 	{
 
-		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG));
+		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STRING_PROMPT_PROG));
 		// PRINTLN_FLASHSTR(moredata_prompt_prog_str);
 		PRINTLN_FLASHSTR(end_of_tx_str);
 
@@ -445,7 +512,7 @@ void SerialUI::showEnterNumericDataPrompt() {
 	if (mode() == Mode::Program)
 	{
 
-		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG));
+		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_NUMERIC_PROMPT_PROG));
 		PRINTLN_FLASHSTR(end_of_tx_str);
 		delegateSynch();
 		return;
@@ -468,7 +535,7 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 	if (mode() == Mode::Program)
 	{
 
-		PRINTLN_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG));
+		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_MOREDATA_STREAM_PROMPT_PROG));
 		PRINTLN_FLASHSTR(end_of_tx_str);
 	} else {
 #endif
@@ -495,17 +562,17 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 
 	stream_cur_count = 0;
 	// dump the terminator
-	delegateSynch();
+	delegateSynch(true);
 	while (this->available() && (this->peek() == '\r' || this->peek() == '\n'))
 	{
 		this->read();
-		delegateSynch();
+		delegateSynch(true);
 	}
 
 
 	while (stream_cur_count < stream_expected_size)
 	{
-		delegateSynch();
+		delegateSynch(true);
 		uint8_t lenToRead = (stream_expected_size - stream_cur_count) > bufferSize ? bufferSize : (stream_expected_size - stream_cur_count);
 		size_t lenRead = this->readBytes(bufferToUse, lenToRead);
 		if (! lenRead)
@@ -665,7 +732,10 @@ bool SerialUI::showTrackedState(bool force)
 
 #if defined(SUI_ENABLE_STATE_TRACKER) and defined(SUI_ENABLE_MODES)
 
-	char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN] = {0,};
+	// char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN] = {0,};
+	// SUISinkBuffer outBuf;
+	SinkBuf outBuf;
+
 	// char numBuf[8 * sizeof(long) + 1];
 	uint8_t idx = 0;
 	uint8_t totlen = 0;
@@ -677,19 +747,33 @@ bool SerialUI::showTrackedState(bool force)
 	}
 
 	if (force_state_tracking_fulldump) {
-		// only do this once, first time 'round
+		// only do this once, the first few times round
 		force = true;
-		force_state_tracking_fulldump = false;
+		force_state_tracking_fulldump--;
 	}
 
-	outBuf[0] = '\0';
-	while (stateTrackedVars[idx] != NULL && (totlen < (SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN -1 )))
+	// outBuf[0] = '\0';
+	outBuf << SUI_SERIALUI_PROG_STR_SEP_CHAR; // our initial sep
+	while (stateTrackedVars[idx] != NULL && outBuf.spaceAvailable())
 	{
 		Tracked::State * st = stateTrackedVars[idx++];
 		if (! (force || st->hasChanged()) )
 		{
 			continue;
 		}
+		outBuf << (char)st->type() << SUI_SERIALUI_PROG_STR_SEP_CHAR
+				<< st->name() << SUI_SERIALUI_PROG_STR_SEP_CHAR;
+
+		uint8_t incLen = st->toString(outBuf.charBuffer(outBuf.length()), outBuf.spaceAvailable());
+		if (incLen)
+		{
+			outBuf.incrementPosition(incLen);
+		}
+		outBuf << SUI_SERIALUI_PROG_STR_SEP_CHAR;
+		st->updateCache();
+
+/*
+
 
 		outBuf[totlen++] = (char)st->type();
 
@@ -708,22 +792,21 @@ bool SerialUI::showTrackedState(bool force)
 		outBuf[totlen] = '\0';
 
 		st->updateCache();
-
+*/
 
 	}
 
-	if (totlen) {
+	if (outBuf.length() > 1) {
 
 		PRINT_FLASHSTR(SUI_STR(SUI_SERIALUI_TRACKEDSTATE_PREFIX_PROG));
-		print(strlen(outBuf) + 1);
-		print(SUI_SERIALUI_PROG_STR_SEP_CHAR);
-		println(outBuf);
+		print((int) outBuf.length());
+		print(outBuf.charBuffer());
 	}
 
 
-	PRINTLN_FLASHSTR(end_of_tx_str);
+	// PRINTLN_FLASHSTR(end_of_tx_str);
 
-	delegateSynch();
+	delegateSynch(true);
 
 	return (totlen > 0);
 
@@ -770,15 +853,15 @@ void SerialUI::showFreeRAM()
 
 void SerialUI::debug(const char * debugmsg)
 {
-	PRINT_FLASHSTR(SUI_STR("DEBUG: "));
-	println(debugmsg);
+	SERIALUI_DEBUG(SUI_STR("DEBUG: "));
+	SERIALUI_DEBUG(debugmsg);
 }
 
 void SerialUI::debug(SOVA_FLASHSTRING_PTR debugmsg)
 {
 
-	PRINT_FLASHSTR(SUI_STR("DEBUG: "));
-	println(debugmsg);
+	SERIALUI_DEBUG(SUI_STR("DEBUG: "));
+	SERIALUI_DEBUG(debugmsg);
 }
 
 

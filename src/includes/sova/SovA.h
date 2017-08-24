@@ -34,5 +34,6 @@
 #include "SovAConfig.h"
 #include "SovAPlatform.h"
 #include "stream/SovAStream.h"
+#include "utils/SinkBuffer.h"
 
 #endif /* SOVA_H_ */

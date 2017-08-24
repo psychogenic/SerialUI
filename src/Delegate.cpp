@@ -128,8 +128,12 @@ unsigned long Interface::parseIntHex(char skipChar)
 int Interface::timedRead()
 {
   int c;
+  uint8_t tickCount = 0;
   unsigned long startMillis = PLATFORM_NOW_MILLIS();
   do {
+	if (tickCount++ % 20 == 0) {
+		this->poll();
+	}
 	this->tick(false);
     c = read();
     if (c >= 0) return c;
@@ -140,8 +144,12 @@ int Interface::timedRead()
 int Interface::timedPeek()
 {
   int c;
+  uint8_t tickCount = 0;
   unsigned long startMillis = PLATFORM_NOW_MILLIS();
   do {
+	if (tickCount++ % 20 == 0) {
+	  		this->poll();
+	}
 	this->tick(false);
     c = this->peek();
     if (c >= 0) return c;

@@ -83,6 +83,9 @@
 
 /* ****************** COMPILE CONFIGURATION DEFINES ****************** */
 
+
+
+
 /*
  * SUI_SERIALUI_ECHO_ON
  * Define SUI_SERIALUI_ECHO_ON to echo user input back out as it is sent.
@@ -212,7 +215,7 @@
  *
  * Disabled by default.
  */
-// #define SUI_INCLUDE_DEBUG
+//#define SUI_INCLUDE_DEBUG
 
 
 /*
@@ -309,6 +312,10 @@
  */
 #define SUI_ENABLE_STATE_TRACKER
 #define SUI_STATE_TRACKER_MAX_VARIABLES		8
+
+// SUI_STATE_TRACK_ALWAYSFULL -- define this to
+// always receive full tracking details from pings
+//define SUI_STATE_TRACK_ALWAYSFULL
 
 
 

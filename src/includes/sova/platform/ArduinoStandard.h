@@ -38,6 +38,7 @@
 
 #ifdef SOVA_BUILDFOR_ARDUINO_STANDARD
 #include "../stream/delegate/DelegateDirect.h"
+#include "../stream/SovAStream.h"
 
 #ifndef PLATFORM_NOW_MILLIS
 #define PLATFORM_NOW_MILLIS()		millis()
@@ -77,6 +78,7 @@
 #endif
 
 
+
 // SOVA is the namespace in which we keep all our goodies.
 namespace SovA {
 
@@ -86,13 +88,12 @@ inline size_t _ard_float2str_and_len(double fl, char * intoptr) {
 	}
 #endif
 
-typedef Stream SovAStandardSysStreamType;
-
 
 // used the standard base implementation of the SovA::Stream
 #define SOVA_BASEIMPLEMENTATION_STANDARD
 
 
+typedef ::Stream SovAStandardSysStreamType;
 typedef SovA::Delegate::Direct<SovAStandardSysStreamType> StreamDelegate;
 
 

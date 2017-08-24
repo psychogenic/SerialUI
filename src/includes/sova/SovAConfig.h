@@ -79,10 +79,14 @@
 // #define SOVA_PLATFORM_DIGISPARKUSB
 // #define SOVA_PLATFORM_XMEGA
 // #define SOVA_PLATFORM_ESP8266
+// #define SOVA_PLATFORM_WIRINGPI
 
 //define SOVA_PLATFORM_XMEGA
 // Auto-detection stuff...
 
+#define SOVA_USESOVASTREAM_IMPLEMENTATION
+
+//define SOVA_DEBUGSERIALPORT	Serial4
 
 // most standard arduinos
 #if not defined(ARDUINO_ARCH_AVR)
@@ -158,9 +162,13 @@
 	#endif
 #endif
 
+// SOVA_PLATFORM_WIRINGPI
+// TODO: FIXME...
+
 // Default (to AVR standard Arduino)
 #if ! ( \
-		   defined(SOVA_PLATFORM_RBLNRF51822) \
+		   defined(SOVA_PLATFORM_WIRINGPI) \
+		or defined(SOVA_PLATFORM_RBLNRF51822) \
 		or defined(SOVA_PLATFORM_ARDUINO_SAM) \
 		or defined(SOVA_PLATFORM_XMEGA) \
 		or defined(SOVA_PLATFORM_DIGISPARKUSB) \
@@ -216,7 +224,7 @@
 
 
 #define SOVA_VERSION			1
-#define SOVA_SUBVERSION			1
+#define SOVA_SUBVERSION			2
 #define SOVA_PATCHLEVEL			0
 
 
