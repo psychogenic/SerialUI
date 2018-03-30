@@ -29,7 +29,7 @@
 namespace SovA {
 
 
-SovA::Stream::Stream() : Sink(), Source()  {
+SovA::Stream::Stream() : Source(), Sink()  {
 	dynDefaultDelegate = new SovA::StreamDelegate(&SOVA_PLATFORM_HARDWARESERIAL_DEFAULT);
 	streamDelegate = dynDefaultDelegate;
 

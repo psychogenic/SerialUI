@@ -58,9 +58,9 @@ public:
 		return 0;
 	}
 	virtual size_t write(const uint8_t *buffer, size_t size) {
-		size_t toWriteLen = size;
-		if (size > (BUFSIZE - pos)) {
-			size = (BUFSIZE - pos);
+		size_t maxLen = (BUFSIZE - pos);
+		if (size > maxLen) {
+			size = maxLen;
 		}
 		memcpy(&(myBuf[pos]), buffer, size);
 		pos += size;
