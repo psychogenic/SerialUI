@@ -61,7 +61,7 @@ public:
     virtual void setTimeout(unsigned long timeout)  {
     	this->Delegate<SOVASTREAMTYPE>::setTimeout(timeout);
     	this->streamToUse()->setTimeout(timeout); }
-    virtual void tick(bool doFlush=true) {}
+    virtual void tick(bool doFlush=true) {(void)doFlush;}
     virtual void begin(unsigned long speed)  {
 
 
