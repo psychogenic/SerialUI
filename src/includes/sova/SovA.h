@@ -35,5 +35,6 @@
 #include "SovAPlatform.h"
 #include "stream/SovAStream.h"
 #include "utils/SinkBuffer.h"
+#include "utils/DynCharBuffer.h"
 
 #endif /* SOVA_H_ */
