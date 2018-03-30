@@ -310,7 +310,7 @@ public:
 	 *          could not be created.
 	 *
 	 */
-	Menu * subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str=NULL, uint8_t num_items_hint=0);
+	Menu * subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str=NULL, uint8_t num_items_hint=SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT);
 #endif
 
 	/*
@@ -452,7 +452,7 @@ private:
 	 * 	SerialUI::topLevelMenu()
 	 * and use Menu::subMenu() to create sub-menus properly.
 	 */
-	Menu(SerialUI * SUIDriver, SOVA_FLASHSTRING_PTR name, uint8_t num_items_hint=0, Menu* parent_menu_ptr=NULL);
+	Menu(SerialUI * SUIDriver, SOVA_FLASHSTRING_PTR name, uint8_t num_items_hint=SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT, Menu* parent_menu_ptr=NULL);
 	Menu();
 
 	void init(SerialUI * SUIdrv, SOVA_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent);

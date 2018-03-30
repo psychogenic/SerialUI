@@ -489,6 +489,9 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 	MenuItem::Base ** new_list = NULL;
 
+	if (! by_amount) {
+		by_amount = SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT;
+	}
 	new_list = new MenuItem::Base* [num_menu_items + by_amount];
 
 	if (! new_list)
