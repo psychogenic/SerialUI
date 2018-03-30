@@ -70,6 +70,11 @@ class Base;
 class SerialUI;
 // forward decl
 
+
+typedef SovA::Utils::DynCharBuffer ReadKey;
+
+
+
 /*
  * Menu class
  *
@@ -305,7 +310,7 @@ public:
 	 *          could not be created.
 	 *
 	 */
-	Menu * subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str=NULL);
+	Menu * subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str=NULL, uint8_t num_items_hint=0);
 #endif
 
 	/*
@@ -411,7 +416,7 @@ private:
 	SOVA_FLASHSTRING_PTR menu_name;
 	uint8_t num_menu_items;
 	uint8_t max_menu_items;
-	uint8_t expand_list_amount;
+	// uint8_t expand_list_amount;
 
 	MenuItem::Base ** item_list;
 	MenuItem::Base * current_item;
@@ -486,7 +491,7 @@ private:
 	 * unknownCommand(KEY)
 	 * Show error response when KEY command is unrecognized.
 	 */
-	void unknownCommand(char * key);
+	void unknownCommand(const char * key);
 
 
 
@@ -507,7 +512,7 @@ private:
 	 *
 	 * Returns boolean true on success, false otherwise.
 	 */
-	bool expandItemList(uint8_t by_amount=0);
+	bool expandItemList(uint8_t by_amount=SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT);
 
 
 	/* ******************* MENU ITEM KEY MANIP ******************* */
@@ -543,7 +548,7 @@ private:
 	 *
 	 * Returns a MenuItem pointer if found, NULL otherwise.
 	 */
-	MenuItem::Base * itemForKey(char * key);
+	MenuItem::Base * itemForKey(const char * key);
 
 
 	/*

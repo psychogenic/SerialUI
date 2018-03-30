@@ -149,18 +149,19 @@ size_t Menu::max_key_len = 0;
 
 
 
+
+
+
 Menu::Menu(SerialUI * suidrv, SOVA_FLASHSTRING_PTR name, uint8_t num_items_hint, Menu * parent) :
 		sui_driver(suidrv),
-		menu_name(name), num_menu_items(0), max_menu_items(0), expand_list_amount(
-				SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
+		menu_name(name), num_menu_items(0), max_menu_items(0), item_list(NULL),
 				current_item(NULL),
 				parent_menu(parent) {
 	init(suidrv, name, num_items_hint, parent);
 }
 Menu::Menu() :
 	sui_driver(NULL),
-	menu_name(NULL), num_menu_items(0), max_menu_items(0), expand_list_amount(
-					SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT), item_list(NULL),
+	menu_name(NULL), num_menu_items(0), max_menu_items(0), item_list(NULL),
 					current_item(NULL),
 					parent_menu(NULL)
 {
@@ -201,8 +202,6 @@ void Menu::init(SerialUI * suidrv, SOVA_FLASHSTRING_PTR name, uint8_t num_items_
 	parent_menu = parent;
 	num_menu_items = 0;
 	max_menu_items = 0;
-
-	expand_list_amount = SUI_MENU_EXPANDITEMLIST_AMOUNT_DEFAULT;
 	item_list = NULL;
 
 
@@ -399,13 +398,13 @@ bool Menu::addCommand(SOVA_FLASHSTRING_PTR key_str, MenuCommand_Callback callbac
 }
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-Menu * Menu::subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str) {
+Menu * Menu::subMenu(SOVA_FLASHSTRING_PTR key_str, SOVA_FLASHSTRING_PTR help_str, uint8_t num_items_hint) {
 
 
 	// dynamic memory is enabled, so we new a pointer to fresh
 	// memory, and keep a reference to this block within the
 	// MenuItem:
-	Menu * sub_men = new Menu(sui_driver, key_str, 0, this);
+	Menu * sub_men = new Menu(sui_driver, key_str, num_items_hint, this);
 
 	if (!sub_men) {
 
@@ -490,11 +489,6 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 	MenuItem::Base ** new_list = NULL;
 
-	if (!by_amount) {
-		// set optional param to default value
-		by_amount = expand_list_amount;
-	}
-
 	new_list = new MenuItem::Base* [num_menu_items + by_amount];
 
 	if (! new_list)
@@ -513,7 +507,9 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 		}
 #endif
+#ifdef SUI_SERIALUI_ECHO_WARNINGS
 		returnMessage(error_cantalloc_menuitem);
+#endif
 
 		return false;
 	}
@@ -560,6 +556,8 @@ bool Menu::expandItemList(uint8_t by_amount) {
 
 }
 
+
+
 void Menu::enter() {
 
 	SUI_MENU_DEBUG_OUTPUT("Entering menu");
@@ -587,7 +585,10 @@ Menu * Menu::handleRequest() {
 	}
 #endif
 
-	char * key_entered = newReadKey();
+	// ReadKey will handle freeing the memory allocated
+	// by newReadKey(), as required, when it goes out of scope.
+	ReadKey key_entered(newReadKey());
+
 
 	if (!key_entered) {
 		// nothing entered
@@ -609,17 +610,17 @@ Menu * Menu::handleRequest() {
 		if (sui_driver->mode() == Mode::User)
 #endif
 		{
-			sui_driver->println(key_entered);
+			sui_driver->println(key_entered.c_str());
 		}
 	}
 
 #endif
 
-	MenuItem::Base * itm = itemForKey(key_entered);
+	MenuItem::Base * itm = itemForKey(key_entered.c_str());
 	current_item = NULL;
 	if (itm) {
-		// get rid of our new'ed key
-		MENUFREEKEY(key_entered);
+		// get rid of our new'ed key, manually, just to free up some RAM for the call
+		key_entered.clear();
 		current_item = itm;
 		Menu * switchTo =  itm->call(this);
 		if (switchTo)
@@ -631,22 +632,20 @@ Menu * Menu::handleRequest() {
 	// not found...
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
-	if (parent_menu && STRNCMP_FLASHSTR(key_entered, up_key, STRLEN_FLASHSTR(up_key)) == 0) {
+	if (parent_menu && STRNCMP_FLASHSTR(key_entered.c_str(), up_key, STRLEN_FLASHSTR(up_key)) == 0) {
 		// get rid of our new'ed key
 
 		SUI_MENU_DEBUG_OUTPUT("Going up a level");
 
-		MENUFREEKEY(key_entered);
 		return upLevel();
 	}
 #endif
 
-	if (STRNCMP_FLASHSTR(key_entered, help_key, STRLEN_FLASHSTR(help_key)) == 0) {
+	if (STRNCMP_FLASHSTR(key_entered.c_str(), help_key, STRLEN_FLASHSTR(help_key)) == 0) {
 
 		SUI_MENU_DEBUG_OUTPUT("Help request");
 
 		// get rid of our new'ed key
-		MENUFREEKEY(key_entered);
 		showHelp();
 		return this;
 	}
@@ -655,30 +654,25 @@ Menu * Menu::handleRequest() {
 	{
 		// in top level, might be a request to exit
 		uint8_t exit_keylen = STRLEN_FLASHSTR(exit_key);
-		uint8_t key_len = strlen(key_entered);
+		uint8_t key_len = key_entered.size();
 
 		uint8_t numToComp = key_len < exit_keylen ? key_len : exit_keylen;
 
-		if (STRNCMP_FLASHSTR(key_entered, exit_key, numToComp) == 0)
+		if (STRNCMP_FLASHSTR(key_entered.c_str(), exit_key, numToComp) == 0)
 		{
 			// yeah, consider it a match.
-
 			SUI_MENU_DEBUG_OUTPUT("Exit request");
-
-			MENUFREEKEY(key_entered);
 			return NULL; // a null return indicates that this is it
 		}
 
 	}
 
-
 #ifdef SUI_ENABLE_MODES
 	// check for program mode command...
-	if (STRNCMP_FLASHSTR(key_entered, key_mode_program, STRLEN_FLASHSTR(key_mode_program)) == 0)
+	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_mode_program, STRLEN_FLASHSTR(key_mode_program)) == 0)
 	{
 			SUI_MENU_DEBUG_OUTPUT("Entering program mode");
 			sui_driver->setMode(Mode::Program);
-			MENUFREEKEY(key_entered);
 
 			char sepChar[2];
 			sepChar[0] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
@@ -690,6 +684,10 @@ Menu * Menu::handleRequest() {
 
 			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_VERSION, sepChar);
 
+#ifdef SUI_PROGMODE_FULL_PROGGREET
+
+
+
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 				STRCAT_FLASHSTR(outBuf, up_key);
 #else
@@ -697,7 +695,6 @@ Menu * Menu::handleRequest() {
 #endif	/* SUI_MENU_ENABLE_SUBMENUS */
 			strcat(outBuf, sepChar);
 
-			// TODO: loop over an array, dammit...
 			STRCAT_FLASHANDSEP(outBuf, exit_key, sepChar);
 			STRCAT_FLASHANDSEP(outBuf, error_generic, sepChar);
 			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_helpkey, sepChar);
@@ -714,12 +711,14 @@ Menu * Menu::handleRequest() {
 			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_EOT, sepChar);
 
 #ifdef SUI_ENABLE_STREAMPROMPTING
-
 			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_stream, sepChar);
-
 #endif
 			STRCAT_FLASHANDSEP(outBuf, prog_mode_terminate_gui, sepChar);
 			STRCAT_FLASHANDSEP(outBuf, help_key_prog_requestbaseprefix, sepChar);
+
+
+
+#endif
 
 			sui_driver->print(strlen(outBuf) + 1, DEC);
 			sui_driver->println(outBuf);
@@ -729,25 +728,23 @@ Menu * Menu::handleRequest() {
 			return sui_driver->topLevelMenu();
 	}
 
-	if (STRNCMP_FLASHSTR(key_entered, key_mode_user, STRLEN_FLASHSTR(key_mode_user)) == 0) {
+	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_mode_user, STRLEN_FLASHSTR(key_mode_user)) == 0) {
 		SUI_MENU_DEBUG_OUTPUT("Entering 'user' mode");
 		sui_driver->setMode(Mode::User);
-		MENUFREEKEY(key_entered);
+
 		return this;
 	}
 #endif	/* SUI_ENABLE_MODES */
 
-	if (STRNCMP_FLASHSTR(key_entered, key_ping_command, STRLEN_FLASHSTR(key_ping_command)) == 0) {
+	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_ping_command, STRLEN_FLASHSTR(key_ping_command)) == 0) {
 
-		MENUFREEKEY(key_entered);
 			pingRespond();
 			return this;
 		}
 
 
 	// get rid of our new'ed key
-	unknownCommand(key_entered);
-	MENUFREEKEY(key_entered);
+	unknownCommand(key_entered.c_str());
 	return this;
 
 }
@@ -887,7 +884,7 @@ Menu * Menu::upLevel() {
 }
 #endif
 
-MenuItem::Base * Menu::itemForKey(char * key_found) {
+MenuItem::Base * Menu::itemForKey(const char * key_found) {
 
 	size_t key_size = strlen(key_found);
 	size_t cmp_size = 0;
@@ -917,7 +914,7 @@ MenuItem::Base * Menu::itemForKey(char * key_found) {
 
 }
 
-void Menu::unknownCommand(char * key) {
+void Menu::unknownCommand(const char * key) {
 
 	SUIDRIVER_PRINT_FLASH(error_generic);
 	SUIDRIVER_PRINT_FLASH(unknown_sel);
