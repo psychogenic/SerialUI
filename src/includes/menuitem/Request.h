@@ -18,16 +18,77 @@ namespace MenuItem {
 namespace Request {
 
 
+/*
+ * RequestCommon -- base class for all Request types.
+ * Contains everything that's common _and_ doesn't need to be templated, such that
+ * we can avoid having duplicates in tpl class definitions--makes code a bit smaller.
+ */
+class RequestCommon: public MenuItem::Base {
+public:
+	RequestCommon(SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb) :
+		MenuItem::Base(key_pstr, help_pstr, MenuItem::Type::Request), value_changed_cb(cb)
+	{
+
+	}
+	virtual ~RequestCommon() {}
+
+
+	virtual void showPrompt(Menu * callingMenu) = 0;
+
+
+	virtual void printPrefix(Menu * callingMenu, SUI::Mode::Selection curMode)
+	{
+		if (curMode == SUI::Mode::User)
+		{
+			callingMenu->driver()->print(this->getString(StaticString::RequestPrefix));
+		}
+
+	}
+
+
+protected:
+
+	MenuRequest_Callback value_changed_cb;
+
+	void callSetup(Menu * callingMenu) {
+
+		if (help) {
+			callingMenu->driver()->println(help);
+		}
+		this->showPrompt(callingMenu);
+		SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("Value req"));
+	}
+
+	Menu * callSuccess(Menu * callingMenu) {
+
+		if (value_changed_cb) {
+
+			SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("val changed cb()"));
+			value_changed_cb();
+		}
+
+		callingMenu->returnOK();
+		return NULL;
+	}
+
+};
+
+
+/*
+ * RequestBase -- actual base class (generic) for Requests.  Implements generic methods for printing and getting
+ * the values from users, etc.
+ *
+ */
 template<class REQTYPE>
-class RequestBase : public MenuItem::Base {
+class RequestBase : public RequestCommon {
 public:
 
 	typedef  bool(*validatorCallback)(REQTYPE & newVal);
-	virtual ~RequestBase() {}
+
 
 	RequestBase(REQTYPE * val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr,
 			validatorCallback vcb, MenuRequest_Callback cb=NULL) :
-		MenuItem::Base(key_pstr, help_pstr, MenuItem::Type::Request), the_value(val), validator(vcb), value_changed_cb(cb) {}
+				RequestCommon(key_pstr, help_pstr, cb), the_value(val), validator(vcb) {}
 
 /*
 	RequestBase(REQTYPE * val, SOVA_FLASHSTRING_PTR key_pstr, SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
@@ -36,15 +97,6 @@ public:
 	REQTYPE * the_value;
 	validatorCallback validator;
 
-
-
-
-
-
-
-	MenuRequest_Callback value_changed_cb;
-
-	virtual void showPrompt(Menu * callingMenu) = 0;
 	virtual bool getValue(Menu * callingMenu, REQTYPE * v) = 0;
 
 	void printValue(Menu * callingMenu, REQTYPE v)
@@ -63,6 +115,7 @@ public:
 		SUI_UNUSED_PARAM(v);
 		return true;
 	}
+
 	virtual void printMetaInfo(SUI::Menu * callingMenu)
 	{
 		SerialUI * driver = callingMenu->driver();
@@ -70,67 +123,43 @@ public:
 
 		driver->print(*the_value);
 	}
+
+
 	virtual Menu* call(Menu * callingMenu) {
 
-		if (help) {
-			callingMenu->driver()->println(help);
-		}
+		callSetup(callingMenu);
 
-		this->showPrompt(callingMenu);
-
-		SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("Value req"));
-
-		REQTYPE v;
-		if (!this->getValue(callingMenu, &v) )
 		{
+			// scope this REQTYPE variable, so we can
+			// free it prior to triggering callback
+			REQTYPE v;
+
+			bool getSucceeded = this->getValue(callingMenu, &v);
+
 			printValue(callingMenu, v);
-			callingMenu->returnOK();
-			return NULL;
-		}
 
-
-		bool determinedValid = true;
-		printValue(callingMenu, v);
-		if (validator)
-		{
-			SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("validating()"));
-			if (! validator(v))
+			if (! getSucceeded)
 			{
-				SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("Validator veto"));
-
-				determinedValid = false;
+				callingMenu->returnOK();
+				return NULL;
 			}
-		} else if (! this->valueIsValid(v)) {
-			SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("Internal veto"));
-			determinedValid = false;
 
-		}
-		if (! determinedValid) {
+			if ( (validator && (!validator(v))) || (! this->valueIsValid(v)) ) {
+				callingMenu->returnError(F("Invalid"));
+				return NULL;
+			}
 
-			callingMenu->returnError(F("Invalid value"));
-			return NULL;
-		}
-		this->setValue(v);
-
-		if (value_changed_cb) {
-
-			SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("val changed cb()"));
-			value_changed_cb();
+			this->setValue(v);
 		}
 
-		callingMenu->returnOK();
-		return NULL;
+		return callSuccess(callingMenu);
+
 	}
 
-	virtual void printPrefix(Menu * callingMenu, SUI::Mode::Selection curMode)
-	{
-		if (curMode == SUI::Mode::User)
-		{
 
-			callingMenu->driver()->print(this->getString(StaticString::RequestPrefix));
-		}
 
-	}
+private:
+
 
 
 };
@@ -393,85 +422,6 @@ public:
 	virtual void printMetaInfo(SUI::Menu * callingMenu);
 
 };
-
-
-
-
-
-#if 0
-class Char: public Request {
-	public:
-	Char(char * val, SOVA_FLASHSTRING_PTR key_pstr,
-			SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
-		Request(key_pstr, help_pstr, cb), the_value(val) {}
-
-	char * the_value;
-	virtual bool showPromptAndGetValue(Menu * callingMenu);
-
-
-};
-
-class Bool: public Request {
-	public:
-	Bool(bool * val, SOVA_FLASHSTRING_PTR key_pstr,
-			SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
-		Request(key_pstr, help_pstr, cb), the_value(val) {}
-
-	bool * the_value;
-	virtual bool showPromptAndGetValue(Menu * callingMenu);
-
-
-};
-
-class Long: public Request {
-	public:
-	Long(long int * val, SOVA_FLASHSTRING_PTR key_pstr,
-			SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
-		Request(key_pstr, help_pstr, cb), the_value(val) {}
-
-	long int * the_value;
-	virtual bool showPromptAndGetValue(Menu * callingMenu);
-
-
-};
-
-
-class ULong: public Request {
-	public:
-	ULong(long unsigned int * val, SOVA_FLASHSTRING_PTR key_pstr,
-			SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
-		Request(key_pstr, help_pstr, cb), the_value(val) {}
-
-	long unsigned int * the_value;
-	virtual bool showPromptAndGetValue(Menu * callingMenu);
-
-
-};
-
-class Float: public Request {
-	public:
-	Float(float * val, SOVA_FLASHSTRING_PTR key_pstr,
-			SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
-		Request(key_pstr, help_pstr, cb), the_value(val) {}
-
-	float * the_value;
-	virtual bool showPromptAndGetValue(Menu * callingMenu);
-
-};
-
-class String: public Request {
-public:
-	String(char * val, uint8_t maxLen, SOVA_FLASHSTRING_PTR key_pstr,
-			SOVA_FLASHSTRING_PTR help_pstr, MenuRequest_Callback cb=NULL) :
-		Request(key_pstr, help_pstr, cb), the_value(val), max_length(maxLen) {}
-
-	char * the_value;
-	uint8_t max_length;
-	virtual bool showPromptAndGetValue(Menu * callingMenu);
-
-};
-
-#endif
 
 
 }

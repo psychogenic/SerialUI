@@ -270,9 +270,9 @@ void String::printMetaInfo(SUI::Menu * callingMenu)
 
 }
 bool String::getValue(Menu * callingMenu, ::String* into) {
-	*into = "n/a";
-
+	*into = "";
 	char * buf = new char[max_length + 1];
+	SovA::Utils::DynCharBuffer dynBufDeleter(buf);
 
 	SUI_OUTPUT_DEBUG_DEFAULTSTREAM(F("String::val: "));
 	SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM();
@@ -284,30 +284,29 @@ bool String::getValue(Menu * callingMenu, ::String* into) {
 	}
 
 	memset(buf, 0, max_length + 1);
+	// buf[max_length] = 0;
 
 	uint8_t numRead = callingMenu->driver()->readBytesToEOL(buf, max_length);
 
 	if (! numRead)
 	{
 		SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(F("noread!"));
-		delete [] buf;
 		return false;
 	}
 
-	::String tmp(buf);
+	/* debug...
+	callingMenu->driver()->print(F("EOLSTR: "));
+	for (uint8_t i=0; i<max_length; i++) {
+		callingMenu->driver()->print(buf[i]);
 
-	SUI_OUTPUTLN_DEBUG_DEFAULTSTREAM(tmp);
-
-	bool strChanged = false;
-	if (tmp != *the_value)
-	{
-		strChanged = true;
 	}
-	*into = buf;
-	delete [] buf;
+	*/
 
-	return strChanged;
+	// actually copy the buffer contents over
+	into->concat(buf);
 
+	// return whether we've actually changed the value
+	return (*into != *the_value);
 }
 
 void String::printPrefix(Menu * callingMenu, SUI::Mode::Selection curMode)
