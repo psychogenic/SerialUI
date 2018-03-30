@@ -75,18 +75,12 @@ public:
 SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 		SovA::Delegate::Interface * aDelegate) : SovA::Stream(),
 		output_mode(Mode::User),
-		response_transmitted(false),
+		gen_flags(gen_flags_init),
 		uid(NULL),
 		greeting_msg(NULL),top_lev_menu(), current_menu(NULL),
-				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
 				user_presence_last_interaction_ms(0),
 				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT),
-#ifdef SUI_SERIALUI_ECHO_ON
-				echo_commands(true),
-#else
-				echo_commands(false),
-#endif
 #ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
 				heartbeat_function_cb(NULL),
 				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
@@ -95,7 +89,6 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 #ifdef SUI_ENABLE_STATE_TRACKER
 				force_state_tracking_fulldump(0),
 #endif
-				menu_manual_override(false),
 				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
 {
 	this->useDelegate(aDelegate);
@@ -107,18 +100,12 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 		SovA::SovAStandardSysStreamType * underlying_stream) : SovA::Stream(),
 		output_mode(Mode::User),
-		response_transmitted(false),
+		gen_flags(gen_flags_init),
 		uid(NULL),
 		greeting_msg(NULL),top_lev_menu(), current_menu(NULL),
-				user_check_performed(false), user_present(false),
 				user_presence_timeout_ms(SUI_SERIALUI_USERPRESENCE_MAXTIMEOUT_DEFAULT_MS),
 				user_presence_last_interaction_ms(0),
 				read_terminator_char(SUI_SERIAL_UI_READ_CHAR_TERMINATOR_DEFAULT),
-#ifdef SUI_SERIALUI_ECHO_ON
-				echo_commands(true),
-#else
-				echo_commands(false),
-#endif
 #ifdef SUI_ENABLE_USER_PRESENCE_HEARTBEAT
 				heartbeat_function_cb(NULL),
 				heartbeat_function_period(SUI_USER_PRESENCE_HEARTBEAT_PERIOD_DEFAULT_MS),
@@ -127,7 +114,6 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 #ifdef SUI_ENABLE_STATE_TRACKER
 				force_state_tracking_fulldump(0),
 #endif
-				menu_manual_override(false),
 				end_of_tx_str(SUI_STR(SUI_SERIALUI_PROG_ENDOFTRANSMISSION))
 {
 
@@ -187,49 +173,67 @@ size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length, bool left_trim)
 	// a modified version of readBytesUntil, from Arduino Stream,  LGPLed
 	// Copyright (c) 2010 David A. Mellis.
 	size_t count = 0;
-	millisec_counter_start = PLATFORM_NOW_MILLIS();
 
-	bool noTimeout = timeout() < 1;
+	unsigned long millistimeout = PLATFORM_NOW_MILLIS() + timeout();
+
+	bool infiniteWaitForEOL = (timeout() < 1);
+	bool isEndline = false;
 
 
-	if (max_length < 1)
-	{
-		return 0;
-	}
+	memset(buffer, 0, max_length); // forced clean
 
-	if (left_trim && this->available())
-	{
-		int c = this->peek();
 
-		while (this->available() && (c == '\r' || c == '\n' || c == ' ' || c == '\t'))
-		{
-			// discard
-			this->read();
-			// check next
-			c = this->peek();
-		}
-	}
-
+	// loop around until we either
+	//  - get an EOL;
+	//  - accumulate max_length chars; or
+	//  - timeout
 	do {
-		int c = read();
-		if (c < 0)
-			continue;
 
-		if (c == '\r') {
-			// hit a CR
-			if (peek() == '\n') // get rid of newline if present
-				read();
-			break;
+		if (!this->available()) {
+			// nothing in queue, sync & loop
+			delegateSynch(true);
+			continue;
 		}
 
-		if (c == '\n' || c == read_terminator_char)
-			break;
+		// get next char
+		int c = read();
+
+		if (c < 0) {
+			// sanity check fail
+			continue;
+		}
+
+		// flag if it's an endline
+		if ( c == '\r' || c == '\n' ) {
+			isEndline = true;
+		} else {
+			isEndline = false;
+		}
 
 
-		*buffer++ = (char) c;
-		count++;
+		// if we're left trimming, do so.
+		if (left_trim) {
 
-	} while (count < max_length &&  (noTimeout || (PLATFORM_NOW_MILLIS() - millisec_counter_start) < timeout()));
+			if (isEndline || c == ' ' || c == '\t') {
+				// left trimming and this is whitespace: throw it away
+				// and loop
+				continue;
+			}
+
+			// we were left trimming, but are now done
+			left_trim = false;
+		}
+
+		if (isEndline || c == read_terminator_char ) {
+			// we hit the EOL
+			return count;
+		}
+
+		// still accumulating, add it to ret buf
+		buffer[count++] = (char) c;
+
+
+	} while ( (count < max_length) && (infiniteWaitForEOL || (PLATFORM_NOW_MILLIS() < millistimeout) ));
 
 	return count;
 
@@ -272,9 +276,11 @@ void SerialUI::exit(bool terminate_gui)
 #endif
 	{
 
-		returnMessage(SUI_STR("\r\nThanks for using SerialUI! Goodbye."));
+		returnMessage(SUI_STR("\r\nThanks for using SerialUI!"));
 	}
-	user_present = false;
+
+	SUI_CLEARFLAG(gen_flags, user_present_bit);
+
 	user_presence_last_interaction_ms = 0;
 	// go back to top level menu, in case we re-enter SUI later...
 	current_menu = &top_lev_menu;
@@ -293,7 +299,7 @@ Menu * SerialUI::topLevelMenu(SOVA_FLASHSTRING_PTR setNameTo) {
 bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 
 	delegate()->tick();
-	if (user_check_performed) {
+	if (SUI_FLAGASBOOL(gen_flags, user_check_performed_bit)) {
 		// already done this...
 #ifdef SUI_NOUSER_HEARTBEAT_ENABLE
 		SUI_TRIGGERHEARTBEAT(PLATFORM_NOW_MILLIS());
@@ -302,8 +308,8 @@ bool SerialUI::checkForUserOnce(uint16_t timeout_ms) {
 	}
 
 	SERIALUI_DEBUG(F("Checking for user (once)"));
+	SUI_SETFLAG(gen_flags, user_check_performed_bit);
 
-	user_check_performed = true;
 
 	return checkForUser(timeout_ms);
 }
@@ -313,7 +319,7 @@ bool SerialUI::checkForUser(uint16_t timeout_ms) {
 	while (ms_count <= timeout_ms) {
 		delegate()->tick(true);
 		if (this->available() > 0) {
-			user_present = true;
+			SUI_SETFLAG(gen_flags, user_present_bit);
 			this->enter();
 			return true;
 		}
@@ -345,7 +351,7 @@ bool SerialUI::checkForUser(uint16_t timeout_ms) {
 
 
 bool SerialUI::userPresent() {
-	if (!user_present) {
+	if (! SUI_FLAGASBOOL(gen_flags, user_present_bit)) {
 		// already determined they're outta here
 		return false;
 	}
@@ -364,8 +370,8 @@ bool SerialUI::userPresent() {
 		exit(false);
 	}
 
+	return SUI_FLAGASBOOL(gen_flags, user_present_bit);
 
-	return user_present;
 
 }
 void SerialUI::setCurrentMenu(Menu * setTo)
@@ -373,7 +379,7 @@ void SerialUI::setCurrentMenu(Menu * setTo)
 	if (setTo)
 	{
 		current_menu = setTo;
-		menu_manual_override = true;
+		SUI_SETFLAG(gen_flags, menu_manual_override_bit);
 	}
 }
 
@@ -396,11 +402,10 @@ void SerialUI::triggerHeartbeat(uint32_t timeNow) {
 
 void SerialUI::handleRequests(uint8_t maxRequests) {
 	Menu * ret_menu;
-
+	uint32_t timeNow;
 	for (uint8_t i = 0; i <= maxRequests; i++) {
 
-
-		uint32_t timeNow = PLATFORM_NOW_MILLIS();
+		timeNow = PLATFORM_NOW_MILLIS();
 
 		delegateSynch(true);
 
@@ -415,11 +420,11 @@ void SerialUI::handleRequests(uint8_t maxRequests) {
 
 			delegateSynch(true);
 			if (ret_menu) {
-				if (menu_manual_override)
+				if (SUI_FLAGASBOOL(gen_flags, menu_manual_override_bit))
 				{
 					// leave the current menu as is, as it was overridden in
 					// the last command
-					menu_manual_override = false;
+					SUI_CLEARFLAG(gen_flags, menu_manual_override_bit);
 				} else {
 					// make certain we reflect whatever changes are required
 					// (e.g. the item was a submenu)
@@ -602,7 +607,12 @@ size_t SerialUI::showEnterStreamPromptAndReceive(char * bufferToUse, uint8_t buf
 
 void SerialUI::setEchoCommands(bool setTo)
 {
-	echo_commands = setTo;
+	if (setTo) {
+		SUI_SETFLAG(gen_flags, echo_commands_bit);
+	} else {
+
+		SUI_CLEARFLAG(gen_flags, echo_commands_bit);
+	}
 
 }
 
@@ -772,28 +782,6 @@ bool SerialUI::showTrackedState(bool force)
 		outBuf << SUI_SERIALUI_PROG_STR_SEP_CHAR;
 		st->updateCache();
 
-/*
-
-
-		outBuf[totlen++] = (char)st->type();
-
-		outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-		outBuf[totlen] = '\0';
-
-		STRCAT_FLASHSTR(outBuf,st->name());
-		totlen += STRLEN_FLASHSTR(st->name());
-
-		outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-		outBuf[totlen] = '\0';
-
-		totlen += st->toString(&(outBuf[totlen]), (SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN - (totlen + 2)));
-
-		outBuf[totlen++] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-		outBuf[totlen] = '\0';
-
-		st->updateCache();
-*/
-
 	}
 
 	if (outBuf.length() > 1) {
@@ -823,11 +811,10 @@ bool SerialUI::showTrackedState(bool force)
 
 } /* end namespace SUI */
 
-
-#ifdef SUI_INCLUDE_DEBUG
+#if defined(SUI_INCLUDE_DEBUG) or defined(SUI_INCLUDE_FREERAMFUNCS)
 
 // debug is ON, we'll need a global-space freeRAM() function:
-int freeRAM()
+static int freeRAM()
 {
 	// neat little function from
 	// http://jeelabs.org/2011/05/22/atmega-memory-use/
@@ -835,7 +822,6 @@ int freeRAM()
 	int v;
 	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
-
 
 
 // add some debug-related method implementations
@@ -850,6 +836,16 @@ void SerialUI::showFreeRAM()
 	  println(freeRAM());
 
 }
+}
+
+#endif
+
+
+#if defined(SUI_INCLUDE_DEBUG)
+
+// add some debug-related method implementations
+namespace SUI {
+
 
 void SerialUI::debug(const char * debugmsg)
 {

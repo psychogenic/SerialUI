@@ -292,6 +292,28 @@
 #endif
 
 
+
+
+#define SUI_SETFLAG(flags, bitpos)		(flags |= (1 << bitpos))
+#define SUI_CLEARFLAG(flags, bitpos)	(flags &= ~(1 << bitpos))
+#define SUI_FLAGASBOOL(flags, bitpos)	(flags & (1 << bitpos))
+
+// gen_flags
+#define user_present_bit			0
+#define user_check_performed_bit	1
+#define response_transmitted_bit	2
+#define echo_commands_bit			3
+#define menu_manual_override_bit	4
+
+#ifdef SUI_SERIALUI_ECHO_ON
+#define gen_flags_init		(1 << echo_commands_bit)
+#else
+#define gen_flags_init		0
+#endif
+
+
+
+
 // SUI is the namespace in which we keep all our goodies.
 namespace SUI {
 
@@ -331,6 +353,7 @@ typedef void(*heartbeatFunction)(void);
 
 typedef SovA::Utils::SinkBuffer<SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN> SinkBuf;
 typedef SovA::SovAStandardSysStreamType	SerialUIUnderStream;
+
 
 
 class SerialUI : public SovA::Stream
@@ -600,10 +623,14 @@ public:
     inline Mode::Selection mode() { return output_mode;}
 #endif
 
-    inline bool echoCommands() { return echo_commands;}
+    inline bool echoCommands() { return SUI_FLAGASBOOL(gen_flags, echo_commands_bit);}
     void setEchoCommands(bool setTo);
 
+
+#if defined(SUI_INCLUDE_DEBUG) or defined(SUI_INCLUDE_FREERAMFUNCS)
     void showFreeRAM();
+#endif
+
 #ifdef SUI_INCLUDE_DEBUG
     void debug(const char * debugmsg);
     void debug(SOVA_FLASHSTRING_PTR debugmsg);
@@ -629,9 +656,9 @@ public:
 
 #endif
 
-	inline bool responseTransmitted() { return response_transmitted;}
-	inline void markResponseTransmitted() { response_transmitted = true;}
-	inline void markResponseRequired() { response_transmitted = false;}
+	inline bool responseTransmitted() { return SUI_FLAGASBOOL(gen_flags, response_transmitted_bit);}
+	inline void markResponseTransmitted() { SUI_SETFLAG(gen_flags, response_transmitted_bit);}
+	inline void markResponseRequired() { SUI_CLEARFLAG(gen_flags, response_transmitted_bit);}
 
 
 private:
@@ -643,19 +670,27 @@ private:
 
 
 
-    Mode::Selection output_mode;
+    /*
     bool response_transmitted;
+	bool user_check_performed;
+	bool user_present;
+	bool echo_commands;
+	bool menu_manual_override;
+	*/
+
+    Mode::Selection output_mode;
+
+    uint8_t gen_flags;
+
+
 	SOVA_FLASHSTRING_PTR uid;
 	SOVA_FLASHSTRING_PTR greeting_msg;
 	Menu top_lev_menu;
 	Menu * current_menu;
-	bool user_check_performed;
-	bool user_present;
 	uint16_t user_presence_timeout_ms;
 	uint32_t user_presence_last_interaction_ms;
 	char read_terminator_char;
-	unsigned long millisec_counter_start;
-	bool echo_commands;
+	//unsigned long millisec_counter_start;
 #ifdef SUI_ENABLE_STREAMPROMPTING
 	size_t stream_expected_size;
 	size_t stream_cur_count;
@@ -677,7 +712,6 @@ private:
 	// int8_t addStateTracking(int8_t slot, TrackedStateVariableDetails* dets);
 #endif
 
-	bool menu_manual_override;
 	SOVA_FLASHSTRING_PTR end_of_tx_str;
 
 

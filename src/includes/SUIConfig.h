@@ -134,9 +134,9 @@
 /* ******* Optional error checking and functionality ********
  * With everything on, meaning:
  *
- *	- SUI_INCLUDE_EXTRA_SAFETYCHECKS (default: enabled)
+ *	- SUI_INCLUDE_EXTRA_SAFETYCHECKS (default: disabled)
  *	- SUI_INCLUDE_DEBUG	(default: disabled)
- *	- SUI_SERIALUI_ECHO_WARNINGS (default: enabled)
+ *	- SUI_SERIALUI_ECHO_WARNINGS (default: disabled)
  *	- SUI_MENU_INCLUDE_DESTRUCTION_CLEANUP (default: disabled)
  *	- SUI_MENU_ENABLE_SUBMENUS  (default: enabled)
  *	- SUI_DYNAMIC_MEMORY_ALLOCATION_ENABLE (default: enabled)
@@ -159,8 +159,7 @@
  * Disable this (undefine it/comment it out) if you know everything is
  * working and you're tight on flash space.
  */
-// 
-#define SUI_INCLUDE_EXTRA_SAFETYCHECKS
+// #define SUI_INCLUDE_EXTRA_SAFETYCHECKS
 
 
 /*
@@ -171,7 +170,7 @@
  * Disable this (undefine it/comment it out) if you know everything is
  * working and you're tight on flash space.
  */
-#define SUI_SERIALUI_ECHO_WARNINGS
+// #define SUI_SERIALUI_ECHO_WARNINGS
 
 
 
@@ -216,7 +215,7 @@
  * Disabled by default.
  */
 //#define SUI_INCLUDE_DEBUG
-
+// define SUI_INCLUDE_FREERAMFUNCS
 
 /*
  * SUI_MENU_INCLUDE_DESTRUCTION_CLEANUP
@@ -487,8 +486,8 @@
 
 
 #define SERIAL_UI_VERSION			2
-#define SERIAL_UI_SUBVERSION		1
-#define SERIAL_UI_PATCHLEVEL		4
+#define SERIAL_UI_SUBVERSION		2
+#define SERIAL_UI_PATCHLEVEL		0
 
 
 

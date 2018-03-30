@@ -86,7 +86,7 @@
 
 #define SOVA_USESOVASTREAM_IMPLEMENTATION
 
-//define SOVA_DEBUGSERIALPORT	Serial4
+//#define SOVA_DEBUGSERIALPORT	Serial4
 
 // most standard arduinos
 #if not defined(ARDUINO_ARCH_AVR)
@@ -225,7 +225,7 @@
 
 #define SOVA_VERSION			1
 #define SOVA_SUBVERSION			2
-#define SOVA_PATCHLEVEL			0
+#define SOVA_PATCHLEVEL			2
 
 
 
