@@ -159,27 +159,28 @@ bool SetupSerialUI() {
   // create all our sub-menus
 	SUI::Menu * submen1 = topMenu->subMenu(
 		SUI_STR("Tigers"),
-		SUI_STR("Rarrr"));
+		SUI_STR("Rarrr"),
+		2);
 	if (! submen1 ) { 
 		DIE_HORRIBLY(CouldntCreateMenuErr);
 	}
 	
 	SUI::Menu * submen2 = topMenu->subMenu(
-		SUI_STR("Monkeys"));
+		SUI_STR("Monkeys"), NULL, 2);
 	if (! submen2 ) { 
 		DIE_HORRIBLY(CouldntCreateMenuErr);
 	}
 	
 	SUI::Menu * submen3 = topMenu->subMenu(
 		SUI_STR("Fishes"),
-		SUI_STR("Fishies"));
+		SUI_STR("Fishies"), 3);
 	if (! submen3 ) { 
 		DIE_HORRIBLY(CouldntCreateMenuErr);
 	}
 	
 	SUI::Menu * submen4 = topMenu->subMenu(
 		SUI_STR("Reptiles"),
-		SUI_STR("Lizards and such..."));
+		SUI_STR("Lizards and such..."), 4);
 	if (! submen4 ) { 
 		DIE_HORRIBLY(CouldntCreateMenuErr);
 	}
@@ -314,5 +315,4 @@ bool SetupSerialUI() {
 	return true;
 	
 }
-
 

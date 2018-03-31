@@ -143,7 +143,8 @@ bool SetupSerialUI() {
   }
   SUI::Menu * submen1 = topMenu->subMenu(
                           SUI_STR("Manage"),
-                          SUI_STR("Manage the counter"));
+                          SUI_STR("Manage the counter"), 
+			  2);
   if (! submen1 ) {
     DIE_HORRIBLY(CouldntCreateMenuErr);
   }
