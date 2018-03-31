@@ -61,6 +61,11 @@
 #define SUI_MENU_DEBUG_OUTPUT(msg)
 #endif
 
+
+
+
+#define SUI_PROGMODE_FULL_PROGGREET
+
 namespace SUI {
 
 
@@ -568,10 +573,79 @@ void Menu::enter() {
 	returnMessage(menu_name);
 }
 
-#define STRCAT_FLASHANDSEP(intoBuffer, theflshstr, seperatorChar)	\
+
+
+/*
+ * internally used macros/static function to grow the
+ * program-mode response string...
+ *
+ * pain in the butt, consider all that deprecated...
+ */
+#define STRCAT_APPENDTOBUF(intoBuffer, theflshstr, seperatorChar)	\
 	STRCAT_FLASHSTR(intoBuffer, theflshstr); \
 	strcat(intoBuffer, seperatorChar)
 
+
+static void appendToBuf(char * buf, const void* v, char sepChar=SUI_SERIALUI_PROG_STR_SEP_CHAR) {
+	char sep[2] = {0,};
+	sep[0] = sepChar;
+	STRCAT_APPENDTOBUF(buf, v, sep);
+}
+
+#define STRCAT_FLASHANDSEP(intoBuffer, theflshstr, seperatorChar)	\
+		appendToBuf(intoBuffer, theflshstr)
+
+Menu * Menu::enterProgramMode() {
+
+	char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN];
+	char sepChar[2];
+
+	SUI_MENU_DEBUG_OUTPUT("Entering program mode");
+	sui_driver->setMode(Mode::Program);
+
+	sepChar[0] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
+	sepChar[1] = '\0';
+
+	outBuf[0] = '\0';
+	strcat(outBuf, sepChar);
+
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_info_VERSION, sepChar);
+
+#ifdef SUI_PROGMODE_FULL_PROGGREET
+
+#ifdef SUI_MENU_ENABLE_SUBMENUS
+		STRCAT_FLASHSTR(outBuf, up_key);
+#else
+		strcat(outBuf, "X");
+#endif	/* SUI_MENU_ENABLE_SUBMENUS */
+	strcat(outBuf, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, exit_key, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, error_generic, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_info_helpkey, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, help_key_prog_commandprefix, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, help_key_prog_submenuprefix, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, help_sep_prog, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_string, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_num, sepChar);
+
+	strcat(outBuf, SUI_SERIALUI_PROMPT);
+	strcat(outBuf, sepChar);
+
+
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_info_EOT, sepChar);
+
+#ifdef SUI_ENABLE_STREAMPROMPTING
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_stream, sepChar);
+#endif
+	STRCAT_FLASHANDSEP(outBuf, prog_mode_terminate_gui, sepChar);
+	STRCAT_FLASHANDSEP(outBuf, help_key_prog_requestbaseprefix, sepChar);
+#endif
+
+	sui_driver->print(strlen(outBuf) + 1, DEC);
+	sui_driver->println(outBuf);
+
+	return sui_driver->topLevelMenu();
+}
 Menu * Menu::handleRequest() {
 
 	SUI_MENU_DEBUG_OUTPUT("Menu req rcvd.");
@@ -632,7 +706,12 @@ Menu * Menu::handleRequest() {
 		return this;
 	}
 
-	// not found...
+	// not found...  check defaults/built-ins...
+
+	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_ping_command, STRLEN_FLASHSTR(key_ping_command)) == 0) {
+			pingRespond();
+			return this;
+	}
 
 #ifdef SUI_MENU_ENABLE_SUBMENUS
 	if (parent_menu && STRNCMP_FLASHSTR(key_entered.c_str(), up_key, STRLEN_FLASHSTR(up_key)) == 0) {
@@ -645,13 +724,13 @@ Menu * Menu::handleRequest() {
 #endif
 
 	if (STRNCMP_FLASHSTR(key_entered.c_str(), help_key, STRLEN_FLASHSTR(help_key)) == 0) {
-
 		SUI_MENU_DEBUG_OUTPUT("Help request");
-
 		// get rid of our new'ed key
 		showHelp();
 		return this;
 	}
+
+
 
 	if (parent_menu == NULL)
 	{
@@ -674,76 +753,16 @@ Menu * Menu::handleRequest() {
 	// check for program mode command...
 	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_mode_program, STRLEN_FLASHSTR(key_mode_program)) == 0)
 	{
-			SUI_MENU_DEBUG_OUTPUT("Entering program mode");
-			sui_driver->setMode(Mode::Program);
-
-			char sepChar[2];
-			sepChar[0] = SUI_SERIALUI_PROG_STR_SEP_CHAR;
-			sepChar[1] = '\0';
-
-			char outBuf[SUI_SERIALUI_PROGMEM_STRING_ABS_MAXLEN];
-			outBuf[0] = '\0';
-			strcat(outBuf, sepChar);
-
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_VERSION, sepChar);
-
-#ifdef SUI_PROGMODE_FULL_PROGGREET
-
-
-
-#ifdef SUI_MENU_ENABLE_SUBMENUS
-				STRCAT_FLASHSTR(outBuf, up_key);
-#else
-				strcat(outBuf, "X");
-#endif	/* SUI_MENU_ENABLE_SUBMENUS */
-			strcat(outBuf, sepChar);
-
-			STRCAT_FLASHANDSEP(outBuf, exit_key, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, error_generic, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_helpkey, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, help_key_prog_commandprefix, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, help_key_prog_submenuprefix, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, help_sep_prog, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_string, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_num, sepChar);
-
-			strcat(outBuf, SUI_SERIALUI_PROMPT);
-			strcat(outBuf, sepChar);
-
-
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_EOT, sepChar);
-
-#ifdef SUI_ENABLE_STREAMPROMPTING
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_info_moreprompt_stream, sepChar);
-#endif
-			STRCAT_FLASHANDSEP(outBuf, prog_mode_terminate_gui, sepChar);
-			STRCAT_FLASHANDSEP(outBuf, help_key_prog_requestbaseprefix, sepChar);
-
-
-
-#endif
-
-			sui_driver->print(strlen(outBuf) + 1, DEC);
-			sui_driver->println(outBuf);
-
-
-
-			return sui_driver->topLevelMenu();
+		// key_entered.clear();
+		return enterProgramMode();
 	}
 
 	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_mode_user, STRLEN_FLASHSTR(key_mode_user)) == 0) {
 		SUI_MENU_DEBUG_OUTPUT("Entering 'user' mode");
 		sui_driver->setMode(Mode::User);
-
 		return this;
 	}
 #endif	/* SUI_ENABLE_MODES */
-
-	if (STRNCMP_FLASHSTR(key_entered.c_str(), key_ping_command, STRLEN_FLASHSTR(key_ping_command)) == 0) {
-
-			pingRespond();
-			return this;
-		}
 
 
 	// get rid of our new'ed key
@@ -1009,7 +1028,7 @@ void Menu::returnError(SOVA_FLASHSTRING_PTR errmsg) {
 void Menu::returnOK() {
 
 	sui_driver->markResponseTransmitted();
-	sui_driver->println(F(SUI_SERIALUI_MESSAGE_OK));
+	sui_driver->println(ok_msg);
 
 }
 

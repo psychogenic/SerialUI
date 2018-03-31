@@ -409,9 +409,6 @@ public:
 	inline uint8_t numItems() { return num_menu_items;}
 	inline MenuItem::Base * currentItem() { return current_item;}
 private:
-
-
-
 	SerialUI * sui_driver;
 	SOVA_FLASHSTRING_PTR menu_name;
 	uint8_t num_menu_items;
@@ -567,7 +564,7 @@ private:
 
 	void pingRespond();
 
-
+	Menu * enterProgramMode();
 
 };
 
