@@ -6,7 +6,7 @@
 # Datatypes (KEYWORD1)
 #######################################
 SerialUI	KEYWORD1
-SUI		KEYWORD1
+SUI	KEYWORD1
 Menu	KEYWORD1
 
 
