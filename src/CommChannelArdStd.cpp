@@ -486,22 +486,6 @@ bool ChannelModeProg::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 	into->clear(); // make sure it's no longer valid
 
 	flushAllWhitespaces();
-	/*
-	bool keepFlushing = true;
-	while (_serPort->available() && keepFlushing) {
-		uint8_t nextVal = _serPort->peek();
-		switch (nextVal) {
-			case '\n':
-			case '\r':
-				_serPort->read();
-				break;
-			default:
-				// something else--kill it.
-				keepFlushing = false;
-				break;
-		}
-	}
-	*/
 
 	// on a bin command, this should stop at the first character...
 	uint8_t lenRead = this->readUntilAny(rawReadBuf, 10, vals, 5);
@@ -567,7 +551,6 @@ bool ChannelModeProg::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 
 
 
-
 size_t ChannelModeProg::printFieldStart(Tracked::State *state) {
 	size_t rVal = PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_STATE_START);
 	rVal += _serPort->print((char)state->type());
@@ -608,7 +591,9 @@ size_t ChannelModeProg::printFieldEnd(Menu::Item::Type::Value tp) {
 }
 
 
-
+size_t ChannelModeProg::printUpdateFieldStart(Menu::Item::Item * itm) {
+	return PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_REQVARUPDATE_START);
+}
 size_t ChannelModeProg::printHelpFieldStart(Menu::Item::Item* itm) {
 
 	Menu::Item::Request::Request * req = NULL;
@@ -808,67 +793,6 @@ size_t ChannelModeProg::printCommandProcessingDone() {
 
 void ChannelModeProg::printInputRequest(Menu::Item::Request::Request * req) {
 	return ;
-#ifdef DEADBEEF
-	size_t rVal = _serPort->print(req->key());
-	rVal += _serPort->print(SUI_STR(" ("));
-	rVal += printRequestCurrentValue(req);
-	rVal += _serPort->print(SUI_STR(") ["));
-	Menu::Item::Request::Type::Value reqType = req->requestType();
-	switch (reqType) {
-		case Menu::Item::Request::Type::Boolean:
-			/* fall - through */
-		case Menu::Item::Request::Type::Toggle:
-			rVal += _serPort->print( SUI_STR("0-1"));
-			break;
-
-		case Menu::Item::Request::Type::OptionsList:
-			/* fall -through */
-		case Menu::Item::Request::Type::BoundedLongInt:
-			rVal += _serPort->print( req->castAsSubType<Menu::Item::Request::BoundedLong>()->minimum());
-			rVal += _serPort->print('-');
-			rVal += _serPort->print( req->castAsSubType<Menu::Item::Request::BoundedLong>()->maximum());
-			break;
-
-		case Menu::Item::Request::Type::Float:
-			/* fall -through */
-
-		case Menu::Item::Request::Type::LongInt:
-
-			/* fall -through */
-		case  Menu::Item::Request::Type::UnsignedLongInt:
-			rVal += _serPort->print(SUI_STR("num"));
-			break;
-
-		case Menu::Item::Request::Type::Character:
-			rVal += _serPort->print(SUI_STR("char"));
-			break;
-
-		case Menu::Item::Request::Type::String:
-			rVal += _serPort->print(SUI_STR("str"));
-			break;
-		default:
-			rVal = _serPort->print('?');
-			break;
-
-
-
-		}
-	_serPort->print(SUI_STR("] ?"));
-
-	if (reqType == Menu::Item::Request::Type::OptionsList) {
-		Menu::Item::Request::OptionsList * optList = req->castAsSubType<Menu::Item::Request::OptionsList>();
-		_serPort->println(' ');
-		for (uint8_t i=0; i< optList->numOptions(); i++) {
-			_serPort->print('\t');
-			_serPort->print((int)(i+1));
-			_serPort->print(':');
-			_serPort->println(optList->optionByIndex(i));
-		}
-	}
-
-#endif
-
-
 }
 
 

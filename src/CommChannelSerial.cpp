@@ -28,7 +28,11 @@ SerialChannel::SerialChannel(Mode::Selection forMode, SourceType * port) : Chann
 }
 
 
+size_t SerialChannel::print(Menu::Item::Request::Request * reqState) {
 
+	size_t rVal = this->printUpdateFieldStart(reqState);
+	return rVal + this->printHelp(reqState);
+}
 size_t SerialChannel::print(Tracked::State * state) {
 	size_t rVal = this->printFieldStart(state);
 

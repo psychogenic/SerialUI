@@ -45,6 +45,8 @@ protected:
     virtual size_t printFieldSeparator(Menu::Item::Type::Value tp);
     virtual size_t printFieldEnd(Menu::Item::Type::Value tp);
 
+
+    virtual size_t printUpdateFieldStart(Menu::Item::Item * itm) { return 0;}
     virtual size_t printHelpFieldStart(Menu::Item::Item * itm);
 
 	virtual size_t printHelpFieldData(Menu::Item::Item * itm) { return 0;}
@@ -89,6 +91,8 @@ protected:
     virtual size_t printFieldSeparator(Menu::Item::Type::Value tp);
     virtual size_t printFieldEnd(Menu::Item::Type::Value tp);
 
+
+    virtual size_t printUpdateFieldStart(Menu::Item::Item * itm);
     virtual size_t printHelpFieldStart(Menu::Item::Item * itm);
     virtual size_t printHelpFieldEnd(Menu::Item::Item * itm);
     virtual size_t printHelpFieldSeparator(Menu::Item::Item * itm, size_t curLen=0);

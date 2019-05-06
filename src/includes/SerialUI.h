@@ -320,6 +320,9 @@ public:
 
 	/* *********** Print interface ************** */
 
+	void updatedLocally(Menu::Item::Request::Request & itm);
+
+
 #ifdef SUI_STATICSTRING_IS_DISTINCT_TYPE
     size_t print(StaticString s);
 #endif

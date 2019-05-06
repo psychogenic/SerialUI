@@ -51,7 +51,7 @@ public:
     using Print::write; // pull in write(str) and write(buf, size) from Print
 
     virtual size_t print(Tracked::State * state);
-
+	virtual size_t print(Menu::Item::Request::Request * reqState);
 	virtual size_t printHeading(Menu::Item::SubMenu * mnu);
 	virtual size_t printHelp(Menu::Item::Item * itm);
 	virtual size_t printListing(Menu::Item::Item * itm);
@@ -72,6 +72,8 @@ protected:
     virtual size_t printFieldSeparator(Menu::Item::Type::Value tp) = 0;
     virtual size_t printFieldEnd(Menu::Item::Type::Value tp) = 0;
 
+
+    virtual size_t printUpdateFieldStart(Menu::Item::Item * itm) = 0;
     virtual size_t printHelpFieldStart(Menu::Item::Item * itm) = 0;
     virtual size_t printHelpFieldEnd(Menu::Item::Item * itm) = 0;
     virtual size_t printHelpFieldSeparator(Menu::Item::Item * itm, size_t curLen=0) = 0;

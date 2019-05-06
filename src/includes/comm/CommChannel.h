@@ -25,6 +25,7 @@ public:
 	using Source::print;
 	using Source::println;
 	virtual size_t print(Tracked::State * state) = 0;
+	virtual size_t print(Menu::Item::Request::Request * reqState) = 0;
 	virtual size_t printHeading(Menu::Item::SubMenu * mnu) = 0;
 	virtual size_t printHelpListStart(Menu::Item::SubMenu * mnu) = 0;
 	virtual size_t printHelpListEnd(Menu::Item::SubMenu * mnu) = 0;

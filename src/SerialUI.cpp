@@ -244,6 +244,9 @@ void SerialUI::returnError(const char * errmsg){
 	comm()->println(errmsg);
 }
 
+void SerialUI::updatedLocally(Menu::Item::Request::Request & itm) {
+	comm()->print(&itm);
+}
 #ifdef SUI_STATICSTRING_IS_DISTINCT_TYPE
 void SerialUI::returnError(StaticString errmsg) {
 
