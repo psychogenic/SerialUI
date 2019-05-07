@@ -364,6 +364,8 @@ void ChannelModeUser::printInputRequest(Menu::Item::Request::Request * req) {
 			_serPort->print(SUI_STR("char"));
 			break;
 
+		case Menu::Item::Request::Type::Passphrase:
+			/* fall-through */
 		case Menu::Item::Request::Type::String:
 			_serPort->print(SUI_STR("str"));
 			break;
@@ -656,6 +658,8 @@ size_t ChannelModeProg::printHelpFieldDataForRequest(Menu::Item::Item * itm) {
 
 	Menu::Item::Request::Type::Value reqType = req->requestType();
 	switch (reqType) {
+		case Menu::Item::Request::Type::Passphrase:
+			/* fall-through */
 		case Menu::Item::Request::Type::String:
 			rVal += this->printHelpFieldSeparator(itm);
 			rVal += _serPort->print( req->castAsSubType<Menu::Item::Request::String>()->maximumLength());

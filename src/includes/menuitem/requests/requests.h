@@ -23,6 +23,7 @@
 #include "ItemReqDateTime.h"
 #include "ItemReqTime.h"
 #include "ItemReqEvent.h"
+#include "ItemReqPassphrase.h"
 
 
 #endif /* SERIALUI_SRC_INCLUDES_MENUITEM_REQUESTS_REQUESTS_H_ */

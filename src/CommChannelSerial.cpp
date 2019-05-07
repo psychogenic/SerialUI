@@ -290,6 +290,7 @@ uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf, uint8_t maxLen, uint8_
 			for (uint8_t i=0; i<numvals; i++) {
 				if (rawReadBuf[idx] == vals[i]) {
 					done = true;
+					// rawReadBuf[idx] = 0;
 					rawReadBuf[idx+1] = 0;
 				}
 			}
@@ -440,6 +441,9 @@ size_t SerialChannel::printRequestCurrentValue(Menu::Item::Request::Request * re
 		} else {
 			rVal = _serPort->print(' ');
 		}
+		break;
+	case Menu::Item::Request::Type::Passphrase:
+		rVal = _serPort->print(SUI_STR("***"));
 		break;
 
 	default:

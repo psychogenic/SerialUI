@@ -107,6 +107,8 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req, char val) {
 
 bool DeSerializer::setValue(Menu::Item::Request::Request* req,
 	const char* val) {switch (req->requestType()) {
+	case Menu::Item::Request::Type::Passphrase:
+		/* fall-through */
 	case Menu::Item::Request::Type::String:
 		SERIALUI_DEBUG_OUTLN(F("set str"));
 		req->castAsSubType<Menu::Item::Request::String>()->setValue(val);

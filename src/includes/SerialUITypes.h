@@ -67,6 +67,7 @@ typedef enum TrackedTypeEnum {
 
 	WeeklySchedule = 0x0D, // TODO:FIXME
 
+
 	OUTOFBOUNDS = 0x0E
 } Value;
 
@@ -160,7 +161,11 @@ typedef enum {
 	Time = 0x0B,
 	Event = 0x0C,
 
-	OUTOFBOUNDS = 0x0D
+	WeeklySchedule = 0x0D, // TODO
+
+	Passphrase = 0x0E,
+
+	OUTOFBOUNDS = 0x0F
 
 } Value;
 }

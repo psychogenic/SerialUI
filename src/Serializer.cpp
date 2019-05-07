@@ -168,8 +168,10 @@ bool Serializer::serializeRequest(Menu::Item::Request::Request * req) {
 
 		case Menu::Item::Request::Type::Character:
 			return serialize(req->castAsSubType<Menu::Item::Request::Character>());
+		case Menu::Item::Request::Type::Passphrase:
+			/* fall-through */
 		case Menu::Item::Request::Type::String:
-			return serialize(req->castAsSubType<Menu::Item::Request::String>());
+					return serialize(req->castAsSubType<Menu::Item::Request::String>());
 
 		default:
 			// UNKNOWN TYPE

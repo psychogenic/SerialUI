@@ -49,7 +49,12 @@ String::String(
 
 }
 bool String::getValue(Menu * callingMenu, TopLevelString * v) {
-	return Globals::commSource()->getStringFor(id(), _maxLen, v);
+	if (Globals::commSource()->getStringFor(id(), _maxLen, v))
+	{
+		v->trim();
+		return true;
+	}
+	return false;
 }
 
 
