@@ -4,8 +4,8 @@
  *  Created on: May 25, 2018
  *      Author: Pat Deegan
  *
- *  MenuItem is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  MenuItem is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/menuitem/MenuItem.h"

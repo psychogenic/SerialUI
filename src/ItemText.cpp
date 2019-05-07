@@ -4,8 +4,8 @@
  *  Created on: May 31, 2018
  *      Author: Pat Deegan
  *
- *  ItemText is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  ItemText is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/menuitem/ItemText.h"

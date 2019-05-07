@@ -4,8 +4,8 @@
  *  Created on: May 25, 2018
  *      Author: Pat Deegan
  *
- *  SubMenu is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SubMenu is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/menuitem/SubMenu.h"

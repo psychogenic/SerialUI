@@ -4,8 +4,8 @@
  *  Created on: Jun 2, 2018
  *      Author: Pat Deegan
  *
- *  ItemReqDateTime is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  ItemReqDateTime is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_MENUITEM_REQUESTS_ITEMREQDATETIME_H_

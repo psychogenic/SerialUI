@@ -4,8 +4,8 @@
  *  Created on: Oct 13, 2018
  *      Author: Pat Deegan
  *
- *  SUIPlatNRF52Arduino is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SUIPlatNRF52Arduino is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 

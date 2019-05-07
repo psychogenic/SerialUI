@@ -4,8 +4,8 @@
  *  Created on: Sep 27, 2018
  *      Author: Pat Deegan
  *
- *  ItemTrackedView is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  ItemTrackedView is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/menuitem/ItemTrackedView.h"

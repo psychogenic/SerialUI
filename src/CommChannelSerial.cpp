@@ -5,8 +5,8 @@
  *  Created on: Sep 22, 2018
  *      Author: Pat Deegan
  *
- *  SerialChannel is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SerialChannel is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 

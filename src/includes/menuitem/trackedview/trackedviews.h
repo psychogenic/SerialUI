@@ -4,8 +4,8 @@
  *  Created on: Sep 27, 2018
  *      Author: Pat Deegan
  *
- *  trackedviews is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  trackedviews is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_MENUITEM_TRACKEDVIEW_TRACKEDVIEWS_H_

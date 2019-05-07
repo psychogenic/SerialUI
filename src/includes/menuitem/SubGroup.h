@@ -4,8 +4,8 @@
  *  Created on: Oct 1, 2018
  *      Author: Pat Deegan
  *
- *  SubGroup is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SubGroup is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_MENUITEM_SUBGROUP_H_

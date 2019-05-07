@@ -4,8 +4,8 @@
  *  Created on: May 28, 2018
  *      Author: Pat Deegan
  *
- *  SerialUIStrings is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SerialUIStrings is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_SERIALUISTRINGS_H_

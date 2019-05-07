@@ -4,8 +4,8 @@
  *  Created on: May 25, 2018
  *      Author: Pat Deegan
  *
- *  ItemReqOptions is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  ItemReqOptions is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUIV3_SRC_INCLUDES_MENUITEM_REQUESTS_ITEMREQOPTIONS_H_

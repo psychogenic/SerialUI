@@ -4,8 +4,8 @@
  *  Created on: Apr 27, 2019
  *      Author: Pat Deegan
  *
- *  SUIPlatArduino is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SUIPlatArduino is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_PLATFORM_SUIPLATLINUX_H_

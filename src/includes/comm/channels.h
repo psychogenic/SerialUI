@@ -4,8 +4,8 @@
  *  Created on: May 27, 2018
  *      Author: Pat Deegan
  *
- *  channels is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  channels is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_COMM_CHANNELS_H_

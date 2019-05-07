@@ -4,8 +4,8 @@
  *  Created on: May 25, 2018
  *      Author: Pat Deegan
  *
- *  ItemReqString is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  ItemReqString is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 #include "includes/menuitem/requests/ItemReqString.h"
 #include "includes/SUIGlobals.h"

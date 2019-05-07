@@ -4,8 +4,8 @@
  *  Created on: Apr 27, 2019
  *      Author: Pat Deegan
  *
- *  SUILinuxSupport is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SUILinuxSupport is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/SerialUIPlatform.h"

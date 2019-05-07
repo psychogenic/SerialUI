@@ -4,8 +4,8 @@
  *  Created on: May 26, 2018
  *      Author: Pat Deegan
  *
- *  CommChannelArdStd is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  CommChannelArdStd is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_COMM_COMMCHANNELARDSTD_H_

@@ -4,8 +4,8 @@
  *  Created on: May 28, 2018
  *      Author: Pat Deegan
  *
- *  CommRequest is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  CommRequest is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/comm/CommRequest.h"

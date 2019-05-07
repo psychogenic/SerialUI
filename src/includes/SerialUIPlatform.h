@@ -4,8 +4,8 @@
  *  Created on: May 25, 2018
  *      Author: Pat Deegan
  *
- *  SerialUIPlatform is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  SerialUIPlatform is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #ifndef SERIALUIV3_SRC_INCLUDES_SERIALUIPLATFORM_H_

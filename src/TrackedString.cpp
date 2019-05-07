@@ -4,8 +4,8 @@
  *  Created on: May 26, 2018
  *      Author: Pat Deegan
  *
- *  TrackedString is part of the XYZPROJECT project.
- *  Copyright (C) 2018 Pat Deegan, psychogenic.com
+ *  TrackedString is part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, psychogenic.com
  */
 
 #include "includes/tracked/TrackedString.h"
