@@ -22,6 +22,7 @@ UnsignedLong::UnsignedLong(unsigned long int initVal, StaticString key,
 		COUNTABLEREQCLASS_PARENT(Type::UnsignedLongInt, unsigned long int, UnsignedLong)(initVal, key, help,
 				vchng, validcb) {
 
+
 }
 
 

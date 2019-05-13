@@ -60,13 +60,13 @@ bool DeSerializerJson::deserializeObj(JsonObject obj) {
 		SERIALUI_DEBUG_OUTLN(F("has val! "));
 		// this is something we actually have a setting for...
 		// get it, set it.
-		SerialUI::Menu::Item::ID itmId = obj[JSONSERIALIZER_KEY_ID].as<
-				SerialUI::Menu::Item::ID>();
+		Menu::Item::ID itmId = obj[JSONSERIALIZER_KEY_ID].as<
+				Menu::Item::ID>();
 		if (!itmId) {
 			SERIALUI_DEBUG_OUTLN(F("no id"));
 			return true;
 		}
-		SerialUI::Menu::Item::Request::Request * req =
+		Menu::Item::Request::Request * req =
 				Globals::menuStructure()->getRequestById(itmId);
 		if (!req) {
 			SERIALUI_DEBUG_OUTLN(F("no such req"));

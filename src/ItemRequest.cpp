@@ -10,6 +10,9 @@
 
 #include "includes/menuitem/ItemRequest.h"
 #include "includes/SUIGlobals.h"
+#include "includes/SerialUIPlatform.h"
+
+
 namespace SerialUI {
 namespace Menu {
 namespace Item {
@@ -38,6 +41,17 @@ void Request::valueWasModified() {
 	if (_valChangedCb) {
 		_valChangedCb();
 	}
+
+
+#ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
+	Python::ExternalModule * pymod = Globals::pythonModule();
+	if (pymod) {
+		pymod->trigger(this);
+	}
+#endif /* SERIALUI_PYTHONMODULES_SUPPORT_ENABLE */
+
+
+
 
 }
 

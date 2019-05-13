@@ -55,6 +55,8 @@ ChannelModeUser::ChannelModeUser(Mode::Selection forMode, SourceType * port) : S
 
 
 
+#define CHANNEL_READBUF_MINSIZE_PADDING		5
+
 bool ChannelModeUser::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 
 	uint8_t maxLen = SUI_BUILTIN_REQUESTS_MAXSIZE;
@@ -101,15 +103,15 @@ bool ChannelModeUser::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 		}
 
 
-		rawReadBuf = new char[maxLen + 1];
+		rawReadBuf = new char[maxLen + (CHANNEL_READBUF_MINSIZE_PADDING + 1)];
 		if (!rawReadBuf) {
 			// problem!
 			_serPort->println(F("OUTTA MEM!"));
 			return false;
 		}
 
-		memset(rawReadBuf, 0, maxLen + 1);
-		lenRead = this->readUntilEOF(rawReadBuf, maxLen);
+		memset(rawReadBuf, 0, maxLen + (CHANNEL_READBUF_MINSIZE_PADDING + 1));
+		lenRead = this->readUntilEOF(rawReadBuf, maxLen + CHANNEL_READBUF_MINSIZE_PADDING);
 
 		if (lenRead) {
 
@@ -169,11 +171,11 @@ bool ChannelModeUser::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 	// no go.  If read buf has been alloc'd it means we've handled the input side already.
 	// if not, we need to read in some bytes
 	if (! rawReadBuf ) {
-		rawReadBuf = new char[maxLen + 1];
+		rawReadBuf = new char[maxLen + (CHANNEL_READBUF_MINSIZE_PADDING+1)];
 		if (rawReadBuf ) {
 
-			memset(rawReadBuf, 0, maxLen + 1);
-			lenRead = this->readUntilEOF(rawReadBuf, maxLen);
+			memset(rawReadBuf, 0, maxLen + (CHANNEL_READBUF_MINSIZE_PADDING+1));
+			lenRead = this->readUntilEOF(rawReadBuf, maxLen + CHANNEL_READBUF_MINSIZE_PADDING);
 			// lenRead = _serPort->readBytesUntil('\n', rawReadBuf, maxLen);
 		}
 	}
@@ -356,6 +358,9 @@ void ChannelModeUser::printInputRequest(Menu::Item::Request::Request * req) {
 		case Menu::Item::Request::Type::LongInt:
 
 			/* fall -through */
+		case Menu::Item::Request::Type::Color:
+
+			/* fall -through */
 		case  Menu::Item::Request::Type::UnsignedLongInt:
 			_serPort->print(SUI_STR("num"));
 			break;
@@ -475,6 +480,8 @@ bool ChannelModeProg::parseBinCommandReq(Request * into) {
 
 }
 
+#define CHANNELPROG_RAWINPUTBUFSIZE		25
+
 bool ChannelModeProg::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 	uint8_t vals[] = {
 			SERIAL_UI_PROGCHANREQUEST_HEADER_COMMAND,
@@ -483,16 +490,20 @@ bool ChannelModeProg::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 			'\r',
 			'\n'
 	};
-	uint8_t rawReadBuf[10];
+
+	SERIALUI_DEBUG_OUTLN(F("(PGM) Get next request"));
+
+	uint8_t rawReadBuf[CHANNELPROG_RAWINPUTBUFSIZE];
 
 	into->clear(); // make sure it's no longer valid
 
 	flushAllWhitespaces();
 
 	// on a bin command, this should stop at the first character...
-	uint8_t lenRead = this->readUntilAny(rawReadBuf, 10, vals, 5);
+	uint8_t lenRead = this->readUntilAny(rawReadBuf, CHANNELPROG_RAWINPUTBUFSIZE, vals, 5);
 
 	if (! lenRead) {
+		SERIALUI_DEBUG_OUTLN(F("Nothing read in--no input"));
 		into->requestId = SERIAL_UI_REQUEST_NOINPUT;
 		return false;
 	}
@@ -500,8 +511,8 @@ bool ChannelModeProg::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 #ifdef SERIALUI_ENABLE_DEBUG_OUTPUT
 	SERIALUI_DEBUG_OUT(F("Got a buf in: "));
 	for (uint8_t i=0; i<lenRead; i++) {
-		_serPort->print((int)rawReadBuf[i]);
-		_serPort->print(' ');
+		SERIALUI_DEBUG_OUT((int)rawReadBuf[i]);
+		SERIALUI_DEBUG_OUT(' ');
 	}
 #endif
 

@@ -24,6 +24,7 @@
 #include "ItemReqTime.h"
 #include "ItemReqEvent.h"
 #include "ItemReqPassphrase.h"
+#include "ItemReqColor.h"
 
 
 #endif /* SERIALUI_SRC_INCLUDES_MENUITEM_REQUESTS_REQUESTS_H_ */

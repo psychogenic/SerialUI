@@ -27,6 +27,7 @@ public:
 	SerialChannel(Mode::Selection forMode, SourceType * serPort=&(SUI_PLATFORM_SOURCE_DEFAULT));
 
 
+	virtual void poll();
 	virtual bool getBoolFor(Menu::Item::ID mid, bool * into);
 	virtual bool getCharFor(Menu::Item::ID mid, char * into);
 	virtual bool getLongIntFor(Menu::Item::ID mid, long int * into);

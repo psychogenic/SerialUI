@@ -47,4 +47,8 @@ bool staticStringMatch(StaticString aKey,
 #define SERIALUI_DEBUG_OUTLN(...)
 #endif
 
+#ifndef F
+#define F(...)		__VA_ARGS__
+#endif
+
 #endif /* SERIALUIV3_SRC_INCLUDES_SERIALUIPLATFORM_H_ */

@@ -31,6 +31,15 @@ void Command::call(Menu * callingMenu) {
 	if (_cb) {
 		_cb();
 	}
+
+
+#ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
+	Python::ExternalModule * pymod = Globals::pythonModule();
+	if (pymod) {
+		pymod->trigger(this);
+	}
+#endif /* SERIALUI_PYTHONMODULES_SUPPORT_ENABLE */
+
 	SerialUI::Globals::state()->setIdle();
 }
 

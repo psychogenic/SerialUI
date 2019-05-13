@@ -165,7 +165,9 @@ typedef enum {
 
 	Passphrase = 0x0E,
 
-	OUTOFBOUNDS = 0x0F
+	Color = 0x0F,
+
+	OUTOFBOUNDS = 0x10
 
 } Value;
 }

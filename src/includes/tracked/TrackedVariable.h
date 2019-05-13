@@ -37,6 +37,19 @@ public:
 	inline ID parentId() const { return 0;}
 	inline StaticString name() const { return _name;}
 	inline void setName(StaticString nm) { _name = nm;}
+
+
+
+
+
+	template<class TYPE>
+	TYPE * castAsSubType() {
+		return (TYPE*)(this);
+	}
+
+
+
+
 protected:
 	static ID id_counter;
 	inline void markAsChanged() { _hasChanged = true;}

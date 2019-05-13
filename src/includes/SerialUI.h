@@ -33,7 +33,8 @@ typedef union GeneralStateFlagsU {
 		bool echo_commands :1;
 		bool menu_manual_override :1;
 		bool user_just_arrived: 1;
-		uint8_t reserved :2;
+		bool always_heartbeat: 1;
+		uint8_t reserved :1;
 	};
 	uint8_t flags;
 	GeneralStateFlagsU(uint8_t v) :
@@ -71,7 +72,7 @@ public:
 	} HeartBeatDetails;
 
 	SerialUI(uint8_t num_top_level_menuitems_hint = 0,
-			Comm::SourceType * commsrc = &(SUI_PLATFORM_SOURCE_DEFAULT));
+			Comm::SourceType * commsrc = &(SUI_PLATFORM_SOURCE_DEFAULT)) ;
 
 	virtual ~SerialUI();
 

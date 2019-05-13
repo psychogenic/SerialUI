@@ -84,6 +84,7 @@ SubMenu * SubMenu::handleRequest() {
 		nextReq.trigger(this);
 		Globals::state()->clearCurrentRequestContext();
 		Globals::commChannel()->printCommandProcessingDone();
+		Globals::commSource()->poll();
 		return Globals::state()->currentMenu();
 	}
 
@@ -208,6 +209,7 @@ uint8_t SubMenu::refreshTracking(bool force) {
 
 		if (force || aState->hasChanged()) {
 			Globals::commChannel()->print(aState);
+			aState->changeRegistered(); // TODO:FIXME -- will this cause issues with sync of graphs?
 			numReturned++;
 		}
 	}

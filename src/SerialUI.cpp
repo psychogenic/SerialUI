@@ -13,7 +13,8 @@
 namespace SerialUI {
 
 
-SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,  Comm::SourceType * commsrc) :
+SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
+				Comm::SourceType * commsrc) :
 				_userLastInteractionMs(0),
 				_commsrc(commsrc),
 				_userPresenceTimeoutMs(25000),
@@ -85,6 +86,7 @@ void SerialUI::goToTopLevelMenu(){
 bool SerialUI::checkForUser(uint16_t timeout_ms){
 	TimeValue tmOut = (timeout_ms > 0) ? (SUI_PLATFORM_TIMENOW_MS() + timeout_ms) : 0;
 	do {
+		Globals::commSource()->poll();
 		if (Globals::commSource()->available()) {
 			// Serial.print('.');
 			// this->println(Globals::commSource()->available());
@@ -140,6 +142,7 @@ void SerialUI::handleRequests(uint8_t maxRequests){
 
 		timeNow = SUI_PLATFORM_TIMENOW_MS();
 
+		Globals::commSource()->poll();
 
 		if (comm()->available() > 0) {
 

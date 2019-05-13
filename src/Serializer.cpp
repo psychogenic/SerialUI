@@ -154,6 +154,8 @@ bool Serializer::serializeRequest(Menu::Item::Request::Request * req) {
 			return serialize(req->castAsSubType<Menu::Item::Request::Float>());
 		case Menu::Item::Request::Type::LongInt:
 			return serialize(req->castAsSubType<Menu::Item::Request::Long>());
+		case  Menu::Item::Request::Type::Color:
+			/* fall-through */
 		case  Menu::Item::Request::Type::UnsignedLongInt:
 			return serialize(req->castAsSubType<Menu::Item::Request::UnsignedLong>());
 		case Menu::Item::Request::Type::Event:

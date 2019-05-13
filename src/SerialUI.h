@@ -29,6 +29,7 @@
 
 #ifdef SERIALUI_PLATFORM_LINUX
 #include "includes/platform/linux/LinuxStorageFilesystem.h"
+#include "includes/python/ExternalModule.h"
 #endif
 
 #endif /* SERIALUIV3_SRC_SERIALUI_H_ */

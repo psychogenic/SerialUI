@@ -96,6 +96,17 @@ Item::Item * Structure::itemByParentAndIndex(Item::ID parentId, uint8_t idx) {
 
 }
 
+Item::Item * Structure::itemByKey(DynamicString aKey, bool allowPartialMatch) {
+
+	for (uint8_t i = 0; i < numItems(); i++) {
+		Item::Item * itm = itemByIndex(i);
+		if (staticStringMatch(itm->key(), aKey, allowPartialMatch)) {
+				return  itm;
+		}
+	}
+
+	return NULL;
+}
 Item::Item * Structure::itemByParentAndKey(Item::ID parentId,
 		DynamicString aKey, bool allowPartialMatch) {
 

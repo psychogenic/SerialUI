@@ -27,7 +27,9 @@ SerialChannel::SerialChannel(Mode::Selection forMode, SourceType * port) : Chann
 	_serPort->setTimeout(30000);
 }
 
-
+void SerialChannel::poll() {
+	_serPort->poll();
+}
 size_t SerialChannel::print(Menu::Item::Request::Request * reqState) {
 
 	size_t rVal = this->printUpdateFieldStart(reqState);
@@ -283,21 +285,37 @@ uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf, uint8_t maxLen, uint8_
 
 	bool done=false;
 	uint8_t idx=0;
-	uint32_t timeoutTime = millis() + 20000;
+	/*
+	SERIALUI_DEBUG_OUT(F("readUntilAny() of "));
+	for (uint8_t i=0; i<numvals; i++) {
+		SERIALUI_DEBUG_OUT(F("0x"));
+		SERIALUI_DEBUG_OUT(vals[i], HEX);
+		SERIALUI_DEBUG_OUT(' ');
+	}
+	SERIALUI_DEBUG_OUTLN(' ');
+	*/
+
+	uint32_t timeoutTime = millis() + 20000; // TODO:FIXME -- hardcoded timeout
 	while ( (! done) && (millis() < timeoutTime) ) {
+		_serPort->poll();
 		while (_serPort->available() && (idx < maxLen) && ! done ) {
 			rawReadBuf[idx] = _serPort->read();
+			// SERIALUI_DEBUG_OUT(F("readUntilAny: "));
+			// SERIALUI_DEBUG_OUTLN((char)rawReadBuf[idx]);
+
 			for (uint8_t i=0; i<numvals; i++) {
 				if (rawReadBuf[idx] == vals[i]) {
 					done = true;
 					// rawReadBuf[idx] = 0;
 					rawReadBuf[idx+1] = 0;
+					// SERIALUI_DEBUG_OUTLN(F("readUntilAny() FOUND VALUE"));
 				}
 			}
 			idx++;
 		}
 	}
 
+	// SERIALUI_DEBUG_OUTLN(F("readUntilAny() done."));
 	return idx;
 }
 uint8_t SerialChannel::readUntilEOF(char * rawReadBuf, uint8_t maxLen) {
@@ -316,7 +334,7 @@ int SerialChannel::timedPeek() {
 	TimeValue tout = 12000UL;
 #endif
 	do {
-	  c = _serPort->read();
+	  c = _serPort->read(); // TODO:FIXME -- should this be peek???
 	  if (c >= 0) return c;
 	} while(SUI_PLATFORM_TIMENOW_MS() - startMs < tout);
 	return -1;
@@ -414,6 +432,8 @@ size_t SerialChannel::printRequestCurrentValue(Menu::Item::Request::Request * re
 	case Menu::Item::Request::Type::LongInt:
 		rVal = _serPort->print(req->castAsSubType<Menu::Item::Request::Long>()->currentValue());
 		break;
+	case  Menu::Item::Request::Type::Color:
+		/* fall-through */
 	case  Menu::Item::Request::Type::UnsignedLongInt:
 		rVal = _serPort->print(req->castAsSubType<Menu::Item::Request::UnsignedLong>()->currentValue());
 		break;

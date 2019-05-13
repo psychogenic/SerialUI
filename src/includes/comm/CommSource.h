@@ -25,8 +25,8 @@ public:
 	virtual ~Source() {}
 	using SourceBase::print;
 	using SourceBase::println;
-
 	// virtual int available() = 0;
+	virtual void poll() = 0;
 	virtual bool getBoolFor(Menu::Item::ID mid, bool * into) = 0;
 	virtual bool getCharFor(Menu::Item::ID mid, char * into) = 0;
 	virtual bool getLongIntFor(Menu::Item::ID mid, long int * into) = 0;

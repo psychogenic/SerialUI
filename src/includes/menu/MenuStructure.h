@@ -32,6 +32,7 @@ public:
 	Item::Item * itemByParentAndIndex(Item::ID parentId, uint8_t idx);
 	Item::Item * itemByParentAndKey(Item::ID parentId,
 			DynamicString aKey, bool allowPartialMatch=true);
+	Item::Item * itemByKey(DynamicString aKey, bool allowPartialMatch=false);
 	Item::SubMenu * topLevelMenu() { return &(_topLevel);}
 
 	int8_t indexForItemWithParent(Item::ID parentId, Item::ID targetItemId) ;
@@ -82,6 +83,17 @@ public:
 	}
 	inline Item::Command * getCommandById(Item::ID id) {
 		return this->getItemByIdCast<Item::Type::Command, Item::Command>(id);
+	}
+
+	inline Item::SubMenu * getItemContainerById(Item::ID id) {
+		Item::SubMenu * cont = getSubMenuById(id);
+		if (! cont) {
+			cont = getGroupById(id);
+			if (! cont) {
+				cont = getListById(id);
+			}
+		}
+		return cont;
 	}
 
 	inline Item::Request::Request * getRequestById(Item::ID id) {

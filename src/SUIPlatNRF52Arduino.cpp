@@ -13,6 +13,7 @@
 
 #ifdef SERIALUI_PLATFORM_NRF52
 
-BLESerial SUIBLESerialDev;
+// BLESerial SUIBLESerialDev = BLESerial();
+
 #endif
 

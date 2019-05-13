@@ -13,11 +13,8 @@
 
 #include <Arduino.h>
 
-#include <BLEPeripheral.h>
-#include <BLESerial.h>
+#include "nrf52/NRF52BLESerial.h"
 
-
-extern BLESerial SUIBLESerialDev;
 
 #define SERIALUI_CHANNELS_USE_STANDARDSTREAMS
 #define SUI_PLATFORM_SOURCE_DEFAULT		SUIBLESerialDev
@@ -37,7 +34,6 @@ typedef const char * DynamicString;
 #define SUI_PLATFORM_STATICSTRING_LENGTH(s)		strlen(reinterpret_cast<const char *>(s))
 
 
-
 namespace Comm {
 
 typedef Stream SourceBase;
@@ -45,12 +41,19 @@ typedef Print SinkBase;
 #ifdef DESKTOP_COMPILE
 typedef GlobalSerialWrapper SourceType;
 #else
-typedef BLESerial SourceType;
+typedef NRF52BLESerial SourceType;
 #endif
 
 }
 
 }
+
+
+#ifdef SERIALUI_ENABLE_DEBUG_OUTPUT
+#define SERIALUI_DEBUG_OUT(...)		Serial.print( __VA_ARGS__ )
+#define SERIALUI_DEBUG_OUTLN(...)	Serial.println( __VA_ARGS__ )
+#endif
+
 
 
 #endif /* SERIALUI_SRC_INCLUDES_PLATFORM_SUIPLATNRF52ARDUINO_H_ */

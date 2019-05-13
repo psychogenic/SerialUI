@@ -50,4 +50,27 @@ Comm::Source * Globals::commSource() {
 	return Comm::ChannelManager::currentChannel();
 }
 
+
+#ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
+static SerialUI::Python::ExternalModule * curPythonModule = NULL;
+
+Python::ExternalModule * Globals::pythonModule() {
+	return curPythonModule;
+}
+bool Globals::setPythonModule(Python::ExternalModule * mod) {
+	if (! mod) {
+		curPythonModule = NULL;
+		return true;
+	}
+
+	curPythonModule = mod;
+
+	if (! mod->load()) {
+		return false;
+	}
+	return true;
+}
+
+#endif /* SERIALUI_PYTHONMODULES_SUPPORT_ENABLE */
+
 } /* namespace SerialUI */
