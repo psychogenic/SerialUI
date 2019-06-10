@@ -175,6 +175,34 @@ typedef enum {
 
 } /* namespace Item */
 } /* namespace Menu */
+
+namespace Auth {
+namespace Transmission {
+namespace Type {
+
+typedef enum {
+	Plain = 0,
+	MD5 = 1,
+	SHA256 = 2,
+
+	Custom = 0xff
+} Value;
+} /* namespace Type */
+} /* namespace Transmission */
+
+namespace Request {
+namespace Type {
+
+typedef enum {
+	Authenticate = 1,
+	Setup = 2,
+} Value ;
+
+} /* namespace Type */
+} /* namespace Request */
+} /* namespace Auth */
+
+
 } /* namespace SerialUI */
 
 #endif /* SERIALUIV3_SRC_INCLUDES_SERIALUITYPES_H_ */

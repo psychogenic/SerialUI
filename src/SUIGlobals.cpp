@@ -70,7 +70,17 @@ bool Globals::setPythonModule(Python::ExternalModule * mod) {
 	}
 	return true;
 }
-
 #endif /* SERIALUI_PYTHONMODULES_SUPPORT_ENABLE */
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+static Auth::Authenticator * curAuthenticatorObj = NULL;
+
+Auth::Authenticator * Globals::authenticator() {
+	return curAuthenticatorObj;
+}
+void Globals::setAuthenticator(Auth::Authenticator* auth) {
+	curAuthenticatorObj = auth;
+}
+#endif /* SERIALUI_AUTHENTICATOR_ENABLE */
 
 } /* namespace SerialUI */

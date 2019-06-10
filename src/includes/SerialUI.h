@@ -291,6 +291,12 @@ public:
 	void setUserPresenceHeartbeat(HeartbeatFunction hbf);
 	void setUserPresenceHeartbeatPeriod(uint16_t ms);
 	uint16_t userPresenceHeartbeatPeriod();
+	// userHeartbeatIfRequired -- to be used if you want
+	// to keep beating the heartbeat function, at the same
+	// rythm, when no users are present.  just add to main loop()
+	// outside of the serialui stuff.
+	void userHeartbeatIfRequired() { triggerHeartbeat(SUI_PLATFORM_TIMENOW_MS());}
+
 
 
 

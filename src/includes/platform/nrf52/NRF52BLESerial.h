@@ -41,6 +41,7 @@ private:
     RingBuffer<uint8_t> tx_buf;
     void fillRXFromBLESerial();
     uint32_t last_fill_ms;
+    uint32_t last_flush_ms;
 
 
 

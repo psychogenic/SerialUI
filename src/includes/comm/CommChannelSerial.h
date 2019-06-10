@@ -40,8 +40,11 @@ public:
     virtual int peek(void);
     virtual int read(void);
     void flushAllWhitespaces();
-    uint8_t readUntilEOF(char * intoBuf, uint8_t maxLen);
-    uint8_t readUntilAny(uint8_t * intoBuf, uint8_t maxLen, uint8_t * vals, uint8_t numvals);
+    virtual uint8_t readUntilEOF(char * intoBuf,
+    		uint8_t maxLen, bool trim=false);
+    uint8_t readUntilAny(uint8_t * intoBuf,
+    		uint8_t maxLen, uint8_t * vals,
+			uint8_t numvals, bool trim=false);
 
     virtual void flush(void);
     virtual size_t write(uint8_t);
@@ -65,6 +68,9 @@ public:
 
 	virtual size_t printCommandProcessingStart() { return 0;}
 	virtual size_t printCommandProcessingDone() { return 0;}
+
+	virtual bool getBuiltinRequest(char * userString, Request * into);
+
 protected:
     int timedPeek();
 

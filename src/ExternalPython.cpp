@@ -2,7 +2,42 @@
  * ExternalPython.cpp
  *
  *  Created on: May 11, 2019
- *      Author: malcalypse
+ *      Author: Pat Deegan, https://psychogenic.com
+ *
+ * CPython objects and types.
+ *
+ * If we want to represent and export "MyClass"
+ * and have instances of this class created, we
+ *
+ *  1) Define a structure, using one of the
+ *  	SUIPY_DEFINE_*()
+ *  below to create a "MyClassObject".  This structure
+ *  holds info related to specific instances of this
+ *  type.  The SUIPY_DEFINE_* macros are also used
+ *  to generate some standard functions.
+ *
+ *  After creating actually implementing member methods,
+ *  as functions with a specific signature, we create
+ *  an array of PyMethodDef, holding
+ *  pointers to all the instance methods, we can
+ *  define the type itself:
+ *
+ *
+ *  2) Define a Python Type, using
+ *    SUIPY_DEFINE_ITEMPYTHONTYPE() (below)
+ *  to create a "MyClassType"
+ *
+ *  This type points to all the common stuff,
+ *  alloc/dealloc functions, member functions etc.
+ *
+ *
+ *  3) Hold on to our type, and add it to our
+ *  main module
+ *     Py_INCREF(&XYZType);
+ *     PyModule_AddObject(mymodule, "XYZ", (PyObject *) &XYZType);
+ *
+ *  and that's pretty much it.
+ *
  */
 
 
@@ -16,11 +51,26 @@
 #include "structmember.h"
 
 
+
+#include "includes/auth/AuthStoragePython.h"
+#include "includes/auth/Authenticator.h"
+
+#include "includes/auth/AuthValidatorPython.h"
+
 #include <thread>
+#include <sstream>
+#include <string>
 
 namespace SerialUI {
 namespace Python {
 
+/*
+ * ObjectsStore -- we want to keep track of all the
+ * menu-item related objects created on the fly, down there,
+ * so we can trigger callbacks as appropriate from up here.
+ *
+ * The ObjectsStore holds these instances.
+ */
 void ObjectsStore::callTriggeredOnCommands(uint8_t forId) {
 
 	ItemPyObjectSet commandsToTrip = commandsFor(forId);
@@ -32,7 +82,7 @@ void ObjectsStore::callTriggeredOnCommands(uint8_t forId) {
 	for (ItemPyObjectSet::iterator it = commandsToTrip.begin();
 			it != commandsToTrip.end(); it++) {
 
-		PyObject_CallMethod(*it, "triggered", "()");
+		PyObject_CallMethod(*it, "triggered", "()"); // TODO:FIXME am I leaking PyObjects here?
 	}
 	// Py_END_ALLOW_THREADS
 }
@@ -47,7 +97,7 @@ void ObjectsStore::callTriggeredOnInputs(uint8_t forId) {
 	for (ItemPyObjectSet::iterator it = inputsToNotify.begin();
 			it != inputsToNotify.end(); it++) {
 
-		PyObject_CallMethod(*it, "changed", "()");
+		PyObject_CallMethod(*it, "changed", "()"); // TODO:FIXME am I leaking PyObjects here?
 	}
 
 }
@@ -62,7 +112,7 @@ void ObjectsStore::deleteEntryFor(uint8_t forId, PyObject * obj) {
 			}
 		}
 
-		std::cerr << "Store ERASE command " << obj << std::endl;
+		SERIALUI_DEBUG_OUTLN("Store ERASE command " << obj);
 		commands[forId].erase(obj);
 
 	}
@@ -73,13 +123,15 @@ void ObjectsStore::deleteEntryFor(uint8_t forId, PyObject * obj) {
 				// Py_DECREF(obj);
 			}
 		}
-		std::cerr << "Store ERASE input " << obj << std::endl;
+		SERIALUI_DEBUG_OUTLN("Store ERASE input " << obj);
 		// if (! obj->ob_refcnt) {
 		inputs[forId].erase(obj);
 		// }
 	}
 
 }
+
+
 
 void ObjectsStore::add(uint8_t forId, PyObject * obj,
 		ItemPyObjectById & toMap) {
@@ -90,9 +142,9 @@ void ObjectsStore::add(uint8_t forId, PyObject * obj,
 	if (toMap[forId].find(obj) == toMap[forId].end()) {
 		toMap[forId].insert(obj);
 		// Py_INCREF(input);
-		std::cerr << "Store ADD " << obj << std::endl;
+		SERIALUI_DEBUG_OUTLN("Store ADD " << obj );
 	} else {
-		std::cerr << "Store already knows " << obj << std::endl;
+		SERIALUI_DEBUG_OUTLN("Store already knows " << obj);
 	}
 }
 
@@ -106,154 +158,142 @@ ItemPyObjectSet ObjectsStore::setFor(uint8_t forId, ItemPyObjectById & inMap) {
 }
 
 
-
+// gobal python object store
 ObjectsStore SUIPyObjectsStore;
 
 
 
-}
-}
+} /* namespace Python */
+} /* namespace SerialUI */
+
+#define SUIPY_WRAPPER_MAXCALLBACKS		2
+
+#define SUIPYSTRINGIFY(x) #x
+#define SUIPYTOSTRING(x) SUIPYSTRINGIFY(x)
 
 
 
 
 #if 0
-
-class SUIPyObjectsStoreType {
-
-public:
-	SUIPyObjectsStoreType() {}
-
-
-
-	void addInput(uint8_t forId, PyObject * input) {
-		add(forId, input, inputs);
-	}
-
-	void addCommand(uint8_t forId, PyObject * cmd) {
-		add(forId, cmd, commands);
-	}
-
-	ItemPyObjectSet inputsFor(uint8_t forId) {
-		return setFor(forId, inputs);
-	}
-	ItemPyObjectSet commandsFor(uint8_t forId) {
-		return setFor(forId, commands);
-	}
-
-	void callTriggeredOnCommands(uint8_t forId) {
-		ItemPyObjectSet commandsToTrip = commandsFor(forId);
-		if (! commandsToTrip.size()) {
-			return;
-		}
-
-	    // Py_BEGIN_ALLOW_THREADS
-		for (ItemPyObjectSet::iterator it=commandsToTrip.begin();
-				it != commandsToTrip.end();
-				it++)
-		{
-
-			PyObject_CallMethod(*it, "triggered", "()");
-		}
-	    // Py_END_ALLOW_THREADS
-	}
-
-	void callTriggeredOnInputs(uint8_t forId) {
-		ItemPyObjectSet inputsToNotify = inputsFor(forId);
-		if (! inputsToNotify.size()) {
-			return;
-		}
-
-		for (ItemPyObjectSet::iterator it=inputsToNotify.begin();
-				it != inputsToNotify.end();
-				it++)
-		{
-
-			PyObject_CallMethod(*it, "changed", "()");
-		}
-	}
-
-	void deleteEntryFor(uint8_t forId, PyObject * obj) {
-		if (commands.find(forId) != commands.end()) {
-			for (ItemPyObjectSet::iterator it = commands[forId].begin();
-					it != commands[forId].end();
-					it++) {
-				if (*it == obj) {
-					// Py_DECREF(obj);
-				}
-			}
-
-			std::cerr << "Store ERASE command " << obj << std::endl;
-			commands[forId].erase(obj);
-
-		}
-		if (inputs.find(forId) != inputs.end()) {
-			for (ItemPyObjectSet::iterator it = inputs[forId].begin();
-					it != inputs[forId].end();
-					it++) {
-				if (*it == obj) {
-					// Py_DECREF(obj);
-				}
-			}
-			std::cerr << "Store ERASE input " << obj << std::endl;
-			// if (! obj->ob_refcnt) {
-				inputs[forId].erase(obj);
-			// }
-		}
-
-
-	}
-
-private:
-
-	void add(uint8_t forId, PyObject * obj, ItemPyObjectById & toMap) {
-		if (toMap.find(forId) == toMap.end()){
-			toMap[forId] = ItemPyObjectSet();
-		}
-
-		if (toMap[forId].find(obj) == toMap[forId].end()) {
-			toMap[forId].insert(obj);
-			// Py_INCREF(input);
-			std::cerr << "Store ADD " << obj << std::endl;
-		} else {
-			std::cerr << "Store already knows " << obj << std::endl;
-		}
-	}
-
-	ItemPyObjectSet setFor(uint8_t forId, ItemPyObjectById & inMap) {
-		if (inMap.find(forId) == inMap.end()){
-			return ItemPyObjectSet();
-		}
-
-		return inMap[forId];
-	}
-
-	ItemPyObjectById inputs;
-	ItemPyObjectById commands;
+/*
+ * Compilation on the pi is super bitchy...
+ * i.e. "non-trivial designated initializers not supported"
+ * so the secret seems to be to:
+ *  - use .member = value
+ *  - for each single value in PyTypeObject
+ *  - in the order defined, exactly.
+ */
+#define SUIPY_DEFINE_ITEMPYTHONTYPE2(basename, tpname, tpdoc)  \
+PyTypeObject basename##Type = { \
+PyVarObject_HEAD_INIT(NULL, 0) \
+		tp_name:tpname, \
+		tp_basicsize:sizeof(basename##Object), \
+		tp_itemsize:0, \
+		tp_dealloc: (destructor) basename##_dealloc, \
+		tp_flags: Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, \
+		tp_doc: tpdoc, \
+		tp_methods: basename##_methods, \
+		tp_members: basename##_members, \
+		tp_init: (initproc) basename##_init, \
+		tp_new: basename##_new \
 };
-
-static SUIPyObjectsStoreType SUIPyObjectsStore;
-
-
-
 #endif
 
+/* SUIPY_DEFINE_ITEMPYTHONTYPE(XYZ...)
+ * define a custom PyTypeObject (i.e. a type, or class), XYZType
+ *
+ * This declaration has to include aaaalll members,
+ * in the right order, to pass muster on the RPi compiler (ugh)
+ *
+ * Compilation on the pi is super bitchy...
+ * i.e. "non-trivial designated initializers not supported"
+ * so the secret seems to be to:
+ *  - use .member = value
+ *  - for each single value in PyTypeObject
+ *  - in the order defined, exactly.
+ *
+ */
+#define SUIPY_DEFINE_ITEMPYTHONTYPE(basename, tpname, tpdoc)  \
+PyTypeObject basename##Type = { \
+		PyVarObject_HEAD_INIT(NULL, 0) \
+		.tp_name = tpname, \
+		.tp_basicsize = sizeof(basename##Object), \
+		.tp_itemsize = 0, \
+		.tp_dealloc =  (destructor) basename##_dealloc, \
+		.tp_print = 0, \
+		.tp_getattr = 0, \
+		.tp_setattr = 0, \
+		.tp_as_async = 0, \
+		.tp_repr = basename##_SUIRepr, \
+		.tp_as_number = 0, \
+		.tp_as_sequence = 0, \
+		.tp_as_mapping = 0, \
+		.tp_hash = 0, \
+		.tp_call = 0, \
+		.tp_str = 0, \
+		.tp_getattro = 0, \
+		.tp_setattro = 0, \
+		.tp_as_buffer = 0, \
+		.tp_flags =  Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, \
+		.tp_doc =  tpdoc, \
+		.tp_traverse = 0, \
+		.tp_clear = 0, \
+		.tp_richcompare = 0, \
+		.tp_weaklistoffset = 0, \
+		.tp_iter = 0, \
+		.tp_iternext = 0, \
+		.tp_methods =  basename##_methods, \
+		.tp_members =  basename##_members, \
+		.tp_getset = 0, \
+		.tp_base = 0, \
+		.tp_dict = 0, \
+		.tp_descr_get = 0, \
+		.tp_descr_set = 0, \
+		.tp_dictoffset = 0, \
+		.tp_init =  (initproc) basename##_init, \
+		.tp_alloc = 0, \
+		.tp_new =  (newfunc)basename##_new, \
+		.tp_free = (freefunc)0, \
+		.tp_is_gc = 0, \
+		.tp_bases = 0, \
+		.tp_mro = 0, \
+		.tp_cache = 0, \
+		.tp_subclasses = 0, \
+		.tp_weaklist = 0, \
+		.tp_del = 0, \
+		.tp_version_tag = 0, \
+		.tp_finalize = 0 \
+};
 
 
 
 
 
 
-// SUIPY_DEFINE_ITEMWRAPPER(BASENAME, STRUCT MEMBER FOR SUI ITM, TYPE for member)
-
-#define SUIPY_WRAPPER_MAXCALLBACKS		2
 
 
 
-//
-//
 
 
+
+
+/*
+ * SUIPY_DEFINE_BOILERPLATEWRAPPER
+ *
+ * Creates an XYZObject that holds all the data
+ * for a given instance of this new type (see below)
+ *
+ * Called as SUIPY_DEFINE_BOILERPLATEWRAPPER(XYZname, ...)
+ *
+ * And will create a corresponding XYZObject.
+ *
+ * generic pyobject definition for our various menu items.
+ * Assumes whatever we're wrapping has:
+ *  - id (u8)
+ *  - key (string)
+ *  - help (string)
+ * and provides a basic XYZ_members[] and XYZ_new
+ */
 #define SUIPY_DEFINE_BOILERPLATEWRAPPER(basename, baseType, typeEnum, itmAccessor, itmType) \
 typedef struct { \
 	PyObject_HEAD \
@@ -274,6 +314,7 @@ static PyMemberDef basename##_members[] = { \
 }; \
 static PyObject * basename##_new(PyTypeObject *type,  \
 	PyObject *args, PyObject *kwds) { \
+	SERIALUI_DEBUG_OUTLN("ALLOC PYobj "); \
 	basename##Object *self; \
 	self = (basename##Object *) type->tp_alloc(type, 0); \
 	if (self != NULL) { \
@@ -299,11 +340,17 @@ static PyObject * basename##_new(PyTypeObject *type,  \
 
 
 
+/*
+ * SUIPY_DEFINE_ITEMWRAPPER
+ * Extension to SUIPY_DEFINE_BOILERPLATEWRAPPER
+ * Provides a XYZ_dealloc, with cleanup
+ * for items in the SUIPyObjectsStore when PyObjects are destroyed.
+ */
 #define SUIPY_DEFINE_ITEMWRAPPER(basename, itmAccessor, itmType) \
 		SUIPY_DEFINE_BOILERPLATEWRAPPER(basename, SerialUI::Menu::Item::Item, \
 				SerialUI::Menu::Item::Type::Value, itmAccessor, itmType) \
 		static void basename##_dealloc(basename##Object *self) { \
-					std::cerr << "DESTROYING PYobj " << (int)self->id << std::endl; \
+					SERIALUI_DEBUG_OUTLN("DESTROYING PYobj (item) " << (int)self->id); \
 					Py_XDECREF(self->key); \
 					Py_XDECREF(self->help); \
 					for (uint8_t i=0; i<SUIPY_WRAPPER_MAXCALLBACKS; i++) { \
@@ -314,18 +361,85 @@ static PyObject * basename##_new(PyTypeObject *type,  \
 					uint8_t id = self->id; \
 					Py_TYPE(self)->tp_free((PyObject *) self); \
 					SerialUI::Python::SUIPyObjectsStore.deleteEntryFor(id, (PyObject*)self); \
-				} \
+				}
+
+/* SUIPY_DEFINE_INPUTWRAPPER
+ * Extension to SUIPY_DEFINE_ITEMWRAPPER to add a cleaner
+ * repr() method specific to inputs.
+ *
+ */
+#define SUIPY_DEFINE_INPUTWRAPPER(basename, itmAccessor, itmType) \
+		SUIPY_DEFINE_ITEMWRAPPER(basename, itmAccessor, itmType) \
+static PyObject* basename##_SUIRepr(PyObject*o) { \
+	basename##Object * myo = (basename##Object *)o; \
+	std::ostringstream s; \
+	/* s << "<SerialUI.Input " << SUIPYTOSTRING(basename) << " id=" << (int)myo->id; */ \
+	s << "<SerialUI.Input id=" << (int)myo->id; \
+	char * key_str = PyUnicode_AsUTF8(myo->key); \
+	if (key_str) { \
+		s << " key='" << key_str <<"'"; \
+	}\
+	s << ">"; \
+	return PyUnicode_FromString(s.str().c_str()); \
+}
+
+
+/* SUIPY_DEFINE_COMMANDWRAPPER
+ *
+ * Extension to SUIPY_DEFINE_ITEMWRAPPER to add a cleaner
+ * repr() method specific to commands.
+ *
+ */
+#define SUIPY_DEFINE_COMMANDWRAPPER(basename, itmAccessor, itmType) \
+		SUIPY_DEFINE_ITEMWRAPPER(basename, itmAccessor, itmType) \
+static PyObject* basename##_SUIRepr(PyObject*o) { \
+	basename##Object * myo = (basename##Object *)o; \
+	std::ostringstream s; \
+	/* s << "<SerialUI.Command " << SUIPYTOSTRING(basename) << ' ' << (int)myo->id; */ \
+	s << "<SerialUI.Command id=" << (int)myo->id; \
+	char * key_str = PyUnicode_AsUTF8(myo->key); \
+	if (key_str) { \
+		s << " '" << key_str <<"'"; \
+	}\
+	s << ">"; \
+	return PyUnicode_FromString(s.str().c_str()); \
+}
+
+
+/* SUIPY_DEFINE_ITEMCONTAINERWRAPPER
+ *
+ * Extension to SUIPY_DEFINE_ITEMWRAPPER to add a cleaner
+ * repr() method specific to menus/groups.
+ *
+ */
+#define SUIPY_DEFINE_ITEMCONTAINERWRAPPER(basename, itmAccessor, itmType) \
+		SUIPY_DEFINE_ITEMWRAPPER(basename, itmAccessor, itmType) \
+static PyObject* basename##_SUIRepr(PyObject*o) { \
+	basename##Object * myo = (basename##Object *)o; \
+	std::ostringstream s; \
+	/* s << "<SerialUI.ItemContainer " << SUIPYTOSTRING(basename) << " id=" << (int)myo->id; */ \
+	s << "<SerialUI.ItemContainer id=" << (int)myo->id; \
+	char * key_str = PyUnicode_AsUTF8(myo->key); \
+	if (key_str) { \
+		s << " key='" << key_str <<"'"; \
+	}\
+	s << ">"; \
+	return PyUnicode_FromString(s.str().c_str()); \
+}
 
 
 
 
-
-
+/*
+ * SUIPY_DEFINE_TRACKESTATEWRAPPER
+ * Extension to basic boilerplate (SUIPY_DEFINE_BOILERPLATEWRAPPER)
+ * to add dealloc and repr to tracked states.
+ */
 #define SUIPY_DEFINE_TRACKESTATEWRAPPER(basename, itmAccessor, itmType) \
 		SUIPY_DEFINE_BOILERPLATEWRAPPER(basename, SerialUI::Tracked::State, \
 				SerialUI::Tracked::Type::Value, itmAccessor, itmType) \
 		static void basename##_dealloc(basename##Object *self) { \
-					std::cerr << "DESTROYING PYobj " << (int)self->id << std::endl; \
+					SERIALUI_DEBUG_OUTLN("DESTROYING PYobj (tracker) " << (int)self->id); \
 					Py_XDECREF(self->key); \
 					Py_XDECREF(self->help); \
 					for (uint8_t i=0; i<SUIPY_WRAPPER_MAXCALLBACKS; i++) { \
@@ -335,84 +449,31 @@ static PyObject * basename##_new(PyTypeObject *type,  \
 					}\
 					Py_TYPE(self)->tp_free((PyObject *) self); \
 				} \
+		static PyObject* basename##_SUIRepr(PyObject*o) { \
+					basename##Object * myo = (basename##Object *)o; \
+					std::ostringstream s; \
+					/* s << "<SerialUI.TrackedState " << SUIPYTOSTRING(basename) << " id=" << (int)myo->id; */ \
+					s << "<SerialUI.TrackedState id=" << (int)myo->id; \
+					char * key_str = PyUnicode_AsUTF8(myo->key); \
+					if (key_str) { \
+						s << " key='" << key_str <<"'"; \
+					}\
+					s << ">"; \
+					return PyUnicode_FromString(s.str().c_str()); \
+				}
 
 
 
 
-#define SUIPY_DEFINE_ITEMWRAPPERXXX(basename, itmAccessor, itmType) \
-typedef struct { \
-	PyObject_HEAD \
-	PyObject *key; \
-	PyObject *help; \
-	uint8_t id; \
-	SerialUI::Menu::Item::Item * sui_item; \
-	SerialUI::Menu::Item::Type::Value type; \
-	itmType * itmAccessor; \
-	PyObject * callbacks[SUIPY_WRAPPER_MAXCALLBACKS]; \
-} basename##Object; \
-static PyMemberDef basename##_members[] = { \
-		{ "key", T_OBJECT_EX, offsetof(basename##Object, key), 0, "key/name" }, \
-		{ "help", T_OBJECT_EX, offsetof(basename##Object, help), 0, "help string" }, \
-		{ "id", T_INT, offsetof(basename##Object, id), 0, "item id" }, \
-		{ "type", T_INT, offsetof(basename##Object, type), 0, "type id" }, \
-		{ NULL } \
-}; \
- static void basename##_dealloc(basename##Object *self) { \
-	std::cerr << "DESTROYING PYobj " << (int)self->id << std::endl; \
-	Py_XDECREF(self->key); \
-	Py_XDECREF(self->help); \
-	for (uint8_t i=0; i<SUIPY_WRAPPER_MAXCALLBACKS; i++) { \
-		if (self->callbacks[i]) { \
-			Py_XDECREF(self->callbacks[i]);\
-		}\
-	}\
-	uint8_t id = self->id; \
-	Py_TYPE(self)->tp_free((PyObject *) self); \
-	SerialUI::Python::SUIPyObjectsStore.deleteEntryFor(id, (PyObject*)self); \
-} \
-static PyObject * basename##_new(PyTypeObject *type,  \
-	PyObject *args, PyObject *kwds) { \
-	basename##Object *self; \
-	self = (basename##Object *) type->tp_alloc(type, 0); \
-	if (self != NULL) { \
-		self->key = PyUnicode_FromString(""); \
-		if (self->key == NULL) { \
-			Py_DECREF(self); \
-			return NULL; \
-		} \
-		self->help = PyUnicode_FromString(""); \
-		if (self->help == NULL) { \
-			Py_DECREF(self); \
-			return NULL; \
-		} \
-		for (uint8_t i=0; i<SUIPY_WRAPPER_MAXCALLBACKS; i++) { \
-			self->callbacks[i] = NULL; \
-		}\
-		self->id = 0; \
-		self->sui_item = NULL; \
-		self->itmAccessor = NULL; \
-	} \
-	return (PyObject *) self; \
-}
-
-#define SUIPY_DEFINE_ITEMPYTHONTYPE(basename, tpname, tpdoc)  \
-PyTypeObject basename##Type = { \
-PyVarObject_HEAD_INIT(NULL, 0) \
-		.tp_name = tpname, \
-		.tp_basicsize = sizeof(basename##Object), \
-		.tp_itemsize = 0, \
-		.tp_dealloc = (destructor) basename##_dealloc, \
-		.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, \
-		.tp_doc = tpdoc, \
-		.tp_methods = basename##_methods, \
-		.tp_members = basename##_members, \
-		.tp_init = (initproc) basename##_init, \
-		.tp_new = basename##_new, \
-};
 
 
+/*
+ * SUIInputWrapperObject
+ * SerialUI input request object
+ * wrapper, c-side structure and members.
+ */
 
-SUIPY_DEFINE_ITEMWRAPPER(SUIInputWrapper, request,
+SUIPY_DEFINE_INPUTWRAPPER(SUIInputWrapper, request,
 		SerialUI::Menu::Item::Request::Request
 		);
 
@@ -421,7 +482,7 @@ SUIPY_DEFINE_ITEMWRAPPER(SUIInputWrapper, request,
  * SerialUI container (submenu/group/etc)
  * object wrapper, c-side structure
  */
-SUIPY_DEFINE_ITEMWRAPPER(SUIItemContainer, container,
+SUIPY_DEFINE_ITEMCONTAINERWRAPPER(SUIItemContainer, container,
 		SerialUI::Menu::Item::SubMenu
 		);
 
@@ -429,29 +490,36 @@ SUIPY_DEFINE_ITEMWRAPPER(SUIItemContainer, container,
  * SerialUI container (submenu/group/etc)
  * object wrapper, c-side structure
  */
-SUIPY_DEFINE_ITEMWRAPPER(SUICommandWrapper, command,
+SUIPY_DEFINE_COMMANDWRAPPER(SUICommandWrapper, command,
 		SerialUI::Menu::Item::Command
 		);
 
 
 
-
+/*
+ * SUITrackedStateObject
+ * SerialUI tracked states object wrapper.
+ */
 
 SUIPY_DEFINE_TRACKESTATEWRAPPER(SUITrackedState, state_obj, SerialUI::Tracked::State);
 
 
 
 extern PyTypeObject SUIItemContainerType; // forward decl
-
 /*
  * **** Module-level functions ****
  */
 
+
+/*
+ * pysui_doprint does the dirty work of "printing"
+ * to our remote client
+ */
 static long pysui_doprint(PyObject* args, PyObject *printme) {
 	long retVal = 0;
 
 
-	// SerialUI::Globals::commChannel()->printCommandProcessingStart();
+	// BOOLEAN
 	if (PyBool_Check(printme)) {
 		if (PyObject_IsTrue(printme)) {
 			SerialUI::Globals::commChannel()->print((int)1);
@@ -461,6 +529,7 @@ static long pysui_doprint(PyObject* args, PyObject *printme) {
 		return 1;
 	}
 
+	// NUMERIC VALUES
 	if (PyNumber_Check(printme)) {
 		if (PyFloat_Check(printme)) {
 			return SerialUI::Globals::commChannel()->print(PyFloat_AsDouble(printme));
@@ -472,34 +541,34 @@ static long pysui_doprint(PyObject* args, PyObject *printme) {
 		return 0;
 	}
 
+	// STRINGS
 	if (PyUnicode_Check(printme)) {
 
 		// UGH dunno how to deal with this crap
 		// TODO:FIXME PyUnicode_AsASCIIString(printme);
 		char * strtoprint = NULL;
 		if (!PyArg_ParseTuple(args, "s", &strtoprint)) {
-			std::cerr << "AAAAGH could not parse str?";
+			SERIALUI_DEBUG_OUTLN("AAAAGH could not parse str?");
 			return 0;
 		}
 		return SerialUI::Globals::commChannel()->print(strtoprint);
 	}
 
+	// what else is there in the world?
 
-
-	std::cerr << "Have no idea how to print this... " << std::endl;
+	SERIALUI_DEBUG_OUTLN("Have no idea how to print this... ");
 
 	return 0;
 }
 
 
-
+/*
+ * pysui_print
+ * actual SerialUI.print(...) call.
+ * Will send off booleans (as int), numbers and strings...
+ * pretty much it for now.
+ */
 static PyObject* pysui_print(PyObject* self, PyObject* args) {
-	/*char * strtoprint = NULL;
-	if (!PyArg_ParseTuple(args, "s", &strtoprint)) {
-		std::cerr << "AAAAGH could not parse str?";
-		return PyLong_FromLong(0);
-	}
-	*/
 
 	PyObject *printme;
 	PyObject *param = NULL;
@@ -513,64 +582,18 @@ static PyObject* pysui_print(PyObject* self, PyObject* args) {
 		return PyLong_FromLong(0);
 
 	}
-	// SerialUI::Globals::commChannel()->printCommandProcessingStart();
 	long retVal = pysui_doprint(args, printme);
-	// SerialUI::Globals::commChannel()->printCommandProcessingDone();
 
 	return PyLong_FromLong(retVal);
-#if 0
-	// SerialUI::Globals::commChannel()->printCommandProcessingStart();
-	if (PyBool_Check(printme)) {
-		if (PyObject_IsTrue(printme)) {
-			SerialUI::Globals::commChannel()->print((int)1);
-		} else {
-			SerialUI::Globals::commChannel()->print((int)0);
-		}
-		return PyLong_FromLong(1);
-	}
-
-	if (PyNumber_Check(printme)) {
-		if (PyFloat_Check(printme)) {
-			return PyLong_FromLong(SerialUI::Globals::commChannel()->print(PyFloat_AsDouble(printme)));
-		}
-
-		if (PyLong_Check(printme)) {
-			return PyLong_FromLong(SerialUI::Globals::commChannel()->print(PyLong_AsLong(printme)));
-		}
-		return PyLong_FromLong(0);
-	}
-
-	if (PyUnicode_Check(printme)) {
-
-		// UGH dunno how to deal with this crap
-		// TODO:FIXME PyUnicode_AsASCIIString(printme);
-		char * strtoprint = NULL;
-		if (!PyArg_ParseTuple(args, "s", &strtoprint)) {
-			std::cerr << "AAAAGH could not parse str?";
-			return PyLong_FromLong(0);
-		}
-		return PyLong_FromLong(SerialUI::Globals::commChannel()->print(strtoprint));
-	}
-
-
-
-	std::cerr << "Have no idea how to print this... " << std::endl;
-
-	return PyLong_FromLong(0);
-	/*
-	 if(PyArg_UnpackTuple(args, "", 1, 1, &a))
-	 {
-	 std::cout << "HOHOHOHO:" << PyUnicode_AsWideCharString(a, NULL);
-	 }
-	 */
-
-	// return PyLong_FromLong(1);
-
-#endif
 }
 
 
-
+/* pysui_println
+ *
+ * SerialUI.println(...) call.  Using print, above, then
+ * appends a '\n' on success.
+ *
+ */
 static PyObject* pysui_println(PyObject* self, PyObject* args) {
 
 	PyObject* retVal = pysui_print(self, args);
@@ -587,17 +610,20 @@ static PyObject* pysui_println(PyObject* self, PyObject* args) {
 }
 
 
-
+/*
+ * pysui_test
+ * DEADBEEF?  probably should remove
+ */
 static PyObject* pysui_test(PyObject* self, PyObject* args) {
 	PyObject * ho = NULL;
 	if (!PyArg_ParseTuple(args, "O", &ho)) {
-		std::cerr << "AAAAGH could not parse str?";
+		SERIALUI_DEBUG_OUTLN("AAAAGH could not parse str?");
 		return PyLong_FromLong(0);
 	}
 
 	SUIInputWrapperObject * myObj = (SUIInputWrapperObject*)ho;
 
-	std::cout << "GOTS the obj!" << (int)myObj->id << std::endl;
+	SERIALUI_DEBUG_OUTLN("GOTS the obj!" << (int)myObj->id);
 
 	PyObject_CallMethod(ho, "changed", "()");
 	// TODO:FIXME decref the return of above?
@@ -606,6 +632,13 @@ static PyObject* pysui_test(PyObject* self, PyObject* args) {
 }
 
 
+/*
+ * pysui_top
+ *
+ * SerialUI.top() which returns the top level menu--the
+ * container that holds all other items in a SerialUI
+ * interface.
+ */
 static PyObject* pysui_top(PyObject* self, PyObject* args) {
 
 	SerialUI::Menu::Item::SubMenu * topMen = SerialUI::Globals::menuStructure()->topLevelMenu();
@@ -625,16 +658,15 @@ static PyObject* pysui_top(PyObject* self, PyObject* args) {
 SerialUI::Menu::Item::Item * PySUI_getMenuItem(PyObject * key, uint8_t id) {
 
 	if (id) {
-		// std::cerr << "Getting menustruct itm by id " << (int)id << std::endl;
 		return SerialUI::Globals::menuStructure()->itemById(id);
 	}
 	if (!key) {
-		std::cerr << "no id, no key?" << std::endl;
+		SERIALUI_DEBUG_OUTLN("no id, no key?");
 		return NULL;
 	}
 	char * key_str = PyUnicode_AsUTF8(key);
 	if (!key_str) {
-		std::cerr << "can't get key str?" << std::endl;
+		SERIALUI_DEBUG_OUTLN("can't get key str?");
 		return NULL;
 	}
 	// std::cerr << "Getting menustruct itm by key:" << key_str << std::endl;
@@ -648,11 +680,13 @@ SerialUI::Menu::Item::Item * PySUI_getMenuItem(PyObject * key, uint8_t id) {
 static int SUIInputWrapper_init(SUIInputWrapperObject *self, PyObject *args,
 		PyObject *kwds) {
 	static char *kwlist[] = { "key", "id", NULL };
+
 	PyObject *key = NULL, *tmp;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist, &key,
 			&self->id)) {
-		std::cerr << "SUIInputWrapper_init unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("SUIInputWrapper_init unhappy tuple/keyw parse");
+		PyErr_SetString(PyExc_RuntimeError, "pass key and/or id");
 		return -1;
 	}
 
@@ -665,17 +699,21 @@ static int SUIInputWrapper_init(SUIInputWrapperObject *self, PyObject *args,
 
   SerialUI::Menu::Item::Item * itm = PySUI_getMenuItem(self->key, self->id);
   if (! itm) {
-	  std::cerr << "SUIInputWrapper_init could not getMenuItem" << std::endl;
+	  SERIALUI_DEBUG_OUTLN("SUIInputWrapper_init could not getMenuItem");
+		PyErr_SetString(PyExc_RuntimeError, "can't find this menu item");
 	  return -1;
   }
   self->sui_item = itm;
   self->id = itm->id();
   self->type = itm->type();
+  SERIALUI_DEBUG_OUTLN("Init request obj for id " << (int)self->id);
   SerialUI::Python::SUIPyObjectsStore.addInput(self->id, (PyObject*)self);
 
   SerialUI::Menu::Item::Request::Request * req = SerialUI::Globals::menuStructure()->getRequestById(self->id);
   if (! req ) {
-	  std::cerr << "menu item " << (int)self->id << " is not a request??" << std::endl;
+	  SERIALUI_DEBUG_OUTLN("menu item " << (int)self->id << " is not a request??");
+
+	  PyErr_SetString(PyExc_RuntimeError, "item not a request");
 	  return -1;
   }
   self->request = req;
@@ -737,7 +775,7 @@ static PyObject * SUIInputWrapper_setValueBoolean(SUIInputWrapperObject *self, P
 
 	bool ho;
 	if (!PyArg_ParseTuple(args, "b", &ho)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 	self->request->castAsSubType<SerialUI::Menu::Item::Request::Boolean>()->setValue(ho ? true : false);
@@ -750,7 +788,7 @@ static PyObject * SUIInputWrapper_setValueString(SUIInputWrapperObject *self, Py
 
 	char * strtoSet = NULL;
 	if (!PyArg_ParseTuple(args, "s", &strtoSet)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 
@@ -765,7 +803,7 @@ static PyObject * SUIInputWrapper_setValueLong(SUIInputWrapperObject *self, PyOb
 
 	long int val = 0;
 	if (!PyArg_ParseTuple(args, "l", &val)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 
@@ -780,7 +818,7 @@ static PyObject * SUIInputWrapper_setValueLong(SUIInputWrapperObject *self, PyOb
 static PyObject * SUIInputWrapper_setValueUnsignedLong(SUIInputWrapperObject *self, PyObject * args) {
 	unsigned long val = 0;
 	if (!PyArg_ParseTuple(args, "k", &val)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 
@@ -794,7 +832,7 @@ static PyObject * SUIInputWrapper_setValueUnsignedLong(SUIInputWrapperObject *se
 static PyObject * SUIInputWrapper_setValueBoundedLong(SUIInputWrapperObject *self, PyObject * args) {
 	unsigned long val = 0;
 	if (!PyArg_ParseTuple(args, "k", &val)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 
@@ -818,7 +856,7 @@ static PyObject * SUIInputWrapper_setValueFloat(SUIInputWrapperObject *self, PyO
 
 	float val = 0;
 	if (!PyArg_ParseTuple(args, "f", &val)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 
@@ -886,11 +924,11 @@ SUIInputWrapper_setValue(SUIInputWrapperObject *self, PyObject * args) {
 static PyObject *
 SUIInputWrapper_changed(SUIInputWrapperObject *self, PyObject * args) {
 	if (self->callbacks[0]) {
-		std::cerr << "Have callback set, triggering that" << std::endl;
+		SERIALUI_DEBUG_OUTLN("Have callback set, triggering that");
 		return PyObject_CallObject(self->callbacks[0], nullptr);
 	} else {
 
-		std::cerr << "Default changed() triggered" << std::endl;
+		SERIALUI_DEBUG_OUTLN("Default changed() triggered");
 	}
 
 	Py_RETURN_NONE;
@@ -898,7 +936,7 @@ SUIInputWrapper_changed(SUIInputWrapperObject *self, PyObject * args) {
 
 static PyObject *
 SUIInputWrapper_setOnChange(SUIInputWrapperObject *self, PyObject * args) {
-	std::cout << "input setOnChange" << std::endl;
+	SERIALUI_DEBUG_OUTLN("input setOnChange");
 	PyObject * callback;
 	if (PyArg_UnpackTuple(args, "ref", 1, 1, &callback)) {
 
@@ -935,7 +973,7 @@ static PyMethodDef SUIInputWrapper_methods[] = {
 };
 
 
-SUIPY_DEFINE_ITEMPYTHONTYPE(SUIInputWrapper, "SerialUI.Input", "SerialUI input object");
+SUIPY_DEFINE_ITEMPYTHONTYPE(SUIInputWrapper,  "SerialUI.Input", "SerialUI input object");
 
 
 
@@ -951,8 +989,13 @@ static int SUICommandWrapper_init(SUICommandWrapperObject *self, PyObject *args,
 
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist, &key,
-			&self->id))
+			&self->id)) {
+
+
+		PyErr_SetString(PyExc_RuntimeError, "pass key and/or id");
 		return -1;
+	}
+
 
 	if (key) {
 		tmp = self->key;
@@ -963,6 +1006,8 @@ static int SUICommandWrapper_init(SUICommandWrapperObject *self, PyObject *args,
 
   SerialUI::Menu::Item::Item * itm = PySUI_getMenuItem(self->key, self->id);
   if (! itm) {
+
+		PyErr_SetString(PyExc_RuntimeError, "no such item");
 	  return -1;
   }
 
@@ -970,12 +1015,15 @@ static int SUICommandWrapper_init(SUICommandWrapperObject *self, PyObject *args,
   self->id = itm->id();
   self->type = itm->type();
 
+  SERIALUI_DEBUG_OUTLN("Init cmd obj for id " << (int)self->id);
   SerialUI::Python::SUIPyObjectsStore.addCommand(self->id, (PyObject*)self);
 
   SerialUI::Menu::Item::Command * cmd
   	  = SerialUI::Globals::menuStructure()->getCommandById(self->id);
 
   if (! cmd ) {
+
+		PyErr_SetString(PyExc_RuntimeError, "no such command");
 	  return -1;
   }
   self->command = cmd;
@@ -985,8 +1033,8 @@ static int SUICommandWrapper_init(SUICommandWrapperObject *self, PyObject *args,
 
 
 static PyObject *
-SUICommandWrapper_setOnTrigger(SUIInputWrapperObject *self, PyObject * args) {
-	std::cout << "command setOnTrigger" << std::endl;
+SUICommandWrapper_setOnTrigger(SUICommandWrapperObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("command setOnTrigger");
 	PyObject * callback;
 	if (PyArg_UnpackTuple(args, "callback", 1, 1, &callback)) {
 
@@ -1005,10 +1053,10 @@ SUICommandWrapper_setOnTrigger(SUIInputWrapperObject *self, PyObject * args) {
 static PyObject *
 SUICommandWrapper_triggered(SUICommandWrapperObject *self, PyObject * args) {
 	if (self->callbacks[0]) {
-		std::cerr << "Calling trigger override" << std::endl;
+		SERIALUI_DEBUG_OUTLN("Calling trigger override");
 		return PyObject_CallObject(self->callbacks[0], nullptr);
 	} else {
-		std::cout << "Default command trigger()" << std::endl;
+		SERIALUI_DEBUG_OUTLN("Default command trigger()");
 	}
 	Py_RETURN_NONE;
 }
@@ -1043,7 +1091,9 @@ static int SUIItemContainer_init(SUIItemContainerObject *self, PyObject *args,
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist, &key,
 			&self->id)) {
-		std::cerr << "SUIItemContainer_init unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("SUIItemContainer_init unhappy tuple/keyw parse");
+
+		PyErr_SetString(PyExc_RuntimeError, "pass key and/or id");
 		return -1;
 	}
 
@@ -1056,19 +1106,26 @@ static int SUIItemContainer_init(SUIItemContainerObject *self, PyObject *args,
 
   SerialUI::Menu::Item::Item * itm = PySUI_getMenuItem(self->key, self->id);
   if (! itm) {
-	  std::cerr << "SUIItemContainer_init can't find itm" << std::endl;
+	  SERIALUI_DEBUG_OUTLN("SUIItemContainer_init can't find itm");
+		PyErr_SetString(PyExc_RuntimeError, "no such item");
 	  return -1;
   }
   self->sui_item = itm;
   self->id = itm->id();
   self->type = itm->type();
 
+
+  SERIALUI_DEBUG_OUTLN("Init itm container obj for id " << (int)self->id);
+
   SerialUI::Menu::Item::SubMenu * submen
   	  // = SerialUI::Globals::menuStructure()->getSubMenuById(self->id);
 	  = SerialUI::Globals::menuStructure()->getItemContainerById(self->id);
 
   if (! submen ) {
-	  std::cerr << "SUIItemContainer_init itm " << (int)self->id << " is not a container" << std::endl;
+	  SERIALUI_DEBUG_OUTLN("SUIItemContainer_init itm " << (int)self->id << " is not a container");
+
+
+		PyErr_SetString(PyExc_RuntimeError, "no such submenu/container");
 	  return -1;
   }
   self->container = submen;
@@ -1173,6 +1230,342 @@ SUIPY_DEFINE_ITEMPYTHONTYPE(SUIItemContainer, "SerialUI.ItemContainer", "SerialU
 
 
 
+#if 0
+typedef struct {
+	PyObject_HEAD
+	SerialUI::Auth::Storage * auth_storage;
+	uint8_t id;
+} SUIAuthStorageObject;
+static PyObject * SUIAuthStorage_new(PyTypeObject *type,
+	PyObject *args, PyObject *kwds) {
+		static uint8_t storage_idx=0;
+		SUIAuthStorageObject *self;
+		self = (SUIAuthStorageObject *) type->tp_alloc(type, 0);
+		if (!self) {
+			return NULL;
+		}
+		self->auth_storage = NULL;
+		self->id = storage_idx++;
+		SERIALUI_DEBUG_OUTLN("Creating authstore " << (int)self->id);
+
+		return (PyObject *) self;
+}
+
+static PyMemberDef SUIAuthStorage_members[] = {
+		{ "id", T_INT, offsetof(SUIAuthStorageObject, id), 0, "internal id" },
+		{ NULL }
+};
+static void SUIAuthStorage_dealloc(SUIAuthStorageObject *self) { \
+					SERIALUI_DEBUG_OUTLN("DESTROYING authstore " << (int)self->id);
+					uint8_t id = self->id;
+					SerialUI::Python::SUIPyObjectsStore.setAuthStorage(NULL);
+					// SerialUI::Python::SUIPyObjectsStore.removeAuthObject((PyObject *) self);
+					Py_TYPE(self)->tp_free((PyObject *) self);
+}
+static int SUIAuthStorage_init(SUIAuthStorageObject *self, PyObject *args,
+		PyObject *kwds) {
+
+	SERIALUI_DEBUG_OUTLN("init authstore " << (int)self->id);
+	if (SerialUI::Python::SUIPyObjectsStore.authStorage()) {
+		// forcing singleton
+		SERIALUI_DEBUG_OUTLN("already have this setup... fail");
+		return -1;
+	}
+
+	self->auth_storage = new SerialUI::Auth::StoragePython();
+	if (! self->auth_storage) {
+		SERIALUI_DEBUG_OUTLN("could not allocate Auth::StoragePython... fail");
+		return -1;
+	}
+
+	SerialUI::Python::SUIPyObjectsStore.setAuthStorage((PyObject*)self);
+
+	SERIALUI_DEBUG_OUTLN("authstore init success");
+	return 0;
+
+}
+static PyObject* SUIAuthStorage_SUIRepr(PyObject*o) { \
+	SUIAuthStorageObject * myo = (SUIAuthStorageObject *)o;
+	std::ostringstream s;
+	s << "<SerialUI.AuthStorage id=" << (int)myo->id;
+	s << ">";
+	return PyUnicode_FromString(s.str().c_str());
+}
+
+/* storage member methods */
+static PyObject * SUIAuthStorage_configured(SUIAuthStorageObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("authstore configured() default -- ret false");
+	Py_RETURN_FALSE;
+}
+static PyObject * SUIAuthStorage_passphrase(SUIAuthStorageObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("authstore passphrase() default -- ret '' ");
+	return PyUnicode_FromString("");
+
+}
+static PyObject * SUIAuthStorage_setPassphrase(SUIAuthStorageObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("authstore setPassphrase() default -- ret false");
+	Py_RETURN_FALSE;
+}
+static PyMethodDef SUIAuthStorage_methods[] = {
+		{ "configured", (PyCFunction) SUIAuthStorage_configured, METH_VARARGS,
+			"Return whether provided level is configured" },
+		{ "passphrase", (PyCFunction) SUIAuthStorage_passphrase, METH_VARARGS,
+					"Return (possibly encoded) passphrase value for given level" },
+		{ "setPassphrase", (PyCFunction) SUIAuthStorage_setPassphrase, METH_VARARGS,
+								"Store given passphrase for access level" },
+		{ NULL } /* Sentinel */
+};
+
+
+SUIPY_DEFINE_ITEMPYTHONTYPE(SUIAuthStorage, "SerialUI.AuthStorage", "SerialUI Authentication Storage");
+
+#endif
+
+/*
+
+basename, basetype, storeGetter, storeSetter
+SUIAuthStorage, SerialUI::Auth::Storage
+SerialUI::Python::SUIPyObjectsStore.authStorage
+SerialUI::Python::SUIPyObjectsStore.setAuthStorage
+*/
+#define SUI_DEFINE_AUTHOBJ(basename, basetype, storeGetter, storeSetter) \
+typedef struct { \
+	PyObject_HEAD \
+	basetype * auth_obj; \
+	uint8_t id; \
+} basename##Object; \
+static PyObject * basename##_new(PyTypeObject *type, \
+	PyObject *args, PyObject *kwds) { \
+		static uint8_t obj_idx=0; \
+		basename##Object *self; \
+		self = (basename##Object *) type->tp_alloc(type, 0); \
+		if (!self) { \
+			return NULL; \
+		} \
+		self->auth_obj = NULL; \
+		self->id = obj_idx++; \
+		SERIALUI_DEBUG_OUTLN("Creating auth obj " << (int)self->id); \
+		return (PyObject *) self; \
+} \
+static PyMemberDef basename##_members[] = { \
+		{ "id", T_INT, offsetof(basename##Object, id), 0, "internal id" }, \
+		{ NULL } \
+}; \
+static void basename##_dealloc(basename##Object *self) { \
+					SERIALUI_DEBUG_OUTLN("DESTROYING auth obj " << (int)self->id); \
+					uint8_t id = self->id; \
+					if (self->auth_obj) { \
+						delete self->auth_obj; \
+					}\
+					storeSetter(NULL); \
+					Py_TYPE(self)->tp_free((PyObject *) self); \
+}
+
+
+SUI_DEFINE_AUTHOBJ(SUIAuthStorage, SerialUI::Auth::Storage,
+				SerialUI::Python::SUIPyObjectsStore.authStorage,
+				SerialUI::Python::SUIPyObjectsStore.setAuthStorage);
+static int SUIAuthStorage_init(SUIAuthStorageObject *self, PyObject *args,
+		PyObject *kwds) {
+
+	SERIALUI_DEBUG_OUTLN("init auth obj " << (int)self->id);
+	if (SerialUI::Python::SUIPyObjectsStore.authStorage()) {
+		// forcing singleton
+		SERIALUI_DEBUG_OUTLN("already have this setup... fail");
+
+		PyErr_SetString(PyExc_RuntimeError, "only supports 1 auth storage obj at a time");
+		return -1;
+	}
+
+	self->auth_obj = new SerialUI::Auth::StoragePython();
+	if (! self->auth_obj) {
+		SERIALUI_DEBUG_OUTLN("could not allocate Auth::StoragePython... fail");
+
+		PyErr_SetString(PyExc_RuntimeError, "failed to allocate");
+		return -1;
+	}
+
+	SerialUI::Python::SUIPyObjectsStore.setAuthStorage((PyObject*)self);
+
+	SERIALUI_DEBUG_OUTLN("authstore init success");
+	return 0;
+
+}
+static PyObject* SUIAuthStorage_SUIRepr(PyObject*o) { \
+	SUIAuthStorageObject * myo = (SUIAuthStorageObject *)o;
+	std::ostringstream s;
+	s << "<SerialUI.AuthStorage id=" << (int)myo->id;
+	s << ">";
+	return PyUnicode_FromString(s.str().c_str());
+}
+
+/* storage member methods */
+static PyObject * SUIAuthStorage_configured(SUIAuthStorageObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("authstore configured() default -- ret false");
+	Py_RETURN_TRUE;
+}
+static PyObject * SUIAuthStorage_passphrase(SUIAuthStorageObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("authstore passphrase() default -- ret 'notset...' ");
+	return PyUnicode_FromString("notset please override!");
+
+}
+static PyObject * SUIAuthStorage_setPassphrase(SUIAuthStorageObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("authstore setPassphrase() default -- ret false");
+	Py_RETURN_FALSE;
+}
+static PyMethodDef SUIAuthStorage_methods[] = {
+		{ "configured", (PyCFunction) SUIAuthStorage_configured, METH_VARARGS,
+			"Return whether provided level is configured" },
+		{ "passphrase", (PyCFunction) SUIAuthStorage_passphrase, METH_VARARGS,
+					"Return (possibly encoded) passphrase value for given level" },
+		{ "setPassphrase", (PyCFunction) SUIAuthStorage_setPassphrase, METH_VARARGS,
+								"Store given passphrase for access level" },
+		{ NULL } /* Sentinel */
+};
+
+
+SUIPY_DEFINE_ITEMPYTHONTYPE(SUIAuthStorage, "SerialUI.AuthStorage", "SerialUI Authentication Storage");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SUI_DEFINE_AUTHOBJ(SUIAuthValidator, SerialUI::Auth::Validator,
+				SerialUI::Python::SUIPyObjectsStore.authValidator,
+				SerialUI::Python::SUIPyObjectsStore.setAuthValidator);
+static int SUIAuthValidator_init(SUIAuthValidatorObject *self, PyObject *args,
+		PyObject *kwds) {
+
+	SERIALUI_DEBUG_OUTLN("init auth obj " << (int)self->id);
+	if (SerialUI::Python::SUIPyObjectsStore.authValidator()) {
+		// forcing singleton
+		SERIALUI_DEBUG_OUTLN("already have this setup... fail");
+
+		PyErr_SetString(PyExc_RuntimeError, "only supports 1 auth validator at a time");
+		return -1;
+	}
+
+	SUIAuthStorageObject * storageObj = NULL;
+	PyObject * authStore;
+	if (!PyArg_ParseTuple(args, "O", &authStore)) {
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
+
+		PyErr_SetString(PyExc_RuntimeError, "pass auth storage object to constructor");
+		return -1;
+	}
+
+	if ((
+			(authStore->ob_type == &SUIAuthStorageType)
+			||
+			(PyType_IsSubtype(authStore->ob_type, &SUIAuthStorageType)
+
+	))) {
+		storageObj = (SUIAuthStorageObject *)authStore;
+	} else {
+		SERIALUI_DEBUG_OUTLN("Not a subtype of auth store??");
+
+		PyErr_SetString(PyExc_RuntimeError, "invalid type: pass AuthStore derivative to validator");
+		return -1;
+		// storageObj = (SUIAuthStorageObject *)SerialUI::Python::SUIPyObjectsStore.authStorage();
+
+	}
+
+
+	if (! storageObj) {
+
+		SERIALUI_DEBUG_OUTLN("must have a corresponding auth storage first... fail");
+
+		PyErr_SetString(PyExc_RuntimeError, "no storage object passed/found");
+		return -1;
+	}
+
+
+	self->auth_obj = new SerialUI::Auth::ValidatorPython(storageObj->auth_obj);
+	if (! self->auth_obj) {
+		SERIALUI_DEBUG_OUTLN("could not allocate Auth::StoragePython... fail");
+
+		PyErr_SetString(PyExc_RuntimeError, "could not allocate");
+		return -1;
+	}
+
+	SerialUI::Python::SUIPyObjectsStore.setAuthValidator((PyObject*)self);
+
+	SERIALUI_DEBUG_OUTLN("authvalidator init success");
+	return 0;
+
+}
+static PyObject* SUIAuthValidator_SUIRepr(PyObject*o) { \
+	SUIAuthValidatorObject * myo = (SUIAuthValidatorObject *)o;
+	std::ostringstream s;
+	s << "<SerialUI.AuthValidator id=" << (int)myo->id;
+	s << ">";
+	return PyUnicode_FromString(s.str().c_str());
+}
+
+static PyObject *
+SUIAuthValidator_communicationType(SUIAuthValidatorObject *self, PyObject * args) {
+
+	SERIALUI_DEBUG_OUTLN("calling extpy built-in authvalidator.communicationType(), no override");
+
+	return PyLong_FromLong((long)SerialUI::Auth::Transmission::Type::Plain);
+
+}
+
+static PyObject *
+SUIAuthValidator_challenge(SUIAuthValidatorObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("calling extpy built-in authvalidator.challenge(), no override");
+	Py_RETURN_NONE;
+
+}
+static PyObject *
+SUIAuthValidator_grantAccess(SUIAuthValidatorObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("calling extpy built-in authvalidator.grantAccess(), should override");
+	return PyLong_FromLong((long)SerialUI::Auth::Level::NoAccess);
+
+}
+static PyMethodDef SUIAuthValidator_methods[] = {
+		{ "communicationType",
+				(PyCFunction) SUIAuthValidator_communicationType, METH_NOARGS,
+				"passphrase comm type" },
+		{ "challenge",
+				(PyCFunction) SUIAuthValidator_challenge, METH_VARARGS,
+				"challenge for level" },
+		{ "grantAccess",
+				(PyCFunction) SUIAuthValidator_grantAccess, METH_VARARGS,
+				"level granted for response" },
+		{ NULL } /* Sentinel */
+};
+
+
+
+SUIPY_DEFINE_ITEMPYTHONTYPE(SUIAuthValidator, "SerialUI.AuthValidator", "SerialUI Authentication Validator");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*  ********************** SUI Item container wrapper ************** */
@@ -1183,8 +1576,8 @@ static int SUITrackedState_init(SUITrackedStateObject *self, PyObject *args,
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oi", kwlist, &key,
 			&self->id)) {
-		std::cerr << "SUIItemContainer_init unhappy tuple/keyw parse"
-				<< std::endl;
+		SERIALUI_DEBUG_OUTLN("SUIItemContainer_init unhappy tuple/keyw parse");
+		PyErr_SetString(PyExc_RuntimeError, "Pass key and/or id");
 		return -1;
 	}
 
@@ -1198,7 +1591,8 @@ static int SUITrackedState_init(SUITrackedStateObject *self, PyObject *args,
 
 			char * key_str = PyUnicode_AsUTF8(key);
 			if (!key_str) {
-				std::cerr << "can't get key str?" << std::endl;
+				SERIALUI_DEBUG_OUTLN("can't get key str?");
+				PyErr_SetString(PyExc_RuntimeError, "can't get key string?");
 				return -1;
 			}
 			self->sui_item = SerialUI::Globals::trackedStates()->itemByName(key_str);
@@ -1213,7 +1607,8 @@ static int SUITrackedState_init(SUITrackedStateObject *self, PyObject *args,
 
 	if (!self->sui_item) {
 
-		std::cerr << "Can't find Tracked state for id/key?" << std::endl;
+		SERIALUI_DEBUG_OUTLN("Can't find Tracked state for id/key?");
+		PyErr_SetString(PyExc_RuntimeError, "can't find matching tracked state");
 		return -1;
 	}
 
@@ -1276,8 +1671,8 @@ static PyObject *
 SUITrackedState_setValueAs(SUITrackedStateObject *self, PyObject * args, const char * formatStr) {
 	ARGTYPE ho;
 		if (!PyArg_ParseTuple(args, formatStr, &ho)) {
-				std::cerr << "unhappy tuple/keyw parse" << std::endl;
-				Py_RETURN_FALSE;
+			SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
+			Py_RETURN_FALSE;
 		}
 		*(self->state_obj->castAsSubType<STATETYPE>()) = ho;
 
@@ -1338,6 +1733,34 @@ static PyMethodDef SUITrackedState_methods[] = {
 };
 
 SUIPY_DEFINE_ITEMPYTHONTYPE(SUITrackedState, "SerialUI.TrackedState", "SerialUI tracked state object");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1426,12 +1849,12 @@ static PyObject* pysui_trackers(PyObject* self, PyObject* args) {
 	static PyObject * myTrackers = NULL;
 
 	if (myTrackers) {
-		std::cerr << "TRACKERS: returning cached" << std::endl;
+		SERIALUI_DEBUG_OUTLN("TRACKERS: returning cached");
 
 		Py_INCREF(myTrackers); // caller will want to cleanup
 		return myTrackers;
 	}
-	std::cerr << "TRACKERS: building new" << std::endl;
+	SERIALUI_DEBUG_OUTLN("TRACKERS: building new");
 	myTrackers = PyList_New(0);
 	if (!myTrackers) {
 		Py_RETURN_NONE;
@@ -1467,7 +1890,7 @@ static PyObject* pysui_setHeartbeatPeriod(PyObject* self, PyObject* args) {
 
 	long int val = 0;
 	if (!PyArg_ParseTuple(args, "l", &val)) {
-		std::cerr << "unhappy tuple/keyw parse" << std::endl;
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
 		Py_RETURN_FALSE;
 	}
 	if (SerialUI::Globals::pythonModule()->setHearbeatPeriod(val)) {
@@ -1475,6 +1898,54 @@ static PyObject* pysui_setHeartbeatPeriod(PyObject* self, PyObject* args) {
 	}
 	Py_RETURN_FALSE;
 }
+
+
+static PyObject* pysui_setAuthValidator(PyObject* self, PyObject* args) {
+
+	static SerialUI::Auth::Authenticator * py_authenticator = NULL;
+	PyObject * obj = NULL;
+	if (!PyArg_ParseTuple(args, "O", &obj)) {
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
+		Py_RETURN_FALSE;
+	}
+
+	if (obj == Py_None) {
+		// clearing out.
+
+		SerialUI::Globals::setAuthenticator(NULL);
+
+		if (py_authenticator) {
+			delete py_authenticator;
+			py_authenticator = NULL;
+		}
+
+		Py_RETURN_TRUE;
+
+	}
+
+	if (!
+		  (
+		    (obj->ob_type == &SUIAuthValidatorType)
+			||
+			(PyType_IsSubtype(obj->ob_type, &SUIAuthValidatorType))
+			)
+		) {
+		SERIALUI_DEBUG_OUTLN("invalid type passed");
+
+		PyErr_SetString(PyExc_RuntimeError, "pass a SerialUI.AuthValidator derivative");
+
+		Py_RETURN_FALSE;
+	}
+	SUIAuthValidatorObject * authValidator = (SUIAuthValidatorObject*)obj;
+
+	py_authenticator = new SerialUI::Auth::Authenticator(authValidator->auth_obj);
+
+	SerialUI::Globals::setAuthenticator(py_authenticator);
+
+	Py_RETURN_TRUE;
+
+}
+
 
 
 static PyObject* pysui_flush(PyObject* self, PyObject* args) {
@@ -1497,6 +1968,7 @@ static struct PyMethodDef methods[] = {
   { "tree", pysui_tree, METH_NOARGS, "full menu tree"},
   { "trackers", pysui_trackers, METH_NOARGS, "list of state trackers"},
   { "flush", pysui_flush, METH_NOARGS, "flush prints/updates"},
+  { "setAuthValidator", pysui_setAuthValidator, METH_VARARGS, "set validator to use for auth"},
   { "setHeartbeatPeriod", pysui_setHeartbeatPeriod, METH_VARARGS, "set heartbeat period (ms)"},
   { NULL, NULL, 0, NULL }
 };
@@ -1513,37 +1985,51 @@ static struct PyModuleDef modDef = {
 };
 
 
+#define PYSUI_READYTYPEORFAIL(tp) \
+		if (PyType_Ready(&(tp)) < 0) { return NULL; }
+
+#define PYSUI_ADDTYPE(tp, name, tomodule) \
+		Py_INCREF(&(tp));\
+		PyModule_AddObject(tomodule, name, (PyObject *) &(tp))
 
 PyObject* PyInit_SerialUIModule(void) {
 	PyObject *mymodule;
-	if (PyType_Ready(&SUIInputWrapperType) < 0) {
-		return NULL;
-	}
-	if (PyType_Ready(&SUIItemContainerType) < 0) {
-		return NULL;
-	}
-	if (PyType_Ready(&SUICommandWrapperType) < 0) {
-		return NULL;
-	}
 
-	if (PyType_Ready(&SUITrackedStateType) < 0) {
-		return NULL;
-	}
+
+	PYSUI_READYTYPEORFAIL(SUIInputWrapperType);
+	PYSUI_READYTYPEORFAIL(SUIItemContainerType);
+	PYSUI_READYTYPEORFAIL(SUICommandWrapperType);
+	PYSUI_READYTYPEORFAIL(SUITrackedStateType);
+	PYSUI_READYTYPEORFAIL(SUIAuthStorageType);
+	PYSUI_READYTYPEORFAIL(SUIAuthValidatorType);
 
 	mymodule = PyModule_Create(&modDef);
 	if (mymodule == NULL) {
 		return NULL;
 	}
 
+	PYSUI_ADDTYPE(SUIInputWrapperType, "Input", mymodule);
+	PYSUI_ADDTYPE(SUIItemContainerType, "ItemContainer", mymodule);
+	PYSUI_ADDTYPE(SUICommandWrapperType, "Command", mymodule);
+	PYSUI_ADDTYPE(SUITrackedStateType, "TrackedState", mymodule);
+	PYSUI_ADDTYPE(SUIAuthStorageType, "AuthStorage", mymodule);
+	PYSUI_ADDTYPE(SUIAuthValidatorType, "AuthValidator", mymodule);
+	// PYSUI_ADDTYPE(, "", mymodule);
+
+	/*
 	Py_INCREF(&SUIInputWrapperType);
 	Py_INCREF(&SUIItemContainerType);
 	Py_INCREF(&SUICommandWrapperType);
 	Py_INCREF(&SUITrackedStateType);
+	Py_INCREF(&SUIAuthStorageType);
+
 
 	PyModule_AddObject(mymodule, "Input", (PyObject *) &SUIInputWrapperType);
 	PyModule_AddObject(mymodule, "ItemContainer", (PyObject *) &SUIItemContainerType);
 	PyModule_AddObject(mymodule, "Command", (PyObject *) &SUICommandWrapperType);
 	PyModule_AddObject(mymodule, "TrackedState", (PyObject *) &SUITrackedStateType);
+	PyModule_AddObject(mymodule, "AuthStorage", (PyObject *) &SUIAuthStorageType);
+	*/
 
 	return mymodule;
 }

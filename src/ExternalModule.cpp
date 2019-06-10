@@ -12,37 +12,56 @@
 namespace SerialUI {
 namespace Python {
 
+
+
+
+
+
 ExternalModule::ExternalModule(void * serialUIDriver,
 		  DynamicString name, DynamicString path) :
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+		auth_validator(NULL),
+		auth_storage(NULL),
+#endif
 		module_name(name),
 		module_path(path),
+		post_load_call(NULL),
 		is_loaded(false),
 		load_attempted(false),
 		hInstance(NULL),
 		driver(serialUIDriver)
-		// ,
-		//driver(sui_driver)
 {
+	SERIALUI_DEBUG_OUTLN(F("EXT MOD CONSTRUCTED"));
 
 }
 ExternalModule::~ExternalModule() {
+	SERIALUI_DEBUG_OUTLN(F("EXT MOD D'TOR"));
 	if (! is_loaded) {
+		SERIALUI_DEBUG_OUTLN(F("Never loaded"));
 		return;
 	}
+	SERIALUI_DEBUG_OUTLN(F("Releasing python handles"));
 	pHandler.Release();
 	pModule.Release();
-	delete hInstance;
+	if (hInstance) {
+
+		delete hInstance;
+	}
 
 }
 
 bool ExternalModule::load() {
+	SERIALUI_DEBUG_OUTLN(F("EXT MOD LOAD"));
 	if (is_loaded) {
+		SERIALUI_DEBUG_OUTLN(F("already loaded"));
 		return true;
 	}
 	if (load_attempted) {
+		SERIALUI_DEBUG_OUTLN(F("already attempted to load (and failed)"));
 		return false;
 	}
 	load_attempted = true;
+
 	if (module_path) {
 
 		setenv("PYTHONPATH", module_path, 1);
@@ -104,10 +123,12 @@ bool ExternalModule::load() {
 }
 
 void ExternalModule::updated(Menu::Item::Request::Request * req) {
+	SERIALUI_DEBUG_OUTLN(F("ExternalModule::updated request"));
 	SUIDRIVER()->updatedLocally(*req);
 
 }
 void ExternalModule::updated(Tracked::State* st) {
+	SERIALUI_DEBUG_OUTLN(F("ExternalModule::updated tracked state"));
 	SUIDRIVER()->showTrackedState();
 
 }
@@ -115,10 +136,12 @@ void ExternalModule::updated(Tracked::State* st) {
 
 
 bool ExternalModule::setHearbeatPeriod(unsigned long ms) {
+	SERIALUI_DEBUG_OUTLN(F("ExternalModule::setHearbeatPeriod"));
 	SUIDRIVER()->setUserPresenceHeartbeatPeriod(ms);
 	return true;
 }
 bool ExternalModule::triggerHeartbeat() {
+	SERIALUI_DEBUG_OUTLN(F("ExternalModule::trigger heartbeat"));
 	if (! pHeartbeat) {
 		return false;
 	}
@@ -130,6 +153,8 @@ bool ExternalModule::triggerHeartbeat() {
 
 bool ExternalModule::callHandlerMethod(DynamicString name) {
 
+	SERIALUI_DEBUG_OUT(F("ExternalModule::callHandler method "));
+	SERIALUI_DEBUG_OUTLN(name);
 	CPyObject hm = PyObject_GetAttrString(pHandler, name);
 	if (! (hm && PyCallable_Check(hm))) {
 		return false;
@@ -142,10 +167,12 @@ bool ExternalModule::callHandlerMethod(DynamicString name) {
 
 
 bool ExternalModule::trigger(Menu::Item::Request::Request * req) {
+	SERIALUI_DEBUG_OUT(F("ExternalModule::trigger() "));
 	if (!load()) {
+		SERIALUI_DEBUG_OUTLN(F("could not load"));
 		return false;
 	}
-	SERIALUI_DEBUG_OUT("Ext mod trigger for:");
+	SERIALUI_DEBUG_OUT(" for:");
 	SERIALUI_DEBUG_OUTLN(req->key());
 
 	SUIPyObjectsStore.callTriggeredOnInputs(req->id());
@@ -168,9 +195,13 @@ bool ExternalModule::trigger(Menu::Item::Request::Request * req) {
 }
 
 bool ExternalModule::trigger(Menu::Item::Command * cmd) {
+	SERIALUI_DEBUG_OUT(F("ExternalModule::trigger() "));
 	if (!load()) {
+		SERIALUI_DEBUG_OUTLN(F("could not load"));
 		return false;
 	}
+	SERIALUI_DEBUG_OUT(" for cmd ");
+	SERIALUI_DEBUG_OUTLN((int)cmd->id());
 	SUIPyObjectsStore.callTriggeredOnCommands(cmd->id());
 	return true;
 	/*
@@ -185,6 +216,216 @@ bool ExternalModule::trigger(Menu::Item::Command * cmd) {
 	*/
 
 }
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+
+
+class ExtModuleAuthStorageBridge : public Auth::Storage {
+public:
+	ExtModuleAuthStorageBridge() : Auth::Storage() {
+
+		SERIALUI_DEBUG_OUTLN("ExtModuleAuthStorageBridge c'tor");
+	}
+
+
+	virtual bool configured(Auth::Level::Value forLevel=Auth::Level::User) {
+
+		PyObject * retObj = SUIPyObjectsStore.callMethodOnStorage("configured", "(i)", (int)forLevel);
+
+		if ((!retObj) || retObj == Py_None) {
+			return false;
+		}
+
+		if (PyBool_Check(retObj)) {
+			if (PyObject_IsTrue(retObj)){
+					return true;
+				}
+		}
+		return false;
+	}
+	virtual Auth::Passphrase passphrase(Auth::Level::Value forLevel) {
+		PyObject * retObj = SUIPyObjectsStore.callMethodOnStorage("passphrase", "(i)", (int)forLevel);
+
+		if ((!retObj) || retObj == Py_None) {
+			return NULL;
+		}
+		if (PyUnicode_Check(retObj)) {
+			char * strtoprint = NULL;
+			if (!PyArg_ParseTuple(retObj, "s", &strtoprint)) {
+				return NULL;
+			}
+			return strtoprint;
+		}
+
+		return NULL;
+
+	}
+	virtual bool setPassphrase(Auth::Passphrase pass, Auth::Level::Value forLevel) {
+		PyObject * retObj = SUIPyObjectsStore.callMethodOnStorage(
+				"setPassphrase", "(s, i)", pass, (int) forLevel);
+
+		if ((!retObj) || retObj == Py_None) {
+			return NULL;
+		}
+		if (PyBool_Check(retObj)) {
+			if (PyObject_IsTrue(retObj)) {
+				return true;
+			}
+		}
+		return false;
+	}
+};
+
+class ExtModuleAuthValidatorBridge : public Auth::Validator {
+public:
+	ExtModuleAuthValidatorBridge(Auth::Storage * strg) : Auth::Validator(strg) {
+
+		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValidatorBridge c'tor");
+	}
+
+	virtual Auth::Transmission::Type::Value communicationType() {
+		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValid.communicationType()");
+		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("communicationType", "()");
+		if ((!retObj) || retObj == Py_None) {
+			SERIALUI_DEBUG_OUTLN("No ret/ret none");
+			return Auth::Transmission::Type::Plain;
+		}
+		if (! PyNumber_Check(retObj)) {
+
+			SERIALUI_DEBUG_OUTLN("NaN");
+			return Auth::Transmission::Type::Plain;
+		}
+		uint8_t retVal = 0;
+
+		if (PyLong_Check(retObj)) {
+			SERIALUI_DEBUG_OUTLN("is long, converting");
+			retVal = (uint8_t) PyLong_AsLong(retObj);
+		} else if (PyFloat_Check(retObj)) {
+			SERIALUI_DEBUG_OUTLN("is float, converting");
+			retVal = (uint8_t) PyFloat_AsDouble(retObj);
+		}
+
+		switch (retVal) {
+
+		case (uint8_t)Auth::Transmission::Type::MD5:
+				return Auth::Transmission::Type::MD5;
+		case (uint8_t)Auth::Transmission::Type::SHA256:
+				return Auth::Transmission::Type::SHA256;
+		default:
+
+			SERIALUI_DEBUG_OUTLN((int)retVal);
+			return Auth::Transmission::Type::Plain;
+		}
+
+	}
+	virtual Auth::Challenge challenge(Auth::Level::Value forLevel=Auth::Level::User) {
+		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValid.challenge()");
+		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("challenge", "(i)", (int)forLevel);
+		if ((!retObj) || retObj == Py_None) {
+			SERIALUI_DEBUG_OUTLN("No ret/ret none");
+			return NULL;
+		}
+
+		if (PyUnicode_Check(retObj)) {
+
+			SERIALUI_DEBUG_OUTLN("is unicode, converting");
+			return PyUnicode_AsUTF8(retObj);
+
+
+		}
+
+		return NULL;
+
+	}
+	virtual Auth::Level::Value grantAccess(Auth::ChallengeResponse resp) {
+		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValid.grantAccess()");
+		SERIALUI_DEBUG_OUTLN(resp);
+		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("grantAccess", "(s)", resp);
+		if ((!retObj) || retObj == Py_None) {
+			SERIALUI_DEBUG_OUTLN("No ret/ret none");
+			return Auth::Level::NoAccess;
+		}
+		if (!PyLong_Check(retObj)) {
+			SERIALUI_DEBUG_OUTLN("not a long");
+			return Auth::Level::NoAccess;
+		}
+
+		switch (PyLong_AsLong(retObj)) {
+		case (long) Auth::Level::Guest:
+			return Auth::Level::Guest;
+		case (long) Auth::Level::User:
+			return Auth::Level::User;
+		case (long) Auth::Level::Admin:
+			return Auth::Level::Admin;
+		default:
+			return Auth::Level::NoAccess;
+		}
+
+	}
+
+
+};
+
+
+
+
+
+Auth::Validator * ExternalModule::authValidator() {
+	SERIALUI_DEBUG_OUT("ExternalModule::authValidator() ");
+
+	if (!SUIPyObjectsStore.authStorage()) {
+		SERIALUI_DEBUG_OUTLN("no store storage");
+		return NULL;
+	}
+
+	if (auth_validator) {
+		SERIALUI_DEBUG_OUTLN("cached");
+		// already setup.
+		return auth_validator;
+	}
+
+	if (! (auth_storage || authStorage()) ) {
+		SERIALUI_DEBUG_OUTLN("no storage!");
+		return NULL;
+	}
+	if (!SUIPyObjectsStore.authValidator()) {
+		SERIALUI_DEBUG_OUTLN("no store validator!");
+		return NULL;
+	}
+
+
+	SERIALUI_DEBUG_OUTLN("constructing");
+	auth_validator = new ExtModuleAuthValidatorBridge(authStorage());
+
+	return auth_validator;
+
+}
+Auth::Storage * ExternalModule::authStorage()
+{
+
+	SERIALUI_DEBUG_OUT("ExternalModule::authStorage() ");
+
+	if (auth_storage) {
+		// already setup.
+		SERIALUI_DEBUG_OUTLN("cached");
+		return auth_storage;
+	}
+
+
+	if (! SUIPyObjectsStore.authStorage()) {
+		SERIALUI_DEBUG_OUTLN("not configured");
+		return NULL;
+	}
+
+
+	SERIALUI_DEBUG_OUTLN("creating");
+	auth_storage = new ExtModuleAuthStorageBridge();
+
+	return auth_storage;
+
+}
+#endif /* SERIALUI_AUTHENTICATOR_ENABLE */
+
 }
 }
 

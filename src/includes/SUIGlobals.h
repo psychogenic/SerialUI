@@ -11,13 +11,16 @@
 #ifndef SERIALUIV3_SRC_INCLUDES_SUIGLOBALS_H_
 #define SERIALUIV3_SRC_INCLUDES_SUIGLOBALS_H_
 
+#include "SerialUIPlatform.h"
 #include "SUIState.h"
 #include "comm/CommSource.h"
 #include "menu/MenuStructure.h"
 #include "menu/Tracking.h"
 #include "comm/CommChannel.h"
-#include "SerialUIPlatform.h"
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+#include "auth/Authenticator.h"
+#endif
 
 #ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
 #include "python/ExternalModule.h"
@@ -38,6 +41,11 @@ public:
 	static Python::ExternalModule * pythonModule();
 	static bool setPythonModule(Python::ExternalModule * mod);
 #endif /* SERIALUI_PYTHONMODULES_SUPPORT_ENABLE */
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	static Auth::Authenticator * authenticator();
+	static void setAuthenticator(Auth::Authenticator* auth);
+#endif /* SERIALUI_AUTHENTICATOR_ENABLE */
 
 private:
 	Globals();

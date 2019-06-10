@@ -69,6 +69,9 @@ private:
 	void switchModeProgram();
 	void switchModeUser();
 
+	bool interruptProcessingForAccessControl();
+
+
 
 	SubMenu * handleBuiltinRequest(::SerialUI::Request::BuiltIn::Selection sel);
 

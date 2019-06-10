@@ -16,6 +16,8 @@
 #include "CommSource.h"
 #include "../tracked/TrackedVariable.h"
 #include "../menuitem/items.h"
+#include "../auth/Authenticator.h"
+
 namespace SerialUI {
 namespace Comm {
 
@@ -39,6 +41,16 @@ public:
 
 	virtual size_t printCommandProcessingStart() = 0;
 	virtual size_t printCommandProcessingDone() = 0;
+    virtual uint8_t readUntilEOF(char * intoBuf,
+    		uint8_t maxLen, bool trim=false) = 0;
+
+    virtual bool getBuiltinRequest(char * userString, Request * into) = 0;
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	// Access control
+	virtual size_t printAccessGrantRequest(Auth::Authenticator * auth) = 0;
+	virtual size_t printAccessConfigureRequest(Auth::Authenticator * auth) = 0;
+#endif
 
 
 

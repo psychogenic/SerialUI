@@ -17,6 +17,7 @@
 #include "includes/menuitem/trackedview/trackedviews.h"
 
 
+#define CHANNEL_READBUF_MINSIZE_PADDING		5
 
 
 #define PROGCHANNEL_OUTFIELD(f)		_serPort->print((char)(f))
@@ -39,13 +40,6 @@ typedef struct StrAndLenStruct {
 	}
 } StringAndLength;
 
-// typedef void (Menu::Item::SubMenu::*builtinCb)(void);
-typedef struct SubMenuCallbackMapStruct {
-	SerialUI::Request::BuiltIn::Selection builtin;
-	StaticString cmdstr;
-	SubMenuCallbackMapStruct(StaticString s, SerialUI::Request::BuiltIn::Selection sel) :
-		builtin(sel), cmdstr(s) {}
-} SubMenuCallbackMap;
 
 
 ChannelModeUser::ChannelModeUser(Mode::Selection forMode, SourceType * port) : SerialChannel(forMode)
@@ -55,7 +49,6 @@ ChannelModeUser::ChannelModeUser(Mode::Selection forMode, SourceType * port) : S
 
 
 
-#define CHANNEL_READBUF_MINSIZE_PADDING		5
 
 bool ChannelModeUser::getNextRequest(Menu::Item::ID inMenu, Request * into) {
 
@@ -269,6 +262,9 @@ void ChannelModeUser::printErrorEnd() {
 	_serPort->println(' ');
 }
 
+#if 0
+DEADBEEF
+
 bool ChannelModeUser::getBuiltinRequest(char * userString, Request * into) {
 	SubMenuCallbackMap builtins[] = {
 			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_HELP_COMMAND),
@@ -299,6 +295,7 @@ bool ChannelModeUser::getBuiltinRequest(char * userString, Request * into) {
 
 	return false;
 }
+#endif
 
 size_t ChannelModeUser::printSpaces(uint8_t lenTaken, uint8_t lenRequired) {
 #ifdef SERIAL_UI_ENABLE_USBSERIAL_TERMINALACCESS
@@ -323,8 +320,6 @@ void ChannelModeUser::showPrompt() {
 
 
 void ChannelModeUser::printInputRequest(Menu::Item::Request::Request * req) {
-
-
 	_serPort->print(req->key());
 #ifdef SERIAL_UI_ENABLE_USBSERIAL_TERMINALACCESS
 	_serPort->print(SUI_STR(" ("));
@@ -405,6 +400,36 @@ void ChannelModeUser::printInputRequest(Menu::Item::Request::Request * req) {
 
 
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	// Access control
+size_t ChannelModeUser::printAccessGrantRequest(Auth::Authenticator * auth) {
+	size_t retSize = 0;
+	Auth::Challenge chal = auth->challenge();
+	if (chal) {
+		retSize = _serPort->print(chal);
+		retSize += _serPort->print(' ');
+	}
+
+	switch(auth->encoding()) {
+	case Auth::Transmission::Type::Plain:
+		retSize += _serPort->print(SUI_STR("password: "));
+		break;
+	case Auth::Transmission::Type::MD5:
+		retSize += _serPort->print(SUI_STR("(MD5)"));
+		break;
+	default:
+		// unsupported
+		retSize += _serPort->print(SUI_STR("Use druid!"));
+	}
+
+	return retSize;
+
+}
+
+size_t ChannelModeUser::printAccessConfigureRequest(Auth::Authenticator * auth) {
+	return _serPort->print(SUI_STR("set password: "));
+}
+#endif
 
 
 
@@ -729,6 +754,8 @@ void ChannelModeProg::printErrorEnd() {
 	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_ERROR_END);
 }
 
+/*
+
 bool ChannelModeProg::getBuiltinRequest(char * userString, Request * into) {
 	SubMenuCallbackMap builtins[] = {
 			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_HELP_COMMAND),
@@ -757,6 +784,7 @@ bool ChannelModeProg::getBuiltinRequest(char * userString, Request * into) {
 		idx++;
 	}
 
+	//
 		this->printError(F("Unknown Rbytes:"));
 		this->printErrorStart();
 		uint8_t i=0;
@@ -765,8 +793,11 @@ bool ChannelModeProg::getBuiltinRequest(char * userString, Request * into) {
 			_serPort->print(':');
 		}
 		this->printErrorEnd();
+		//
 	return false;
 }
+*/
+
 
 size_t ChannelModeProg::printHelpListStart(Menu::Item::SubMenu * mnu) {
 	size_t rVal = PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_MENULISTING_START);
@@ -812,6 +843,38 @@ void ChannelModeProg::printInputRequest(Menu::Item::Request::Request * req) {
 
 
 
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	// Access control
+size_t ChannelModeProg::printAccessGrantRequest(Auth::Authenticator * auth) {
+	size_t retsize =
+			printHelpListStart(Globals::menuStructure()->topLevelMenu());
+
+	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_AUTHENTICATION_START);
+	PROGCHANNEL_OUTFIELD(SerialUI::Auth::Request::Type::Authenticate);
+	PROGCHANNEL_OUTFIELD(auth->encoding());
+	Auth::Challenge challenge = auth->challenge(Auth::Level::User);
+	if (challenge) {
+		retsize += _serPort->print(challenge);
+	} else {
+		retsize += _serPort->print(SUI_STR("password"));
+	}
+
+	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_AUTHENTICATION_END);
+	retsize += printHelpListEnd(Globals::menuStructure()->topLevelMenu());
+
+	return retsize;
+}
+
+size_t ChannelModeProg::printAccessConfigureRequest(Auth::Authenticator * auth) {
+	size_t retsize =
+			printHelpListStart(Globals::menuStructure()->topLevelMenu());
+	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_AUTHENTICATION_START);
+	PROGCHANNEL_OUTFIELD(SerialUI::Auth::Request::Type::Setup);
+	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_AUTHENTICATION_END);
+	return retsize + 3;
+}
+#endif
 
 
 

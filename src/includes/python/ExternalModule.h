@@ -13,32 +13,48 @@
 
 // class ::SerialUI::SerialUI; // forward decl
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+#include "../auth/AuthValidator.h"
+#endif
+
+#define SUI_EXTMODULE_VERSION_MAJOR	1
+#define SUI_EXTMODULE_VERSION_MINOR	2
+#define SUI_EXTMODULE_VERSION_PATCH	0
+
+
 
 namespace SerialUI {
-
 namespace Python {
-class ExternalModule {
 
+
+typedef struct ExtModVersionStruct {
+	uint8_t major;
+	uint8_t minor;
+	uint8_t patch;
+	ExtModVersionStruct() :
+		major(SUI_EXTMODULE_VERSION_MAJOR),
+		minor(SUI_EXTMODULE_VERSION_MINOR),
+		patch(SUI_EXTMODULE_VERSION_PATCH)
+	{
+
+	}
+} ExternalModuleVersion;
+
+class ExternalModule {
 public:
+
+  static ExternalModuleVersion version() {
+	  return ExternalModuleVersion();
+  }
+
   // ExternalModule(SerialUI * driver, DynamicString name);
   ExternalModule(void * serialUIDriver,
 		  DynamicString name,
 		  DynamicString path=NULL);
   ~ExternalModule();
 
-
-
   bool callHandlerMethod(DynamicString name);
-
-
-
-
-
-
-
   bool load();
-
-
 
 
   bool trigger(Menu::Item::Command * cmd);
@@ -52,6 +68,14 @@ public:
   void updated(Menu::Item::Request::Request * req);
   void updated(Tracked::State* st);
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+  Auth::Validator * authValidator();
+  Auth::Storage * authStorage() ;
+private:
+  Auth::Validator * auth_validator;
+  Auth::Storage * auth_storage;
+#endif
+
 
 private:
   DynamicString module_name;
@@ -63,9 +87,10 @@ private:
   CPyObject  pHandler;
   CPyObject  pHeartbeat;
   CPyInstance * hInstance;
-  //SerialUI * driver;
   void * driver;
+  uint8_t reserved[64]; // space to use up for additions, to maintain binary compat of drivers
 };
+
 
 
 }

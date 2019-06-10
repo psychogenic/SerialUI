@@ -16,6 +16,8 @@
 #include "nrf52/NRF52BLESerial.h"
 
 
+#define SERIALUI_AUTHENTICATOR_ENABLE
+
 #define SERIALUI_CHANNELS_USE_STANDARDSTREAMS
 #define SUI_PLATFORM_SOURCE_DEFAULT		SUIBLESerialDev
 
@@ -50,6 +52,7 @@ typedef NRF52BLESerial SourceType;
 
 
 #ifdef SERIALUI_ENABLE_DEBUG_OUTPUT
+#define SERIALUI_BEGIN_DEBUGOUTCHANNEL(...)	Serial.begin(57600)
 #define SERIALUI_DEBUG_OUT(...)		Serial.print( __VA_ARGS__ )
 #define SERIALUI_DEBUG_OUTLN(...)	Serial.println( __VA_ARGS__ )
 #endif

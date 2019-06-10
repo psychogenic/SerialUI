@@ -21,14 +21,67 @@ namespace SerialUI {
 namespace Comm {
 
 
+// typedef void (Menu::Item::SubMenu::*builtinCb)(void);
+typedef struct SubMenuCallbackMapStruct {
+	SerialUI::Request::BuiltIn::Selection builtin;
+	StaticString cmdstr;
+	SubMenuCallbackMapStruct(StaticString s, SerialUI::Request::BuiltIn::Selection sel) :
+		builtin(sel), cmdstr(s) {}
+} SubMenuCallbackMap;
+
 SerialChannel::SerialChannel(Mode::Selection forMode, SourceType * port) : Channel(forMode),
 		_serPort(port)
 {
 	_serPort->setTimeout(30000);
 }
 
+
+
+bool SerialChannel::getBuiltinRequest(char * userString, Request * into) {
+	SubMenuCallbackMap builtins[] = {
+			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_HELP_COMMAND),
+					SerialUI::Request::BuiltIn::Help),
+			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_UP_COMMAND),
+							SerialUI::Request::BuiltIn::UpLevel),
+			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_EXIT_COMMAND),
+											SerialUI::Request::BuiltIn::Exit),
+			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_MODEPROG_COMMAND),
+											SerialUI::Request::BuiltIn::ModeProgram),
+			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_MODEUSER_COMMAND),
+											SerialUI::Request::BuiltIn::ModeUser),
+
+			SubMenuCallbackMap(SUI_STR(SUI_SERIALUI_KEEPALIVE_COMMAND),
+													SerialUI::Request::BuiltIn::RefreshTracked),
+
+			SubMenuCallbackMap(NULL, SerialUI::Request::BuiltIn::INVALID)
+	};
+
+	SERIALUI_DEBUG_OUTLN(F("Looking for builtin..."));
+	uint8_t idx=0;
+	while (builtins[idx].builtin != SerialUI::Request::BuiltIn::INVALID) {
+		if (staticStringMatch(builtins[idx].cmdstr, userString, true)) {
+			into->setBuiltIn(builtins[idx].builtin);
+			flushAllWhitespaces();
+			return true;
+		}
+		idx++;
+	}
+
+	/*
+		this->printError(F("Unknown Rbytes:"));
+		this->printErrorStart();
+		uint8_t i=0;
+		while (i < 30 && userString[i]) {
+			_serPort->print((int)userString[i++], HEX);
+			_serPort->print(':');
+		}
+		this->printErrorEnd();
+		*/
+	return false;
+}
+
 void SerialChannel::poll() {
-	_serPort->poll();
+	//TODO:FIXME SERPORT POLL _serPort->poll();
 }
 size_t SerialChannel::print(Menu::Item::Request::Request * reqState) {
 
@@ -281,7 +334,8 @@ bool SerialChannel::getBoolFor(Menu::Item::ID mid, bool* into) {
 
 
 
-uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf, uint8_t maxLen, uint8_t * vals, uint8_t numvals) {
+uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf,
+		uint8_t maxLen, uint8_t * vals, uint8_t numvals, bool trim) {
 
 	bool done=false;
 	uint8_t idx=0;
@@ -297,7 +351,7 @@ uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf, uint8_t maxLen, uint8_
 
 	uint32_t timeoutTime = millis() + 20000; // TODO:FIXME -- hardcoded timeout
 	while ( (! done) && (millis() < timeoutTime) ) {
-		_serPort->poll();
+		// TODO:FIXME SERPORT POLL _serPort->poll();
 		while (_serPort->available() && (idx < maxLen) && ! done ) {
 			rawReadBuf[idx] = _serPort->read();
 			// SERIALUI_DEBUG_OUT(F("readUntilAny: "));
@@ -306,6 +360,9 @@ uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf, uint8_t maxLen, uint8_
 			for (uint8_t i=0; i<numvals; i++) {
 				if (rawReadBuf[idx] == vals[i]) {
 					done = true;
+					if (trim) {
+						rawReadBuf[idx] = 0;
+					}
 					// rawReadBuf[idx] = 0;
 					rawReadBuf[idx+1] = 0;
 					// SERIALUI_DEBUG_OUTLN(F("readUntilAny() FOUND VALUE"));
@@ -318,9 +375,10 @@ uint8_t SerialChannel::readUntilAny(uint8_t * rawReadBuf, uint8_t maxLen, uint8_
 	// SERIALUI_DEBUG_OUTLN(F("readUntilAny() done."));
 	return idx;
 }
-uint8_t SerialChannel::readUntilEOF(char * rawReadBuf, uint8_t maxLen) {
+uint8_t SerialChannel::readUntilEOF(char * rawReadBuf,
+		uint8_t maxLen, bool trim) {
 	uint8_t vals[] = {'\n', '\r'};
-	return this->readUntilAny((uint8_t*)rawReadBuf, maxLen, vals, 2);
+	return this->readUntilAny((uint8_t*)rawReadBuf, maxLen, vals, 2, trim);
 
 }
 

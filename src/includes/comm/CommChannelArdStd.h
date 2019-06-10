@@ -36,6 +36,12 @@ public:
 	virtual void showPrompt();
 	virtual void printInputRequest(Menu::Item::Request::Request * req);
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	// Access control
+	virtual size_t printAccessGrantRequest(Auth::Authenticator * auth);
+	virtual size_t printAccessConfigureRequest(Auth::Authenticator * auth);
+#endif
+
 protected:
 
 
@@ -59,7 +65,7 @@ protected:
 
 
 	size_t printSpaces(uint8_t lenTaken, uint8_t lenRequired=35);
-    bool getBuiltinRequest(char * userString, Request * into);
+    // bool getBuiltinRequest(char * userString, Request * into);
 
 
 };
@@ -82,6 +88,13 @@ public:
 
 	virtual size_t printCommandProcessingStart();
 	virtual size_t printCommandProcessingDone();
+
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	// Access control
+	virtual size_t printAccessGrantRequest(Auth::Authenticator * auth);
+	virtual size_t printAccessConfigureRequest(Auth::Authenticator * auth);
+#endif
 protected:
 
 	bool parseBinCommandReq(Request * into);
@@ -107,7 +120,7 @@ protected:
     void outputRequestContextId();
 
 
-    bool getBuiltinRequest(char * userString, Request * into);
+    // bool getBuiltinRequest(char * userString, Request * into);
 };
 
 

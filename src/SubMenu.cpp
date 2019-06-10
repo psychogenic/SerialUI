@@ -60,10 +60,85 @@ int8_t SubMenu::indexForItem(ID itemId) {
 	return Globals::menuStructure()->indexForItemWithParent(id(), itemId);
 }
 
+bool SubMenu::interruptProcessingForAccessControl() {
+
+#ifndef SERIALUI_AUTHENTICATOR_ENABLE
+	// no auth support
+	return false;
+#else
+
+	Auth::Authenticator * auth = Globals::authenticator();
+	if (auth) {
+		char inBuf[64];
+		Comm::Request theReq;
+		if (auth->configured()) {
+			if (! auth->accessIsAtLeast(Auth::Level::Guest)) {
+				// not even guest access, must output
+				// access request
+				// first, though, check if we just got a valid password
+				// on input
+				Globals::commChannel()->readUntilEOF(inBuf, 64, true);
+				SERIALUI_DEBUG_OUTLN(F("Checking for builtin"));
+				if (Globals::commChannel()->getBuiltinRequest(inBuf, &theReq)) {
+					if (theReq.isForBuiltIn()
+							&&
+							( (theReq.builtIn == SerialUI::Request::BuiltIn::ModeProgram)
+							||
+							(theReq.builtIn == SerialUI::Request::BuiltIn::ModeUser)
+						)
+					) {
+
+						handleBuiltinRequest(theReq.builtIn);
+						return true;
+					}
+				}
+
+				if (auth->grantAccess(inBuf) != Auth::Level::NoAccess) {
+					// ok, just logged in
+					this->outputHelp(); // provide the full menu
+					return true;
+				}
+
+				// Nope, no access... make the request
+				Globals::commChannel()->printAccessGrantRequest(auth);
+				return true;
+			}
+		} else {
+
+			// authenticator set, but not configured
+			// must output request to configure
+			memset(inBuf, 0, 64);
+
+			Globals::commChannel()->printAccessConfigureRequest(auth);
+			if (Globals::commChannel()->readUntilEOF(inBuf, 64, true) > 3) {
+				auth->setPassphrase(inBuf, Auth::Level::User);
+				auth->grantAccess(inBuf);
+			}
+			return true;
+		}
+
+	}
+
+	return false;
+
+#endif /* SERIALUI_AUTHENTICATOR_ENABLE */
+}
 
 SubMenu * SubMenu::handleRequest() {
 	Comm::Request nextReq;
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	if (interruptProcessingForAccessControl()) {
+		// we had to output some access control stuff...
+		// forego further processing.
+
+		return this;
+	}
+
+#endif /* SERIALUI_AUTHENTICATOR_ENABLE */
+
+
+	// first, empty out the current input buffer
 	if (!Globals::commSource()->getNextRequest(this->id(), &nextReq)) {
 		if (nextReq.requestId != SERIAL_UI_REQUEST_NOINPUT) {
 			Globals::commChannel()->printError(SUI_STR("Unrecognized request"));
@@ -71,6 +146,8 @@ SubMenu * SubMenu::handleRequest() {
 		}
 		return this;
 	}
+
+
 
 	if (nextReq.isForMenuItem()) {
 

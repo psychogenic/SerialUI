@@ -32,4 +32,9 @@
 #include "includes/python/ExternalModule.h"
 #endif
 
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+#include "includes/auth/Authenticator.h"
+#include "includes/auth/AuthSimple.h"
+#endif
+
 #endif /* SERIALUIV3_SRC_SERIALUI_H_ */

@@ -17,7 +17,21 @@
 #include <set>
 
 typedef std::set<PyObject*>	ItemPyObjectSet;
+
 typedef std::map<uint8_t, ItemPyObjectSet> ItemPyObjectById;
+
+#include "../auth/AuthValidator.h"
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+/*
+typedef struct {
+	PyObject * validator;
+	SerialUI::Auth::Validator * suivalidator;
+	SerialUI::Auth::Storage * suxxivalidator;
+
+} ho ;
+*/
+#endif
+
 
 namespace SerialUI {
 namespace Python {
@@ -25,7 +39,7 @@ namespace Python {
 class ObjectsStore {
 
 public:
-	ObjectsStore() {}
+	ObjectsStore() : auth_storage(NULL), auth_validator(NULL){}
 
 	void addInput(uint8_t forId, PyObject * input) {
 		add(forId, input, inputs);
@@ -47,6 +61,100 @@ public:
 	void callTriggeredOnInputs(uint8_t forId);
 
 	void deleteEntryFor(uint8_t forId, PyObject * obj);
+
+
+	/*
+	void addAuthStorage(PyObject * authstore) {
+		auth_storage.insert(authstore);
+	}
+	*/
+
+	/*
+	template<typename... Args>
+	PyObject* callMethodOnValidator(const char* methName, const char* format, Args... args)
+	{
+		if (! auth_validator) {
+			Py_RETURN_NONE;
+		}
+		return PyObject_CallMethod(auth_validator, methName, format, args...);
+	}*/
+
+
+	template<typename... Args>
+	PyObject* callMethodOnStorage(const char* methName, const char* format, Args... args)
+	{
+		SERIALUI_DEBUG_OUT(auth_storage);
+		SERIALUI_DEBUG_OUT(", ");
+		SERIALUI_DEBUG_OUTLN(auth_validator);
+
+
+		SERIALUI_DEBUG_OUT("calling on storage: '");
+		SERIALUI_DEBUG_OUT(methName);
+		if (! auth_storage) {
+			SERIALUI_DEBUG_OUTLN("': no storage set!");
+			Py_RETURN_NONE;
+		}
+		PyObject* hb = PyObject_GetAttrString(auth_storage, methName);
+		if (! (hb && PyCallable_Check(hb))) {
+
+			SERIALUI_DEBUG_OUTLN("' NO SUCH CALLABLE");
+			Py_RETURN_NONE;
+
+		}
+		SERIALUI_DEBUG_OUTLN("', triggering");
+		return PyObject_CallMethod(auth_storage, methName, format, args...);
+	}
+
+	template<typename... Args>		// var args
+	PyObject* callMethodOnAuthValidator(const char* methName, const char* format, Args... args)
+	{
+		SERIALUI_DEBUG_OUT(auth_storage);
+		SERIALUI_DEBUG_OUT(", ");
+		SERIALUI_DEBUG_OUTLN(auth_validator);
+
+
+		SERIALUI_DEBUG_OUT("calling on validator: '");
+		SERIALUI_DEBUG_OUT(methName);
+		if (! auth_validator) {
+			SERIALUI_DEBUG_OUTLN("', no validator set!");
+			Py_RETURN_NONE;
+		}
+
+		PyObject* hb = PyObject_GetAttrString(auth_validator, methName);
+		if (! (hb && PyCallable_Check(hb))) {
+
+			SERIALUI_DEBUG_OUTLN("' NO SUCH CALLABLE");
+			Py_RETURN_NONE;
+
+		}
+
+		SERIALUI_DEBUG_OUTLN("', triggering");
+		PyObject * ret = PyObject_CallMethod(auth_validator, methName, format, args...);
+		SERIALUI_DEBUG_OUT("Got RESP: ");
+		SERIALUI_DEBUG_OUTLN(ret);
+		return ret;
+	}
+
+	/*
+	ItemPyObjectSet & authStorageSet() {
+		return auth_storage;
+	}
+	*/
+	// void removeAuthObject(PyObject * obj);
+
+	void setAuthStorage(PyObject *pobj) {
+		SERIALUI_DEBUG_OUT("OStore.setAuthStorage():" );
+		SERIALUI_DEBUG_OUTLN(pobj);
+	auth_storage = pobj;}
+	PyObject * authStorage() { return auth_storage;}
+
+
+	void setAuthValidator(PyObject *pobj) {
+		SERIALUI_DEBUG_OUT("OStore.setAuthValidator():");
+		SERIALUI_DEBUG_OUTLN(pobj);
+		auth_validator = pobj;}
+	PyObject * authValidator() { return auth_validator;}
+
 private:
 
 	void add(uint8_t forId, PyObject * obj, ItemPyObjectById & toMap);
@@ -54,6 +162,8 @@ private:
 
 	ItemPyObjectById inputs;
 	ItemPyObjectById commands;
+	PyObject * auth_storage;
+	PyObject * auth_validator;
 };
 
 extern ObjectsStore SUIPyObjectsStore;

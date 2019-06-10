@@ -36,11 +36,12 @@ void bleser_polltimer_handler(void* ignoreme) {
 */
 
 #define NRF52BLESerialRXPACKETSIZE		20
-#define NRF52BLESerialTXBUFSIZE			1024
+#define NRF52BLESerialTXBUFSIZE			512
 #define NRF52BLESerialTXBUFFLUSHSIZE	(NRF52BLESerialTXBUFSIZE - NRF52BLESerialRXPACKETSIZE)
 
-NRF52BLESerial::NRF52BLESerial() : _bleser(), rx_buf(1024), tx_buf(NRF52BLESerialTXBUFSIZE) ,
-		last_fill_ms(0)
+NRF52BLESerial::NRF52BLESerial() : _bleser(), rx_buf(256), tx_buf(NRF52BLESerialTXBUFSIZE) ,
+		last_fill_ms(0),
+		last_flush_ms(0)
 
 {
 	/*
@@ -132,6 +133,7 @@ void NRF52BLESerial::flush(void) {
 	uint8_t inbuf[20];
 
 	if (! tx_buf.getOccupied()) {
+
 		return;
 	}
 
@@ -159,9 +161,12 @@ void NRF52BLESerial::flush(void) {
 }
 
 size_t NRF52BLESerial::write(uint8_t b) {
-	if (tx_buf.getOccupied() >= NRF52BLESerialTXBUFFLUSHSIZE) {
+	uint32_t tNow = SUI_PLATFORM_TIMENOW_MS();
+	if ( ((tNow - last_flush_ms) > 100) || (tx_buf.getOccupied() >= NRF52BLESerialTXBUFFLUSHSIZE))  {
+		last_flush_ms = tNow;
 		flush();
 	}
+
 	return tx_buf.addItem(b);
 }
 

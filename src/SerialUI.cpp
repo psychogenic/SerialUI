@@ -23,7 +23,7 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 {
 
 #ifdef SUI_SERIALUI_ECHO_ON
-	_genFlags.echocomm()ands = true;
+	_genFlags.echo_commands = true;
 #endif
 
 }
@@ -173,6 +173,14 @@ void SerialUI::handleRequests(uint8_t maxRequests){
 #endif
 		}
 
+
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+		if (Globals::authenticator()
+		&& ! (Globals::authenticator()->accessIsAtLeast(Auth::Level::Guest))) {
+			return;
+		}
+#endif
+
 		// trigger heartbeat--after handling any pending requests
 		// so they don't interfere with any transactions coming in
 		triggerHeartbeat((timeNow));
@@ -228,6 +236,11 @@ void SerialUI::exit(bool terminate_gui){
 	_userLastInteractionMs = 0;
 	goToTopLevelMenu();
 	comm()->println(SUI_STR("Thanks for using SerialUI!"));
+#ifdef SERIALUI_AUTHENTICATOR_ENABLE
+	if (Globals::authenticator()) {
+		Globals::authenticator()->clearAccess();
+	}
+#endif
 
 }
 
