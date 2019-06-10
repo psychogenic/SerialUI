@@ -5,7 +5,7 @@
 
 #ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
 
-
+#include "../SerialUITypes.h"
 #include "../menuitem/items.h"
 #include "../tracked/tracked.h"
 #include "pyhelper.hpp"
@@ -60,6 +60,24 @@ public:
   bool trigger(Menu::Item::Command * cmd);
   bool trigger(Menu::Item::Request::Request * req);
 
+  bool isValidTrigger(Menu::Item::Request::Request * req, unsigned long val);
+  bool isValidTrigger(Menu::Item::Request::Request * req, long val);
+  bool isValidTrigger(Menu::Item::Request::Request * req, float val);
+  bool isValidTrigger(Menu::Item::Request::Request * req, bool val);
+  bool isValidTrigger(Menu::Item::Request::Request * req, TopLevelString & val);
+  /*
+  template<class VALTYPE>
+  bool isValidTrigger(Menu::Item::Request::Request * req, VALTYPE val) {
+	SERIALUI_DEBUG_OUT(F("ExternalModule::isValidTrigger() "));
+	if (!load()) {
+		SERIALUI_DEBUG_OUTLN(F("could not load"));
+		return true; // won't deny
+	}
+	SERIALUI_DEBUG_OUT(" for:");
+	SERIALUI_DEBUG_OUTLN(req->key());
+	return SUIPyObjectsStore.callValidatorOnInputs(req->id(), val);
+  }
+  */
 
   bool triggerHeartbeat();
   bool setHearbeatPeriod(unsigned long ms);

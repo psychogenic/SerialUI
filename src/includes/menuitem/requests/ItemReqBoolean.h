@@ -16,8 +16,8 @@ namespace SerialUI {
 namespace Menu {
 namespace Item {
 namespace Request {
-
-class Boolean : public TypedRequest<Type::Boolean, bool> {
+typedef TypedRequest<Type::Boolean, bool> BooleanBase;
+class Boolean : public BooleanBase {
 public:
 
 	Boolean(bool initVal=false, ValueChangedCallback vchng=NULL, ValidatorCallback validcb=NULL);
@@ -25,10 +25,13 @@ public:
 			StaticString help, ValueChangedCallback vchng=NULL, ValidatorCallback validcb=NULL);
 
 	virtual bool getValue(Menu * callingMenu, bool * v);
+
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(bool);
 };
 
 // TODO:FIXME typedef Boolean Toggle;
-class Toggle : public TypedRequest<Type::Toggle, bool> {
+typedef TypedRequest<Type::Toggle, bool> ToggleBase;
+class Toggle : public ToggleBase {
 public:
 
 	Toggle(bool initVal=false, ValueChangedCallback vchng=NULL, ValidatorCallback validcb=NULL);
@@ -36,6 +39,7 @@ public:
 			StaticString help, ValueChangedCallback vchng=NULL, ValidatorCallback validcb=NULL);
 
 	virtual bool getValue(Menu * callingMenu, bool * v);
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(bool);
 };
 
 } /* namespace Request */

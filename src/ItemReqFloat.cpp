@@ -12,6 +12,7 @@
 #include "includes/menuitem/requests/ItemReqFloat.h"
 #include "includes/SUIGlobals.h"
 
+
 namespace SerialUI {
 namespace Menu {
 namespace Item {
@@ -34,6 +35,8 @@ Float::Float(float initVal, ValueChangedCallback vchng, ValidatorCallback validc
 bool Float::getValue(Menu * callingMenu, float * v) {
 	return Globals::commSource()->getFloatFor(id(), v);
 }
+
+ITEMPYTHONOVERRIDE_VALIDATION(COUNTABLEREQCLASS_PARENT(Type::Float, float, Float), Float, float)
 
 
 } /* namespace Request */

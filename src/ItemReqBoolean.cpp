@@ -17,13 +17,13 @@ namespace Request {
 
 
 Boolean::Boolean(bool initVal, ValueChangedCallback vchng, ValidatorCallback validcb) :
-	TypedRequest<Type::Boolean, bool>(initVal, vchng, validcb)
+	BooleanBase(initVal, vchng, validcb)
 {
 
 }
 Boolean::Boolean(bool val, StaticString key,
 		StaticString help, ValueChangedCallback vchng, ValidatorCallback validcb) :
-	TypedRequest<Type::Boolean, bool>(val, key, help, vchng, validcb)
+	BooleanBase(val, key, help, vchng, validcb)
 {
 
 }
@@ -33,15 +33,17 @@ bool Boolean::getValue(Menu * callingMenu, bool * v) {
 }
 
 
+ITEMPYTHONOVERRIDE_VALIDATION(BooleanBase, Boolean, bool);
+
 
 Toggle::Toggle(bool initVal, ValueChangedCallback vchng, ValidatorCallback validcb) :
-	TypedRequest<Type::Toggle, bool>(initVal, vchng, validcb)
+	ToggleBase(initVal, vchng, validcb)
 {
 
 }
 Toggle::Toggle(bool val, StaticString key,
 		StaticString help, ValueChangedCallback vchng, ValidatorCallback validcb) :
-	TypedRequest<Type::Toggle, bool>(val, key, help, vchng, validcb)
+	ToggleBase(val, key, help, vchng, validcb)
 {
 
 }
@@ -50,6 +52,8 @@ bool Toggle::getValue(Menu * callingMenu, bool * v) {
 	return Globals::commSource()->getBoolFor(id(), v);
 }
 
+
+ITEMPYTHONOVERRIDE_VALIDATION(ToggleBase, Toggle, bool);
 
 
 } /* namespace Request */

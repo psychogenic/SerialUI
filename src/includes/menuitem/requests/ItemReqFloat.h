@@ -13,6 +13,7 @@
 
 #include "../ItemRequest.h"
 
+
 namespace SerialUI {
 namespace Menu {
 namespace Item {
@@ -28,6 +29,9 @@ public:
 
 
 	virtual bool getValue(Menu * callingMenu, float * v);
+
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(float);
+
 	COUTABLEREQCLASS_USINGALLOPS(Type::Float, float, Float);
 
 };

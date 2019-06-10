@@ -29,6 +29,9 @@ public:
 
 	virtual bool getValue(Menu * callingMenu, long int * v);
 
+
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(long int);
+
 	COUTABLEREQCLASS_USINGALLOPS(Type::LongInt, long int, Long);
 };
 

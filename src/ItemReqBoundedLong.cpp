@@ -83,6 +83,16 @@ void BoundedLong::ensureSaneBounds() {
 
 
 }
+
+
+
+ITEMPYTHONOVERRIDE_VALIDATION(COUNTABLEREQCLASS_PARENT(Type::BoundedLongInt, long int, BoundedLong),
+		BoundedLong, long int);
+
+
+
+
+
 } /* namespace Request */
 } /* namespace Item */
 } /* namespace Menu */

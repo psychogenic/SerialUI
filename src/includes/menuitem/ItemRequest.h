@@ -14,6 +14,9 @@
 #include "MenuItem.h"
 #include "../Menu.h"
 
+#include "requests/externalPythonValidation.h"
+
+
 namespace SerialUI {
 namespace Menu {
 namespace Item {
@@ -124,6 +127,14 @@ public:
 
 	virtual bool getValue(Menu * callingMenu, INPUTTYPE * v) = 0;
 
+	virtual bool externalValidation(INPUTTYPE & v) {
+		if (_validator && (!_validator(v))) {
+			return false;
+		}
+
+		return true;
+
+	}
 
 	virtual void call(Menu * callingMenu) {
 		callBegins();
@@ -137,7 +148,8 @@ public:
 				callEnds(false);
 				return;
 			}
-			if ( (_validator && (!_validator(v))) || (! this->valueIsValid(v)) ) {
+
+			if ( ! this->externalValidation(v) || (! this->valueIsValid(v)) ) {
 				callEnds(false);
 				return;
 			}

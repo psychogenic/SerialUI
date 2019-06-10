@@ -9,6 +9,19 @@
 
 #define SUIDRIVER() ((SerialUI*)driver)
 
+#define EXTMOD_CALLVALIDATOR_FOR(req, val) \
+	SERIALUI_DEBUG_OUT(F("ExternalModule::isValidTrigger() ")); \
+	if (!load()) {\
+		SERIALUI_DEBUG_OUTLN(F("could not load"));\
+		return true; /* won't deny */ \
+	} \
+	SERIALUI_DEBUG_OUT(" for:");\
+	SERIALUI_DEBUG_OUTLN(req->key());\
+	bool _retVal = SUIPyObjectsStore.callValidatorOnInputs(req->id(), val); \
+	if (_retVal) { SERIALUI_DEBUG_OUTLN(F("validator says all well")); } \
+	else { SERIALUI_DEBUG_OUTLN(F("validator says NAY")); }\
+	return _retVal
+
 namespace SerialUI {
 namespace Python {
 
@@ -115,6 +128,8 @@ bool ExternalModule::load() {
 			Globals::pythonModule()->triggerHeartbeat();
 		});
 
+	} else {
+		PyErr_Clear(); // doesn't matter
 	}
 
 	is_loaded = true;
@@ -177,22 +192,9 @@ bool ExternalModule::trigger(Menu::Item::Request::Request * req) {
 
 	SUIPyObjectsStore.callTriggeredOnInputs(req->id());
 	return true;
-
-/*
-
-	CPyObject pFunc = PyObject_GetAttrString(pHandler, req->key());
-	if (pFunc && PyCallable_Check(pFunc)) {
-		SERIALUI_DEBUG_OUTLN("Making call to obj");
-		CPyObject args = Py_BuildValue("(ss)", req->key(), req->help());
-
-		CPyObject pValue = PyObject_CallObject(pFunc, args);
-		return true;
-	} else {
-		SERIALUI_DEBUG_OUTLN("Could not find method");
-		return false;
-	}
-	*/
 }
+
+
 
 bool ExternalModule::trigger(Menu::Item::Command * cmd) {
 	SERIALUI_DEBUG_OUT(F("ExternalModule::trigger() "));
@@ -216,6 +218,35 @@ bool ExternalModule::trigger(Menu::Item::Command * cmd) {
 	*/
 
 }
+
+
+
+bool ExternalModule::isValidTrigger(Menu::Item::Request::Request * req,
+		unsigned long val) {
+	EXTMOD_CALLVALIDATOR_FOR(req, val);
+
+}
+bool ExternalModule::isValidTrigger(Menu::Item::Request::Request * req,
+		long val) {
+
+	EXTMOD_CALLVALIDATOR_FOR(req, val);
+}
+bool ExternalModule::isValidTrigger(Menu::Item::Request::Request * req,
+		float val) {
+	EXTMOD_CALLVALIDATOR_FOR(req, val);
+
+}
+bool ExternalModule::isValidTrigger(Menu::Item::Request::Request * req,
+		bool val) {
+	EXTMOD_CALLVALIDATOR_FOR(req, val);
+}
+
+bool ExternalModule::isValidTrigger(Menu::Item::Request::Request * req,
+		TopLevelString & val) {
+
+	EXTMOD_CALLVALIDATOR_FOR(req, val);
+}
+
 
 #ifdef SERIALUI_AUTHENTICATOR_ENABLE
 

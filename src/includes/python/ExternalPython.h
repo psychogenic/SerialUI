@@ -8,8 +8,6 @@
 #ifndef SERIALUI_SRC_INCLUDES_PYTHON_EXTERNALPYTHON_H_
 #define SERIALUI_SRC_INCLUDES_PYTHON_EXTERNALPYTHON_H_
 
-#include "ExternalModule.h"
-
 
 #ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
 
@@ -59,6 +57,13 @@ public:
 	void callTriggeredOnCommands(uint8_t forId);
 
 	void callTriggeredOnInputs(uint8_t forId);
+
+	bool callValidatorOnInputs(uint8_t forId, TopLevelString & val);
+	bool callValidatorOnInputs(uint8_t forId, float val);
+	bool callValidatorOnInputs(uint8_t forId, unsigned long val);
+	bool callValidatorOnInputs(uint8_t forId, long val);
+	bool callValidatorOnInputs(uint8_t forId, bool val);
+
 
 	void deleteEntryFor(uint8_t forId, PyObject * obj);
 

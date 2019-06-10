@@ -61,6 +61,47 @@
 #include <sstream>
 #include <string>
 
+
+#define OBSTORE_CALLVALIDATORONINPUTS(forId, vformat, val) \
+		ItemPyObjectSet inputsToNotify = inputsFor(forId); \
+			if (!inputsToNotify.size()) { \
+				SERIALUI_DEBUG_OUTLN("No python-side inputs for this req");\
+				return true; \
+			}\
+			for (ItemPyObjectSet::iterator it = inputsToNotify.begin(); \
+					it != inputsToNotify.end(); it++) { \
+				PyObject* theCb = PyObject_GetAttrString(*it, "isValid"); \
+				if (! (theCb && PyCallable_Check(theCb)) ) { \
+					SERIALUI_DEBUG_OUTLN("isValid not callable on this obj?"); \
+				} else { \
+					SERIALUI_DEBUG_OUTLN("Calling isValid() on python obj..."); \
+					PyObject * obj = PyObject_CallMethod(*it, "isValid", vformat, val); \
+					if (obj) {\
+						if (obj != Py_None) { \
+							if (PyBool_Check(obj)) { \
+								if (! PyObject_IsTrue(obj)) { \
+									SERIALUI_DEBUG_OUTLN("declared invalid!"); \
+									return false; \
+								} \
+							} else { \
+								SERIALUI_DEBUG_OUTLN("Call returned something non-boolean, ignoring"); \
+							}\
+						Py_DECREF(obj); \
+						} else { \
+							SERIALUI_DEBUG_OUTLN("Call returned noneness??"); \
+						} \
+					} else { \
+						if (PyErr_Occurred()) { \
+							SERIALUI_DEBUG_OUTLN("Call returned nothing at all?? error set"); \
+							PyErr_Print(); \
+						} else { \
+							SERIALUI_DEBUG_OUTLN("Call returned nothing at all?? NO ERROR SET?? UGH"); \
+						} \
+					} \
+				}\
+			}\
+			return true
+
 namespace SerialUI {
 namespace Python {
 
@@ -82,7 +123,20 @@ void ObjectsStore::callTriggeredOnCommands(uint8_t forId) {
 	for (ItemPyObjectSet::iterator it = commandsToTrip.begin();
 			it != commandsToTrip.end(); it++) {
 
-		PyObject_CallMethod(*it, "triggered", "()"); // TODO:FIXME am I leaking PyObjects here?
+		/*
+		PyObject* theCb = PyObject_GetAttrString(*it, "triggered");
+
+		if (! (theCb && PyCallable_Check(theCb)) ) {
+			SERIALUI_DEBUG_OUTLN("No triggered found for this command?");
+		} else {
+			// uuugh
+		}
+		*/
+
+		PyObject * retObj = PyObject_CallMethod(*it, "triggered", "()");
+		if (retObj) {
+			Py_DECREF(retObj);
+		}
 	}
 	// Py_END_ALLOW_THREADS
 }
@@ -97,9 +151,39 @@ void ObjectsStore::callTriggeredOnInputs(uint8_t forId) {
 	for (ItemPyObjectSet::iterator it = inputsToNotify.begin();
 			it != inputsToNotify.end(); it++) {
 
-		PyObject_CallMethod(*it, "changed", "()"); // TODO:FIXME am I leaking PyObjects here?
+		PyObject * retObj = PyObject_CallMethod(*it, "changed", "()");
+		if (retObj) {
+			Py_DECREF(retObj);
+		}
 	}
 
+}
+
+
+bool ObjectsStore::callValidatorOnInputs(uint8_t forId, bool val) {
+	SERIALUI_DEBUG_OUTLN("callValidatorOnInputs(BOOL)");
+	OBSTORE_CALLVALIDATORONINPUTS(forId, "(i)", (val ? 1 : 0));
+}
+
+
+bool ObjectsStore::callValidatorOnInputs(uint8_t forId, long val) {
+	SERIALUI_DEBUG_OUTLN("callValidatorOnInputs(LONG)");
+	OBSTORE_CALLVALIDATORONINPUTS(forId, "(l)", val);
+}
+
+bool ObjectsStore::callValidatorOnInputs(uint8_t forId, float val) {
+	SERIALUI_DEBUG_OUTLN("callValidatorOnInputs(FLOAT)");
+	OBSTORE_CALLVALIDATORONINPUTS(forId, "(f)", val);
+}
+bool ObjectsStore::callValidatorOnInputs(uint8_t forId, unsigned long val) {
+	SERIALUI_DEBUG_OUTLN("callValidatorOnInputs(ULONG)");
+	OBSTORE_CALLVALIDATORONINPUTS(forId, "(k)", val);
+}
+
+bool ObjectsStore::callValidatorOnInputs(uint8_t forId,
+		TopLevelString & val) {
+	SERIALUI_DEBUG_OUTLN("callValidatorOnInputs(STR)");
+	OBSTORE_CALLVALIDATORONINPUTS(forId, "(s)", val.c_str());
 }
 
 void ObjectsStore::deleteEntryFor(uint8_t forId, PyObject * obj) {
@@ -522,6 +606,7 @@ static long pysui_doprint(PyObject* args, PyObject *printme) {
 	// BOOLEAN
 	if (PyBool_Check(printme)) {
 		if (PyObject_IsTrue(printme)) {
+
 			SerialUI::Globals::commChannel()->print((int)1);
 		} else {
 			SerialUI::Globals::commChannel()->print((int)0);
@@ -921,17 +1006,51 @@ SUIInputWrapper_setValue(SUIInputWrapperObject *self, PyObject * args) {
 	}
 
 }
+
+
+static PyObject *
+SUIInputWrapper_isValid(SUIInputWrapperObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUT("input isValid() ");
+	if (self->callbacks[1]) {
+		SERIALUI_DEBUG_OUTLN("Have callback set, triggering that");
+		return PyObject_CallObject(self->callbacks[1], args);
+	}
+	SERIALUI_DEBUG_OUTLN("Default isValid() triggered");
+
+	Py_RETURN_TRUE;
+
+}
+
 static PyObject *
 SUIInputWrapper_changed(SUIInputWrapperObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUT("input changed() ");
 	if (self->callbacks[0]) {
 		SERIALUI_DEBUG_OUTLN("Have callback set, triggering that");
 		return PyObject_CallObject(self->callbacks[0], nullptr);
-	} else {
-
-		SERIALUI_DEBUG_OUTLN("Default changed() triggered");
 	}
 
+	SERIALUI_DEBUG_OUTLN("Default changed() triggered");
+
 	Py_RETURN_NONE;
+}
+
+
+static PyObject *
+SUIInputWrapper_setValidator(SUIInputWrapperObject *self, PyObject * args) {
+	SERIALUI_DEBUG_OUTLN("input setValidator");
+	PyObject * callback;
+	if (PyArg_UnpackTuple(args, "ref", 1, 1, &callback)) {
+
+		if (PyCallable_Check(callback)) {
+			Py_INCREF(callback);
+			if (self->callbacks[1]) {
+				Py_DECREF(self->callbacks[1]);
+			}
+			self->callbacks[1] = callback;
+			Py_RETURN_TRUE;
+		}
+    }
+	Py_RETURN_FALSE;
 }
 
 static PyObject *
@@ -961,7 +1080,11 @@ static PyMethodDef SUIInputWrapper_methods[] = {
 				"Return the current value of the input" },
 		{ "setValue", (PyCFunction) SUIInputWrapper_setValue, METH_VARARGS,
 						"Set the current value of the input" },
-
+	    {"isValid", (PyCFunction) SUIInputWrapper_isValid, METH_VARARGS,
+				"Confirm whether the passed value is actually acceptable" },
+		{"setValidator", (PyCFunction)SUIInputWrapper_setValidator,
+						METH_VARARGS,
+						"set method triggered to validate changes" },
 		{ "changed", (PyCFunction) SUIInputWrapper_changed, METH_NOARGS,
 				"method triggered on change" },
 		{"setOnChange", (PyCFunction)SUIInputWrapper_setOnChange,

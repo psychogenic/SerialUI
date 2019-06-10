@@ -33,6 +33,7 @@ public:
 	virtual bool getValue(Menu * callingMenu, unsigned long int * v);
 
 
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(unsigned long int);
 	COUTABLEREQCLASS_USINGALLOPS(Type::UnsignedLongInt, unsigned long int, UnsignedLong);
 
 

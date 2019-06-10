@@ -44,6 +44,8 @@ public:
 
 	COUTABLEREQCLASS_USINGALLOPS(Type::BoundedLongInt, long int, BoundedLong);
 
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(long int);
+
 protected:
 	inline void setMinimum(long int i) { _minAllowed = i;}
 	inline void setMaximum(long int i) { _maxAllowed = i;}

@@ -20,7 +20,7 @@ String::String(TopLevelString initVal,
 		StaticString help, uint8_t maxlen,
 		ValueChangedCallback vchng,
 		ValidatorCallback validcb) :
-				TypedRequest<Type::String, TopLevelString>(initVal, key, help,
+		ReqStringBase(initVal, key, help,
 						vchng, validcb),
 						_maxLen(maxlen)
 {
@@ -31,7 +31,7 @@ String::String(TopLevelString initVal,
 String::String(uint8_t maxlen,
 		ValueChangedCallback vchng,
 		ValidatorCallback validcb) :
-				TypedRequest<Type::String, TopLevelString>("", vchng, validcb),
+		ReqStringBase("", vchng, validcb),
 						_maxLen(maxlen)
 {
 
@@ -42,7 +42,7 @@ String::String(
 		StaticString help, uint8_t maxlen,
 		ValueChangedCallback vchng,
 		ValidatorCallback validcb) :
-				TypedRequest<Type::String, TopLevelString>("", key, help,
+		ReqStringBase("", key, help,
 						vchng, validcb),
 						_maxLen(maxlen)
 {
@@ -56,6 +56,10 @@ bool String::getValue(Menu * callingMenu, TopLevelString * v) {
 	}
 	return false;
 }
+
+
+ITEMPYTHONOVERRIDE_VALIDATION(ReqStringBase, String, TopLevelString)
+
 
 
 } /* namespace Request */

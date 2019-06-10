@@ -127,6 +127,8 @@ bool SubMenu::interruptProcessingForAccessControl() {
 SubMenu * SubMenu::handleRequest() {
 	Comm::Request nextReq;
 
+	Globals::state()->clearCurrentRequestContext();
+
 #ifdef SERIALUI_AUTHENTICATOR_ENABLE
 	if (interruptProcessingForAccessControl()) {
 		// we had to output some access control stuff...
@@ -159,7 +161,7 @@ SubMenu * SubMenu::handleRequest() {
 		}
 
 		nextReq.trigger(this);
-		Globals::state()->clearCurrentRequestContext();
+		// Globals::state()->clearCurrentRequestContext();
 		Globals::commChannel()->printCommandProcessingDone();
 		Globals::commSource()->poll();
 		return Globals::state()->currentMenu();

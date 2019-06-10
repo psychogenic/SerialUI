@@ -32,6 +32,11 @@ bool Long::getValue(Menu * callingMenu, long int * v) {
 	return Globals::commSource()->getLongIntFor(id(), v);
 }
 
+ITEMPYTHONOVERRIDE_VALIDATION(COUNTABLEREQCLASS_PARENT(Type::LongInt, long int, Long),
+		Long, long int)
+
+
+
 } /* namespace Request */
 } /* namespace Item */
 } /* namespace Menu */

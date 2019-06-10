@@ -36,6 +36,10 @@ bool UnsignedLong::getValue(Menu * callingMenu, unsigned long int * v) {
 	return Globals::commSource()->getLongUIntFor(id(), v);
 }
 
+
+ITEMPYTHONOVERRIDE_VALIDATION(COUNTABLEREQCLASS_PARENT(Type::UnsignedLongInt, unsigned long int, UnsignedLong),
+		UnsignedLong, unsigned long int);
+
 } /* namespace Request */
 } /* namespace Item */
 } /* namespace Menu */

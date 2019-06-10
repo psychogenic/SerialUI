@@ -17,7 +17,10 @@ namespace Menu {
 namespace Item {
 namespace Request {
 
-class String : public TypedRequest<Type::String, TopLevelString> {
+typedef TypedRequest<Type::String, TopLevelString> ReqStringBase;
+
+
+class String : public ReqStringBase {
 public:
 
 	String(uint8_t maxlen, ValueChangedCallback vchng=NULL,
@@ -36,6 +39,9 @@ public:
 
 	uint8_t maximumLength() { return _maxLen;}
 	virtual bool getValue(Menu * callingMenu, TopLevelString * v);
+
+
+	ITEMPYTHONOVERRIDE_VALIDATION_DECL(TopLevelString);
 
 private:
 	uint8_t _maxLen;
