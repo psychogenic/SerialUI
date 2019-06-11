@@ -371,6 +371,20 @@ public:
 	virtual Auth::Level::Value grantAccess(Auth::ChallengeResponse resp) {
 		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValid.grantAccess()");
 		SERIALUI_DEBUG_OUTLN(resp);
+
+		// first, just check that this value is sane
+		PyObject * val = Py_BuildValue("(s)", resp);
+		if (val) {
+			// ok, all well
+			Py_DECREF(val); // get rid of this.
+		} else {
+			SERIALUI_DEBUG_OUTLN("Could not build a value with this 'challenge response'?");
+			if (PyErr_Occurred()) {
+				PyErr_Print();
+			}
+			return Auth::Level::NoAccess;
+		}
+
 		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("grantAccess", "(s)", resp);
 		if ((!retObj) || retObj == Py_None) {
 			SERIALUI_DEBUG_OUTLN("No ret/ret none");

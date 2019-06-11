@@ -2,7 +2,12 @@
  * ExternalPython.h
  *
  *  Created on: May 11, 2019
- *      Author: malcalypse
+ *      Author: Pat Deegan
+ *
+ *  Part of the SerialUI project.
+ *  Copyright (C) 2019 Pat Deegan, https://psychogenic.com
+ *  More information on licensing and usage at 
+ *  https://devicedruid.com/
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_PYTHON_EXTERNALPYTHON_H_
@@ -107,7 +112,17 @@ public:
 
 		}
 		SERIALUI_DEBUG_OUTLN("', triggering");
-		return PyObject_CallMethod(auth_storage, methName, format, args...);
+		PyObject * ret = PyObject_CallMethod(auth_storage, methName, format, args...);
+		if (ret) {
+			SERIALUI_DEBUG_OUT("Got RESP: ");
+			SERIALUI_DEBUG_OUTLN(ret);
+		} else {
+			SERIALUI_DEBUG_OUTLN("No RESP!  Problem calling meth on authstorage");
+			if (PyErr_Occurred()) {
+				PyErr_Print();
+			}
+		}
+		return ret;
 	}
 
 	template<typename... Args>		// var args
@@ -135,8 +150,16 @@ public:
 
 		SERIALUI_DEBUG_OUTLN("', triggering");
 		PyObject * ret = PyObject_CallMethod(auth_validator, methName, format, args...);
-		SERIALUI_DEBUG_OUT("Got RESP: ");
-		SERIALUI_DEBUG_OUTLN(ret);
+
+		if (ret) {
+			SERIALUI_DEBUG_OUT("Got RESP: ");
+			SERIALUI_DEBUG_OUTLN(ret);
+		} else {
+			SERIALUI_DEBUG_OUTLN("No RESP!  Problem calling meth on authvalidator");
+			if (PyErr_Occurred()) {
+				PyErr_Print();
+			}
+		}
 		return ret;
 	}
 

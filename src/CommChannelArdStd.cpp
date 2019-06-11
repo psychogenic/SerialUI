@@ -872,6 +872,7 @@ size_t ChannelModeProg::printAccessConfigureRequest(Auth::Authenticator * auth) 
 	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_AUTHENTICATION_START);
 	PROGCHANNEL_OUTFIELD(SerialUI::Auth::Request::Type::Setup);
 	PROGCHANNEL_OUTFIELD(SERIAL_UI_PROGCHANFIELD_AUTHENTICATION_END);
+	retsize += printHelpListEnd(Globals::menuStructure()->topLevelMenu());
 	return retsize + 3;
 }
 #endif

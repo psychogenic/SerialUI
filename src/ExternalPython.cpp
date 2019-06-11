@@ -61,6 +61,12 @@
 #include <sstream>
 #include <string>
 
+#define SUIPY_CALLOBJECT_REPORTERROR() \
+		if (PyErr_Occurred()) { \
+				SERIALUI_DEBUG_OUTLN("Callobject returned error"); \
+				PyErr_Print(); \
+			}
+
 
 #define OBSTORE_CALLVALIDATORONINPUTS(forId, vformat, val) \
 		ItemPyObjectSet inputsToNotify = inputsFor(forId); \
@@ -136,6 +142,8 @@ void ObjectsStore::callTriggeredOnCommands(uint8_t forId) {
 		PyObject * retObj = PyObject_CallMethod(*it, "triggered", "()");
 		if (retObj) {
 			Py_DECREF(retObj);
+		} else {
+			SUIPY_CALLOBJECT_REPORTERROR();
 		}
 	}
 	// Py_END_ALLOW_THREADS
@@ -154,6 +162,8 @@ void ObjectsStore::callTriggeredOnInputs(uint8_t forId) {
 		PyObject * retObj = PyObject_CallMethod(*it, "changed", "()");
 		if (retObj) {
 			Py_DECREF(retObj);
+		} else {
+			SUIPY_CALLOBJECT_REPORTERROR();
 		}
 	}
 
@@ -189,24 +199,28 @@ bool ObjectsStore::callValidatorOnInputs(uint8_t forId,
 void ObjectsStore::deleteEntryFor(uint8_t forId, PyObject * obj) {
 
 	if (commands.find(forId) != commands.end()) {
+		/*
 		for (ItemPyObjectSet::iterator it = commands[forId].begin();
 				it != commands[forId].end(); it++) {
 			if (*it == obj) {
 				// Py_DECREF(obj);
 			}
 		}
+		*/
 
 		SERIALUI_DEBUG_OUTLN("Store ERASE command " << obj);
 		commands[forId].erase(obj);
 
 	}
 	if (inputs.find(forId) != inputs.end()) {
+		/*
 		for (ItemPyObjectSet::iterator it = inputs[forId].begin();
 				it != inputs[forId].end(); it++) {
 			if (*it == obj) {
 				// Py_DECREF(obj);
 			}
 		}
+		*/
 		SERIALUI_DEBUG_OUTLN("Store ERASE input " << obj);
 		// if (! obj->ob_refcnt) {
 		inputs[forId].erase(obj);
@@ -731,6 +745,8 @@ static PyObject* pysui_top(PyObject* self, PyObject* args) {
 	PyObject *argList = Py_BuildValue("si", topMen->key(), topMen->id());
 
 	PyObject* retVal = PyObject_CallObject((PyObject *) &SUIItemContainerType, argList);
+	SUIPY_CALLOBJECT_REPORTERROR();
+
 	Py_DECREF(argList);
 	return retVal;
 }
@@ -1013,7 +1029,13 @@ SUIInputWrapper_isValid(SUIInputWrapperObject *self, PyObject * args) {
 	SERIALUI_DEBUG_OUT("input isValid() ");
 	if (self->callbacks[1]) {
 		SERIALUI_DEBUG_OUTLN("Have callback set, triggering that");
-		return PyObject_CallObject(self->callbacks[1], args);
+		PyObject * retObj = PyObject_CallObject(self->callbacks[1], args);
+		if (retObj) {
+			return retObj;
+		} else {
+			SUIPY_CALLOBJECT_REPORTERROR();
+			Py_RETURN_TRUE;
+		}
 	}
 	SERIALUI_DEBUG_OUTLN("Default isValid() triggered");
 
@@ -1026,7 +1048,13 @@ SUIInputWrapper_changed(SUIInputWrapperObject *self, PyObject * args) {
 	SERIALUI_DEBUG_OUT("input changed() ");
 	if (self->callbacks[0]) {
 		SERIALUI_DEBUG_OUTLN("Have callback set, triggering that");
-		return PyObject_CallObject(self->callbacks[0], nullptr);
+		PyObject * retObj = PyObject_CallObject(self->callbacks[0], nullptr);
+		if (retObj) {
+			return retObj;
+		} else {
+			SUIPY_CALLOBJECT_REPORTERROR();
+			Py_RETURN_NONE;
+		}
 	}
 
 	SERIALUI_DEBUG_OUTLN("Default changed() triggered");
@@ -1083,13 +1111,11 @@ static PyMethodDef SUIInputWrapper_methods[] = {
 	    {"isValid", (PyCFunction) SUIInputWrapper_isValid, METH_VARARGS,
 				"Confirm whether the passed value is actually acceptable" },
 		{"setValidator", (PyCFunction)SUIInputWrapper_setValidator,
-						METH_VARARGS,
-						"set method triggered to validate changes" },
-		{ "changed", (PyCFunction) SUIInputWrapper_changed, METH_NOARGS,
-				"method triggered on change" },
+						METH_VARARGS, "set method triggered to validate changes" },
+		{ "changed", (PyCFunction) SUIInputWrapper_changed,
+						METH_NOARGS, "method triggered on change" },
 		{"setOnChange", (PyCFunction)SUIInputWrapper_setOnChange,
-						METH_VARARGS,
-						"set method triggered on change" },
+						METH_VARARGS, "set method triggered on change" },
 
 
 		{ NULL } /* Sentinel */
@@ -1177,7 +1203,13 @@ static PyObject *
 SUICommandWrapper_triggered(SUICommandWrapperObject *self, PyObject * args) {
 	if (self->callbacks[0]) {
 		SERIALUI_DEBUG_OUTLN("Calling trigger override");
-		return PyObject_CallObject(self->callbacks[0], nullptr);
+		PyObject * retObj = PyObject_CallObject(self->callbacks[0], nullptr);
+		if (retObj) {
+			return retObj;
+		} else {
+			SUIPY_CALLOBJECT_REPORTERROR();
+			Py_RETURN_NONE;
+		}
 	} else {
 		SERIALUI_DEBUG_OUTLN("Default command trigger()");
 	}
@@ -1248,8 +1280,8 @@ static int SUIItemContainer_init(SUIItemContainerObject *self, PyObject *args,
 	  SERIALUI_DEBUG_OUTLN("SUIItemContainer_init itm " << (int)self->id << " is not a container");
 
 
-		PyErr_SetString(PyExc_RuntimeError, "no such submenu/container");
-	  return -1;
+	PyErr_SetString(PyExc_RuntimeError, "no such submenu/container");
+	return -1;
   }
   self->container = submen;
 
@@ -1265,6 +1297,7 @@ SUIItemContainer_children(SUIItemContainerObject *self, PyObject * args) {
 	PyObject * childList = PyList_New(0);
 
 	if (! childList) {
+		PyErr_SetString(PyExc_RuntimeError, "can't alloc new list");
 		Py_RETURN_NONE;
 	}
 
@@ -1272,8 +1305,8 @@ SUIItemContainer_children(SUIItemContainerObject *self, PyObject * args) {
 		SerialUI::Menu::Item::Item * itm = self->container->itemByIndex(i);
 
 		PyObject *argList = Py_BuildValue("si", itm->key(), itm->id());
-
 		PyObject * curObj = NULL;
+
 
 		switch (itm->type()) {
 		case SerialUI::Menu::Item::Type::Input:
@@ -1308,6 +1341,7 @@ SUIItemContainer_children(SUIItemContainerObject *self, PyObject * args) {
 			Py_DECREF(curObj);
 			// std::cerr << "APPENDED OBJ TO LIST, ref:" << curObj->ob_refcnt << std::endl;
 		}
+		SUIPY_CALLOBJECT_REPORTERROR();
 
 		/* Release the argument list. */
 		Py_DECREF(argList);
@@ -1998,6 +2032,8 @@ static PyObject* pysui_trackers(PyObject* self, PyObject* args) {
 			PyList_Append(myTrackers, curObj);
 			Py_DECREF(curObj);
 			// std::cerr << "APPENDED OBJ TO LIST, ref:" << curObj->ob_refcnt << std::endl;
+		} else {
+			SUIPY_CALLOBJECT_REPORTERROR();
 		}
 
 		/* Release the argument list. */
