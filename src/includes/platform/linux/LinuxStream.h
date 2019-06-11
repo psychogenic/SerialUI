@@ -2,7 +2,11 @@
  * LinuxStream.h
  *
  *  Created on: Apr 27, 2019
- *      Author: malcalypse
+ *      Author: Pat Deegan
+ *
+ *  Part of the SerialUI project.
+ *  More information on licensing and usage at 
+ *  https://devicedruid.com/
  */
 
 #ifndef SERIALUI_SRC_INCLUDES_PLATFORM_LINUX_LINUXSTREAM_H_

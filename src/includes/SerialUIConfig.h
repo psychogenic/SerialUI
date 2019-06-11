@@ -42,7 +42,7 @@
 
 
 #define SERIAL_UI_VERSION              3
-#define SERIAL_UI_SUBVERSION           1
+#define SERIAL_UI_SUBVERSION           2
 #define SERIAL_UI_PATCHLEVEL           0
 
 
@@ -58,6 +58,8 @@
                                                                                         (SERIAL_UI_VERSION > v))
 
 
+#define SERIALUI_AUTH_PASSPHRASE_MINLEN		5
+#define SERIALUI_AUTH_PASSPHRASE_MAXLEN		64
 
 // #define SERIALUI_ENABLE_DEBUG_OUTPUT
 

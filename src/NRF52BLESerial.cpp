@@ -2,8 +2,14 @@
  * NRF52BLESerial.cpp
  *
  *  Created on: May 12, 2019
- *      Author: malcalypse
+ *      Author: Pat Deegan
+ *
+ *  Part of the SerialUI project.
+ *  Copyright (C) 2018-2019 Pat Deegan, https://psychogenic.com
+ *  More information on licensing and usage at 
+ *  https://devicedruid.com/
  */
+
 
 
 #include "includes/SerialUIPlatform.h"

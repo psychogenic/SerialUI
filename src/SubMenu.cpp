@@ -69,7 +69,7 @@ bool SubMenu::interruptProcessingForAccessControl() {
 
 	Auth::Authenticator * auth = Globals::authenticator();
 	if (auth) {
-		char inBuf[64];
+		char inBuf[SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2];
 		Comm::Request theReq;
 		if (auth->configured()) {
 			if (! auth->accessIsAtLeast(Auth::Level::Guest)) {
@@ -77,7 +77,7 @@ bool SubMenu::interruptProcessingForAccessControl() {
 				// access request
 				// first, though, check if we just got a valid password
 				// on input
-				Globals::commChannel()->readUntilEOF(inBuf, 64, true);
+				Globals::commChannel()->readUntilEOF(inBuf, SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2, true);
 				SERIALUI_DEBUG_OUTLN(F("Checking for builtin"));
 				if (Globals::commChannel()->getBuiltinRequest(inBuf, &theReq)) {
 					if (theReq.isForBuiltIn()
@@ -107,10 +107,10 @@ bool SubMenu::interruptProcessingForAccessControl() {
 
 			// authenticator set, but not configured
 			// must output request to configure
-			memset(inBuf, 0, 64);
+			memset(inBuf, 0, SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2);
 
 			Globals::commChannel()->printAccessConfigureRequest(auth);
-			if (Globals::commChannel()->readUntilEOF(inBuf, 64, true) > 3) {
+			if (Globals::commChannel()->readUntilEOF(inBuf, SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2, true) > SERIALUI_AUTH_PASSPHRASE_MINLEN) {
 				auth->setPassphrase(inBuf, Auth::Level::User);
 				auth->grantAccess(inBuf);
 			}
