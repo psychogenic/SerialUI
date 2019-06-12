@@ -400,6 +400,7 @@ typedef struct { \
 	uint8_t id; \
 	baseType * sui_item; \
 	typeEnum type; \
+	uint8_t valuetype; \
 	itmType * itmAccessor; \
 	PyObject * callbacks[SUIPY_WRAPPER_MAXCALLBACKS]; \
 } basename##Object; \
@@ -408,6 +409,7 @@ static PyMemberDef basename##_members[] = { \
 		{ "help", T_OBJECT_EX, offsetof(basename##Object, help), 0, "help string" }, \
 		{ "id", T_INT, offsetof(basename##Object, id), 0, "item id" }, \
 		{ "type", T_INT, offsetof(basename##Object, type), 0, "item type id" }, \
+		{ "valuetype", T_INT, offsetof(basename##Object, valuetype), 0, "item valuetype id" }, \
 		{ NULL } \
 }; \
 static PyObject * basename##_new(PyTypeObject *type,  \
@@ -430,6 +432,7 @@ static PyObject * basename##_new(PyTypeObject *type,  \
 			self->callbacks[i] = NULL; \
 		}\
 		self->id = 0; \
+		self->valuetype = 0; \
 		self->sui_item = NULL; \
 		self->itmAccessor = NULL; \
 	} \
@@ -807,6 +810,7 @@ static int SUIInputWrapper_init(SUIInputWrapperObject *self, PyObject *args,
   self->sui_item = itm;
   self->id = itm->id();
   self->type = itm->type();
+
   SERIALUI_DEBUG_OUTLN("Init request obj for id " << (int)self->id);
   SerialUI::Python::SUIPyObjectsStore.addInput(self->id, (PyObject*)self);
 
@@ -818,6 +822,7 @@ static int SUIInputWrapper_init(SUIInputWrapperObject *self, PyObject *args,
 	  return -1;
   }
   self->request = req;
+  self->valuetype = (uint8_t)(req->requestType());
 
   return 0;
 }
@@ -1216,6 +1221,18 @@ SUICommandWrapper_triggered(SUICommandWrapperObject *self, PyObject * args) {
 	Py_RETURN_NONE;
 }
 
+static PyObject *
+SUICommandWrapper_dotrigger(SUICommandWrapperObject *self, PyObject * args) {
+	if (self->command) {
+		SERIALUI_DEBUG_OUTLN("Actually triggering command");
+		self->command->call(SerialUI::Globals::state()->currentMenu());
+		Py_RETURN_TRUE;
+	}
+
+	Py_RETURN_FALSE;
+
+}
+
 
 /*
  * SUIItemContainer methods listing
@@ -1225,9 +1242,9 @@ static PyMethodDef SUICommandWrapper_methods[] = {
 		{ "triggered", (PyCFunction) SUICommandWrapper_triggered, METH_NOARGS,
 				"Called when command is triggered" },
 		{ "setOnTriggered", (PyCFunction) SUICommandWrapper_setOnTrigger, METH_VARARGS,
-						"Override tiggered() callback" },
-
-
+						"Override triggered() callback" },
+		{ "trigger", (PyCFunction) SUICommandWrapper_dotrigger, METH_NOARGS,
+				"Manually trigger this command" },
 		{ NULL } /* Sentinel */
 };
 
@@ -1772,6 +1789,7 @@ static int SUITrackedState_init(SUITrackedStateObject *self, PyObject *args,
 	self->state_obj = self->sui_item;
 	self->id = self->sui_item->id();
 	self->type = self->state_obj->type();
+	self->valuetype = (uint8_t)self->type;
 
 	return 0;
 }

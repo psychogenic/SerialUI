@@ -64,11 +64,12 @@ ExternalModule::~ExternalModule() {
 }
 
 bool ExternalModule::load() {
-	SERIALUI_DEBUG_OUTLN(F("EXT MOD LOAD"));
+
 	if (is_loaded) {
-		SERIALUI_DEBUG_OUTLN(F("already loaded"));
 		return true;
 	}
+
+	SERIALUI_DEBUG_OUTLN(F("EXT MOD LOAD"));
 	if (load_attempted) {
 		SERIALUI_DEBUG_OUTLN(F("already attempted to load (and failed)"));
 		return false;
@@ -95,6 +96,10 @@ bool ExternalModule::load() {
 	pModule = PyImport_Import(pName);
 	if (!pModule) {
 		SERIALUI_DEBUG_OUTLN("Failed to load module!");
+
+		if (PyErr_Occurred()) {
+			PyErr_Print();
+		}
 		return false;
 	}
 	SERIALUI_DEBUG_OUTLN("loaded module!");
@@ -102,24 +107,38 @@ bool ExternalModule::load() {
 	// dict is a borrowed reference.
 	CPyObject dict = PyModule_GetDict(pModule);
 	if (!dict) {
-		PyErr_Print();
+		if (PyErr_Occurred()) {
+			PyErr_Print();
+		}
 		SERIALUI_DEBUG_OUTLN("Couldn't get dict");
 		return false;
 	}
 	CPyObject pHandlerName = PyDict_GetItemString(dict, "SerialUIHandler");
 	if (!pHandlerName) {
-		PyErr_Print();
+		if (PyErr_Occurred()) {
+			PyErr_Print();
+		}
 		SERIALUI_DEBUG_OUTLN("Couldn't get SerialUIHandler name");
 		return 1;
 	}
 	if (PyCallable_Check(pHandlerName)) {
 		pHandler = PyObject_CallObject(pHandlerName, nullptr);
+		if (! pHandler) {
+			if (PyErr_Occurred()) {
+				PyErr_Print();
+			}
+
+			return false;
+		}
 		PyDict_SetItem(dict, Py_BuildValue("s", "HANDLER"), pHandler);
 
 	} else {
 		SERIALUI_DEBUG_OUTLN("Couldn't instantiate SerialUIHandler");
-		return 1;
+		return false;
 	}
+
+	is_loaded = true;
+
 
 	PyObject* hb = PyObject_GetAttrString(pHandler, "heartbeat");
 	if (hb && PyCallable_Check(hb)) {
@@ -129,10 +148,17 @@ bool ExternalModule::load() {
 		});
 
 	} else {
-		PyErr_Clear(); // doesn't matter
+		PyErr_Clear(); // not implemented, doesn't matter
 	}
 
-	is_loaded = true;
+	CPyObject loadedCallback = PyObject_GetAttrString(pHandler, "loaded");
+	if (loadedCallback && PyCallable_Check(loadedCallback)) {
+		CPyObject loadedRet = PyObject_CallObject(loadedCallback, nullptr);
+
+	} else {
+		PyErr_Clear(); // not implemented, doesn't matter
+	}
+
 	return true;
 
 }
@@ -197,7 +223,7 @@ bool ExternalModule::trigger(Menu::Item::Request::Request * req) {
 
 
 bool ExternalModule::trigger(Menu::Item::Command * cmd) {
-	SERIALUI_DEBUG_OUT(F("ExternalModule::trigger() "));
+	SERIALUI_DEBUG_OUT(F("ExternalModule::trigger() cmd "));
 	if (!load()) {
 		SERIALUI_DEBUG_OUTLN(F("could not load"));
 		return false;
