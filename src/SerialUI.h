@@ -8,6 +8,24 @@
  *  Copyright (C) 2014-2019 Pat Deegan, https://psychogenic.com
  *  More information on licensing and usage at
  *  https://devicedruid.com/
+ *
+ *  SerialUI provides an embedded/host-side user interface, comprised of menus
+ *  consisting of
+ *   - commands (orders to take action);
+ *   - inputs (user-supplied data, as text or numeric values);
+ *   - data views (various views of evolving state); and
+ *   - sub-menus containing more of the above;
+ *
+ *  What the host does with the data, or when commands are received
+ *  from the user, is up to the programmer implementing the body of the
+ *  various callbacks that are triggered in response.
+ *
+ *  SerialUI is designed to provide both "raw" (low-level) access to the
+ *  functionality, through e.g. a USB serial connection, and to allow for
+ *  programatic access through the device druid client application.
+ *
+ *  See https://devicedruid.com/ for more info.
+ *
  */
 
 #ifndef SERIALUIV3_SRC_SERIALUI_H_
