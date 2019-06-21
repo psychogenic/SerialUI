@@ -19,6 +19,26 @@
 
 namespace SerialUI {
 
+
+typedef union GeneralStateFlagsU {
+	struct {
+		bool user_present :1;
+		bool user_check_performed :1;
+		bool response_transmitted :1;
+		bool echo_commands :1;
+		bool menu_manual_override :1;
+		bool user_just_arrived: 1;
+		bool always_heartbeat: 1;
+		bool should_exit :1;
+	};
+	uint8_t flags;
+	GeneralStateFlagsU(uint8_t v) :
+			flags(v) {
+	}
+
+
+} GeneralStateFlags;
+
 class State {
 public:
 	typedef enum {
@@ -53,6 +73,10 @@ public:
 	StaticString greeting() { return _greetingMsg;}
 	void setUID(StaticString u);
 	StaticString uid() { return _uid;}
+
+	GeneralStateFlags & flags() { return _stateflags;}
+	bool userPresent() { return _stateflags.user_present;}
+	void setShouldExit(bool setTo=true) { _stateflags.should_exit = setTo;}
 private:
 	Activity _currentActivity;
 	Menu::Item::ID _currentMenuId;
@@ -62,6 +86,7 @@ private:
 	Mode::Selection _mode;
 	StaticString _greetingMsg;
 	StaticString _uid;
+	GeneralStateFlags _stateflags;
 
 
 

@@ -16,6 +16,7 @@
 #include "comm/ChannelManager.h"
 #include "SerialUIPlatform.h"
 #include "tracked/tracked.h"
+#include "SUIGlobals.h"
 
 #include  <string.h>
 
@@ -25,22 +26,6 @@
 namespace SerialUI {
 
 
-typedef union GeneralStateFlagsU {
-	struct {
-		bool user_present :1;
-		bool user_check_performed :1;
-		bool response_transmitted :1;
-		bool echo_commands :1;
-		bool menu_manual_override :1;
-		bool user_just_arrived: 1;
-		bool always_heartbeat: 1;
-		uint8_t reserved :1;
-	};
-	uint8_t flags;
-	GeneralStateFlagsU(uint8_t v) :
-			flags(v) {
-	}
-} GeneralStateFlags;
 
 class SerialUI {
 public:
@@ -286,7 +271,7 @@ public:
 	Mode::Selection mode();
 
 	inline bool echoCommands() {
-		return _genFlags.echo_commands;
+		return Globals::state()->flags().echo_commands;
 	}
 	void setEchoCommands(bool setTo);
 
@@ -317,14 +302,14 @@ public:
 	bool showTrackedState(bool force = false);
 
 	inline bool responseTransmitted() {
-		return _genFlags.response_transmitted;
+		return Globals::state()->flags().response_transmitted;
 	}
 	inline void markResponseTransmitted() {
-		_genFlags.response_transmitted = true;
+		Globals::state()->flags().response_transmitted = true;
 	}
 	inline void markResponseRequired() {
 
-		_genFlags.response_transmitted = false;
+		Globals::state()->flags().response_transmitted = false;
 	}
 
 	/* *********** Print interface ************** */
@@ -370,7 +355,7 @@ private:
 	// Comm::Channel * _Xcomm;
 	HeartBeatDetails _heartbeat;
 	uint16_t _userPresenceTimeoutMs;
-	GeneralStateFlags _genFlags;
+
 	char _readTerminatorChar;
 
 };

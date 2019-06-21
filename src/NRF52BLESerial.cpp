@@ -13,7 +13,6 @@
 
 
 #include "includes/SerialUIPlatform.h"
-
 #ifdef SERIALUI_PLATFORM_NRF52
 
 

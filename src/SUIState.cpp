@@ -16,7 +16,8 @@ State::State() :
 		_currentActivity(Idle), _currentMenuId(0), _currentItemId(0), _currentMenu(NULL),
 		_mode(Mode::User),
 		_greetingMsg(NULL),
-		_uid(NULL)
+		_uid(NULL),
+		_stateflags(0)
 {
 	enterMenu(Globals::menuStructure()->topLevelMenu());
 

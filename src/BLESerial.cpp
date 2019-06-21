@@ -32,11 +32,15 @@ SOFTWARE.
 #ifdef SERIALUI_PLATFORM_NRF52
 
 #include "includes/platform/nrf52/BLESerial.h"
+#include "includes/SUIGlobals.h"
 
 // #define BLE_SERIAL_DEBUG
 
 SUIBLESerial* SUIBLESerial::_instance = NULL;
+static void RemoteSideDisconnected(BLECentral& central) {
+	SerialUI::Globals::state()->setShouldExit(true);
 
+}
 SUIBLESerial::SUIBLESerial(unsigned char req, unsigned char rdy, unsigned char rst) :
   BLEPeripheral(req, rdy, rst)
 {
@@ -56,10 +60,14 @@ SUIBLESerial::SUIBLESerial(unsigned char req, unsigned char rdy, unsigned char r
 }
 
 void SUIBLESerial::begin(...) {
+  setEventHandler(BLEDisconnected, RemoteSideDisconnected);
   BLEPeripheral::begin();
   #ifdef BLE_SERIAL_DEBUG
     Serial.println(F("SUIBLESerial::begin()"));
   #endif
+    //
+
+
 }
 
 void SUIBLESerial::poll() {

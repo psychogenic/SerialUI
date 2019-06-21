@@ -68,6 +68,7 @@ bool SubMenu::interruptProcessingForAccessControl() {
 #else
 
 	Auth::Authenticator * auth = Globals::authenticator();
+
 	if (auth) {
 		char inBuf[SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2];
 		Comm::Request theReq;

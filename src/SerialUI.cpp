@@ -18,12 +18,11 @@ SerialUI::SerialUI(uint8_t num_top_level_menuitems_hint,
 				_userLastInteractionMs(0),
 				_commsrc(commsrc),
 				_userPresenceTimeoutMs(25000),
-				_genFlags(0),
 				_readTerminatorChar('\n')
 {
 
 #ifdef SUI_SERIALUI_ECHO_ON
-	_genFlags.echo_commands = true;
+	Globals::state()->flags().echo_commands = true;
 #endif
 
 }
@@ -96,8 +95,8 @@ bool SerialUI::checkForUser(uint16_t timeout_ms){
 		if (Globals::commSource()->available()) {
 			// Serial.print('.');
 			// this->println(Globals::commSource()->available());
-			_genFlags.user_present = true;
-			_genFlags.user_just_arrived = true;
+			Globals::state()->flags().user_present = true;
+			Globals::state()->flags().user_just_arrived = true;
 			this->enter();
 			return true;
 		}
@@ -109,31 +108,33 @@ bool SerialUI::checkForUser(uint16_t timeout_ms){
 }
 
 bool SerialUI::checkForUserOnce(uint16_t timeout_ms){
-	if (_genFlags.user_check_performed) {
+	if (Globals::state()->flags().user_check_performed) {
 		return false;
 	}
-	_genFlags.user_check_performed = true;
+	Globals::state()->flags().user_check_performed = true;
 	return checkForUser(timeout_ms);
 
 }
 
 
 bool SerialUI::userPresent(){
-	if (!_genFlags.user_present) {
+	GeneralStateFlags & flags = Globals::state()->flags();
+	if (!flags.user_present) {
 
 		return false;
 	}
 	// there _was_ a user, but let's see how long it's
 	// been since they performed any actions
-	if (_userLastInteractionMs &&
+	if (flags.should_exit ||
+			(_userLastInteractionMs &&
 			((SUI_PLATFORM_TIMENOW_MS() - _userLastInteractionMs)
-					> _userPresenceTimeoutMs)) {
+					> _userPresenceTimeoutMs))) {
 
 		// yeah, looks like they're gone for coffee...
 		exit(false);
 	}
 
-	return _genFlags.user_present;
+	return flags.user_present;
 
 
 
@@ -144,6 +145,7 @@ void SerialUI::handleRequests(uint8_t maxRequests){
 
 	Menu::Item::SubMenu * ret_menu;
 	uint32_t timeNow;
+	GeneralStateFlags & flags = Globals::state()->flags();
 	for (uint8_t i = 0; i <= maxRequests; i++) {
 
 		timeNow = SUI_PLATFORM_TIMENOW_MS();
@@ -157,11 +159,11 @@ void SerialUI::handleRequests(uint8_t maxRequests){
 			_userLastInteractionMs = SUI_PLATFORM_TIMENOW_MS();
 
 			if (ret_menu) {
-				if ( _genFlags.menu_manual_override)
+				if ( flags.menu_manual_override)
 				{
 					// leave the current menu as is, as it was overridden in
 					// the last command
-					_genFlags.menu_manual_override = false;
+					flags.menu_manual_override = false;
 				} else {
 					// make certain we reflect whatever changes are required
 					// (e.g. the item was a submenu)
@@ -191,10 +193,10 @@ void SerialUI::handleRequests(uint8_t maxRequests){
 		// so they don't interfere with any transactions coming in
 		triggerHeartbeat((timeNow));
 		if (Globals::state()->mode() == Mode::Program) {
-			if (_genFlags.user_just_arrived) {
+			if (flags.user_just_arrived) {
 				if (_userLastInteractionMs
 						&& ( (SUI_PLATFORM_TIMENOW_MS() - _userLastInteractionMs) > 4000) ) {
-					_genFlags.user_just_arrived = false;
+					flags.user_just_arrived = false;
 
 				}
 			} else {
@@ -231,7 +233,7 @@ void SerialUI::setCurrentMenu(Menu::Menu * setTo){
 
 void SerialUI::enter(){
 
-	_genFlags.user_present = true;
+	Globals::state()->flags().user_present = true;
 	_userLastInteractionMs = 0;
 	goToTopLevelMenu();
 
@@ -244,7 +246,8 @@ void SerialUI::enter(){
 
 
 void SerialUI::exit(bool terminate_gui){
-	_genFlags.user_present = false;
+	Globals::state()->flags().should_exit = false;
+	Globals::state()->flags().user_present = false;
 	_userLastInteractionMs = 0;
 	goToTopLevelMenu();
 	comm()->println(SUI_STR("Thanks for using SerialUI!"));
@@ -338,7 +341,7 @@ Mode::Selection SerialUI::mode(){
 
 
 void SerialUI::setEchoCommands(bool setTo){
-	_genFlags.echo_commands = setTo;
+	Globals::state()->flags().echo_commands = setTo;
 
 }
 
