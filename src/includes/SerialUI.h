@@ -80,6 +80,8 @@ public:
 
 	void setGreeting(StaticString greets);
 
+	void setName(DynamicString sysbroadcastName);
+
 	void setUID(StaticString u);
 	/* ****************** configuration methods ***************** */
 	/*
@@ -334,7 +336,7 @@ public:
     size_t print(StaticString s);
 #endif
     size_t print(const String &);
-    size_t print(const char *);
+    size_t print(DynamicString p);
     size_t print(char);
     size_t print(unsigned char, int = DEC);
     size_t print(int, int = DEC);

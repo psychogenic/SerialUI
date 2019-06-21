@@ -103,6 +103,10 @@
 	#define SERIALUI_ARCH_ESP32
 #endif
 
+
+#if 0
+XXXXX DEADBEEF XXXX -- support Arduino primo and sandeepmistry
+https://github.com/sandeepmistry/arduino-nRF5, below
 // BLE Nano
 #if defined(ARDUINO_RBL_nRF51822) or defined(ARDUINO_ARCH_NRF51822) or \
 	defined(ARDUINO_ARCH_NRF5) or defined(NRF52)
@@ -123,8 +127,10 @@
 	#define SERIALUI_PLATFORM_RBLNRF52
 #endif /* RBL - NRF* platform */
 
+#endif
+
 #ifndef ARDUINO_RBL_nRF52832
-	#ifdef NRF52
+	#if defined(ARDUINO_ARCH_NRF5) or defined(NRF52) or defined(NRF51)
 		#ifndef SERIALUI_PLATFORM_NRF52
 			#define SERIALUI_PLATFORM_AUTODETECTED
 			#define SERIALUI_PLATFORM_NRF52
@@ -158,6 +164,7 @@
 		   defined(SERIALUI_PLATFORM_WIRINGPI) \
 		or defined(SERIALUI_PLATFORM_RBLNRF51822) \
 		or defined(SERIALUI_PLATFORM_RBLNRF52) \
+		or defined(SERIALUI_PLATFORM_NRF52) \
 		or defined(SERIALUI_PLATFORM_ARDUINO_SAM) \
 		or defined(SERIALUI_PLATFORM_XMEGA) \
 		or defined(SERIALUI_PLATFORM_DIGISPARKUSB) \

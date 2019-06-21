@@ -115,9 +115,12 @@ float String::toFloat(void) const {
 	return this->value.toFloat();
 }
 double String::toDouble(void) const {
+#ifdef SERIALUI_PLATFORM_NRF52
+#warning "no WString toDouble() on platform -- returning float instead"
 	return this->value.toFloat();
-#warning "no WString toDouble() on some platforms"
-	// return this->value.toDouble();
+#else
+	return this->value.toDouble();
+#endif
 }
 
 #endif

@@ -13,8 +13,6 @@
 
 #include <Arduino.h>
 
-#include "nrf52/NRF52BLESerial.h"
-
 
 #define SERIALUI_AUTHENTICATOR_ENABLE
 
@@ -33,6 +31,8 @@
 
 #define SUI_PLATFORM_TIMENOW_MS()				millis()
 #define SUI_PLATFORM_DELAY_MS(d)				delay(d)
+
+#include "nrf52/NRF52BLESerial.h"
 
 namespace SerialUI {
 
@@ -64,6 +64,8 @@ typedef NRF52BLESerial SourceType;
 #define SERIALUI_DEBUG_OUT(...)		Serial.print( __VA_ARGS__ )
 #define SERIALUI_DEBUG_OUTLN(...)	Serial.println( __VA_ARGS__ )
 #endif
+
+
 
 
 

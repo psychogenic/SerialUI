@@ -109,7 +109,8 @@ void NRF52BLESerial::end() {
 }
 
 int NRF52BLESerial::available(void) {
-	fillRXFromBLESerial();
+	poll();
+	// fillRXFromBLESerial();
 	return rx_buf.getOccupied();
 }
 

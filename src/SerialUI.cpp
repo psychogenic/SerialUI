@@ -47,6 +47,12 @@ void SerialUI::setGreeting(StaticString greets)
 	Globals::state()->setGreeting(greets);
 }
 
+void SerialUI::setName(DynamicString sysbroadcastName) {
+#ifdef SERIALUI_PLATFORM_NRF52
+	  SUIBLESerialDev.setLocalName(sysbroadcastName);
+#endif
+}
+
 void SerialUI::setUID(StaticString u) {
 	Globals::state()->setUID(u);
 }
@@ -68,7 +74,7 @@ char SerialUI::readTerminator() {
 }
 
 size_t SerialUI::readBytesToEOL(char* buffer, size_t max_length, bool left_trim){
-#warning "TODO:FIXME readBytesToEOL"
+	return Globals::commChannel()->readUntilEOF(buffer, max_length);
 }
 
 
@@ -375,22 +381,17 @@ size_t SerialUI::println(StaticString s) {
 }
 #endif
 
-#warning "const char* disabled"
-/*
-size_t SerialUI::print(const char* p) {
-	// TODO:FIXME wtf??
-	// return comm()->print(p);
-#warning "const char* disabled"
-	return 0;
+
+size_t SerialUI::print(DynamicString p) {
+
+	return comm()->print(p);
+
 }
-*/
+
 size_t SerialUI::print(const String& p) {
 	return comm()->print(p);
 }
 
-size_t SerialUI::print(const char * p) {
-	return comm()->print(p);
-}
 
 size_t SerialUI::print(char p) {
 	return comm()->print(p);

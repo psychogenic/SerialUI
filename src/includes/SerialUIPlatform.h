@@ -15,19 +15,36 @@
 
 #include "platform/detect/SUIPlatDetect.h"
 
-
 #ifdef SERIALUI_PLATFORM_ARDUINOSTANDARD
+#ifdef SERIALUI_WARN_PLATFORM_DETECTION_DEBUG
+#warning "PLATFORM: Arduino standard"
+#endif /* SERIALUI_WARN_PLATFORM_DETECTION_DEBUG */
 #include "platform/SUIPlatArduino.h"
+#define SUI_PLATDETECT_SUCCESS
 #endif
 
 
 #ifdef SERIALUI_PLATFORM_NRF52
+#ifdef SERIALUI_WARN_PLATFORM_DETECTION_DEBUG
+#warning "PLATFORM: NRF52"
+#endif /* SERIALUI_WARN_PLATFORM_DETECTION_DEBUG */
 #include "platform/SUIPlatNRF52Arduino.h"
+#define SUI_PLATDETECT_SUCCESS
 #endif
 
+
 #ifdef SERIALUI_PLATFORM_LINUX
+#ifdef SERIALUI_WARN_PLATFORM_DETECTION_DEBUG
+#warning "PLATFORM: Linux"
+#endif /* SERIALUI_WARN_PLATFORM_DETECTION_DEBUG */
 #include "platform/SUIPlatLinux.h"
+#define SUI_PLATDETECT_SUCCESS
 #endif
+
+#ifndef SUI_PLATDETECT_SUCCESS
+#warning "SERIALUI FAIL: Could not detect platform?"
+#endif
+
 
 namespace SerialUI {
 

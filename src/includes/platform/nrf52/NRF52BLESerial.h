@@ -14,9 +14,7 @@
 #define SERIALUI_SRC_INCLUDES_PLATFORM_NRF52_NRF52BLESERIAL_H_
 
 #include "includes/SerialUIExtIncludes.h"
-
-#include <BLEPeripheral.h>
-#include <BLESerial.h>
+#include "includes/platform/nrf52/BLESerial.h"
 
 #include "includes/RingBuffer.h"
 
@@ -41,7 +39,7 @@ public:
     virtual operator bool();
 
 private:
-    BLESerial _bleser;
+    SUIBLESerial _bleser;
     RingBuffer<uint8_t> rx_buf;
     RingBuffer<uint8_t> tx_buf;
     void fillRXFromBLESerial();
