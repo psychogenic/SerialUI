@@ -1,3 +1,13 @@
+/*
+ *
+ *  Part of the SerialUI project.
+ *  Copyright (C) 2019 Pat Deegan, psychogenic.com
+ *  See LICENSE file for details, or
+ *  https://devicedruid.com/
+ *  and https://inductive-kickback.com/
+ *
+ */
+
 #ifndef SUI_PYTHON_EXTERNAL_MODULE
 #define SUI_PYTHON_EXTERNAL_MODULE
 
@@ -21,6 +31,11 @@
 #define SUI_EXTMODULE_VERSION_MINOR	2
 #define SUI_EXTMODULE_VERSION_PATCH	0
 
+#define SUI_EXTMODULE_NAME_HANDLERCLASS				"SerialUIHandler"
+#define SUI_EXTMODULE_NAME_HEARTBEAT_METHOD			"heartbeat"
+#define SUI_EXTMODULE_NAME_LOADCOMPLETE_METHOD		"loaded"
+#define SUI_EXTMODULE_NAME_USERENTERED_METHOD		"userEnter"
+#define SUI_EXTMODULE_NAME_USEREXIT_METHOD			"userExit"
 
 
 namespace SerialUI {
@@ -28,13 +43,13 @@ namespace Python {
 
 
 typedef struct ExtModVersionStruct {
-	uint8_t major;
-	uint8_t minor;
-	uint8_t patch;
+	uint8_t vmajor;
+	uint8_t vminor;
+	uint8_t vpatch;
 	ExtModVersionStruct() :
-		major(SUI_EXTMODULE_VERSION_MAJOR),
-		minor(SUI_EXTMODULE_VERSION_MINOR),
-		patch(SUI_EXTMODULE_VERSION_PATCH)
+		vmajor(SUI_EXTMODULE_VERSION_MAJOR),
+		vminor(SUI_EXTMODULE_VERSION_MINOR),
+		vpatch(SUI_EXTMODULE_VERSION_PATCH)
 	{
 
 	}
@@ -85,6 +100,9 @@ public:
 
   void updated(Menu::Item::Request::Request * req);
   void updated(Tracked::State* st);
+
+  void userEntered();
+  void userExit();
 
 #ifdef SERIALUI_AUTHENTICATOR_ENABLE
   Auth::Validator * authValidator();

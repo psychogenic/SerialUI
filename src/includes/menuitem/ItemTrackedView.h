@@ -16,6 +16,9 @@
 #include "../Menu.h"
 #include "../tracked/TrackedVariable.h"
 
+#ifndef SERIALUI_TRACKEDVIEW_MAXNUM_STATES
+#define SERIALUI_TRACKEDVIEW_MAXNUM_STATES	SERIALUI_TRACKEDVIEW_MAXNUM_STATES_DEFAULT
+#endif
 
 namespace SerialUI {
 namespace Menu {

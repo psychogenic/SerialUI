@@ -13,6 +13,8 @@
 
 #include "ItemReqBoundedLong.h"
 
+#define SERIALUI_MENUITEM_OPTLIST_MAXOPTIONS	6
+
 namespace SerialUI {
 namespace Menu {
 namespace Item {

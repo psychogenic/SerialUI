@@ -15,6 +15,10 @@
 #include "../GrowableList.h"
 #include "../tracked/tracked.h"
 
+#ifndef SERIALUI_TRACKING_NUMITEMS_ATSTARTUP
+#define SERIALUI_TRACKING_NUMITEMS_ATSTARTUP SERIALUI_TRACKING_NUMITEMS_ATSTARTUP_DEFAULT
+#endif
+
 namespace SerialUI {
 namespace Menu {
 

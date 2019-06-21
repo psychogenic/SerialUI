@@ -110,7 +110,8 @@ bool SubMenu::interruptProcessingForAccessControl() {
 			memset(inBuf, 0, SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2);
 
 			Globals::commChannel()->printAccessConfigureRequest(auth);
-			if (Globals::commChannel()->readUntilEOF(inBuf, SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2, true) > SERIALUI_AUTH_PASSPHRASE_MINLEN) {
+			if (Globals::commChannel()->readUntilEOF(inBuf, SERIALUI_AUTH_PASSPHRASE_MAXLEN + 2, true)
+					> SERIALUI_AUTH_PASSPHRASE_MINLEN) {
 				auth->setPassphrase(inBuf, Auth::Level::User);
 				auth->grantAccess(inBuf);
 			}

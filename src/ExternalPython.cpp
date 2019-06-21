@@ -827,6 +827,111 @@ static int SUIInputWrapper_init(SUIInputWrapperObject *self, PyObject *args,
   return 0;
 }
 
+static PyObject *
+SUIInputWrapper_options(SUIInputWrapperObject *self, PyObject * args) {
+	switch (self->request->requestType()) {
+	case SerialUI::Menu::Item::Request::Type::OptionsList:
+		break;
+	default:
+		PyErr_SetString(PyExc_RuntimeError, "options only available for OptionsList items");
+		Py_RETURN_FALSE;
+	}
+	PyObject * optsList = PyList_New(0);
+	if (! optsList) {
+		PyErr_SetString(PyExc_RuntimeError, "can't alloc new list?");
+		Py_RETURN_FALSE;
+	}
+
+	SerialUI::Menu::Item::Request::OptionsList * optsItem =
+			self->request->castAsSubType<SerialUI::Menu::Item::Request::OptionsList>();
+
+	for (long int i=optsItem->minimum(); i <= optsItem->maximum(); i++) {
+		SerialUI::StaticString thisOpt = optsItem->optionByIndex(i - 1);
+		if (! thisOpt) {
+			SERIALUI_DEBUG_OUTLN("No option " << i);
+		} else {
+			PyObject * optStr = PyUnicode_FromString(thisOpt);
+			if (optStr) {
+				PyList_Append(optsList, optStr);
+				Py_DECREF(optStr);
+			} else {
+				PyErr_SetString(PyExc_RuntimeError, "couldn't get string for option?");
+			}
+		}
+
+
+
+	}
+
+	return optsList;
+
+
+}
+static PyObject *
+SUIInputWrapper_setOptions(SUIInputWrapperObject *self, PyObject * args) {
+
+	SerialUI::StaticString optStrings[SERIALUI_MENUITEM_OPTLIST_MAXOPTIONS];
+	switch (self->request->requestType()) {
+	case SerialUI::Menu::Item::Request::Type::OptionsList:
+		break;
+	default:
+		PyErr_SetString(PyExc_RuntimeError, "setOptions only available for OptionsList items");
+		Py_RETURN_FALSE;
+	}
+
+
+	PyObject * listOfItems;
+	if (!PyArg_ParseTuple(args, "O", &listOfItems)) {
+		SERIALUI_DEBUG_OUTLN("unhappy tuple/keyw parse");
+		Py_RETURN_FALSE;
+	}
+	if (! PyList_Check(listOfItems) ) {
+		PyErr_SetString(PyExc_RuntimeError, "must pass a LIST of strings");
+		Py_RETURN_FALSE;
+	}
+	Py_ssize_t numOpts = PyList_Size(listOfItems);
+
+	if (numOpts > SERIALUI_MENUITEM_OPTLIST_MAXOPTIONS) {
+
+		PyErr_SetString(PyExc_RuntimeError, "Exceeds number of options permissible");
+		Py_RETURN_FALSE;
+	}
+
+	for (uint8_t i=0; i<SERIALUI_MENUITEM_OPTLIST_MAXOPTIONS; i++) {
+		optStrings[i] = NULL;
+	}
+	for (Py_ssize_t i=0; i<numOpts; i++) {
+		PyObject* itm = PyList_GetItem(listOfItems, i);
+		if ( (! itm) ) {
+			PyErr_SetString(PyExc_RuntimeError, "Could not get item from passed list of options");
+			Py_RETURN_FALSE;
+		}
+		if (! PyUnicode_Check(itm) ) {
+			PyErr_SetString(PyExc_RuntimeError, "list must only contain unicode items");
+			Py_RETURN_FALSE;
+		}
+
+		optStrings[i] = PyUnicode_AsUTF8(itm);
+
+	}
+
+	SerialUI::Menu::Item::Request::OptionsList * optsItem =
+			self->request->castAsSubType<SerialUI::Menu::Item::Request::OptionsList>();
+
+	optsItem->setOptions(
+			optStrings[0],
+			optStrings[1],
+			optStrings[2],
+			optStrings[3],
+			optStrings[4],
+			optStrings[5]
+	);
+
+
+	SerialUI::Globals::pythonModule()->updated(self->request);
+	Py_RETURN_TRUE;
+}
+
 
 static PyObject *
 SUIInputWrapper_value(SUIInputWrapperObject *self, PyObject * args) {
@@ -860,6 +965,9 @@ SUIInputWrapper_value(SUIInputWrapperObject *self, PyObject * args) {
 
 	case SerialUI::Menu::Item::Request::Type::Float:
 		return PyFloat_FromDouble(self->request->castAsSubType<SerialUI::Menu::Item::Request::Float>()->currentValue());
+
+	case SerialUI::Menu::Item::Request::Type::Event:
+		return PyLong_FromLong(self->request->castAsSubType<SerialUI::Menu::Item::Request::Event>()->currentValue());
 
 	case SerialUI::Menu::Item::Request::Type::DateTime:
 		return PyLong_FromLong(self->request->castAsSubType<SerialUI::Menu::Item::Request::DateTime>()->currentValue());
@@ -1121,6 +1229,10 @@ static PyMethodDef SUIInputWrapper_methods[] = {
 						METH_NOARGS, "method triggered on change" },
 		{"setOnChange", (PyCFunction)SUIInputWrapper_setOnChange,
 						METH_VARARGS, "set method triggered on change" },
+		{ "options", (PyCFunction) SUIInputWrapper_options,
+										METH_NOARGS, "options list" },
+		{"setOptions", (PyCFunction)SUIInputWrapper_setOptions,
+										METH_VARARGS, "set options for options list" },
 
 
 		{ NULL } /* Sentinel */

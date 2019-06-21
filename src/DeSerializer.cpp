@@ -13,6 +13,7 @@
 
 #include "includes/settings/DeSerializer.h"
 #include "includes/SerialUIPlatform.h"
+#include "includes/SUIGlobals.h"
 namespace SerialUI {
 namespace Settings {
 
@@ -50,6 +51,7 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req, bool val) {
 	case Menu::Item::Request::Type::Toggle:
 		SERIALUI_DEBUG_OUTLN(F("set bool"));
 		req->castAsSubType<Menu::Item::Request::Boolean>()->setValue(val);
+		Globals::commChannel()->print(req);
 		return true;
 	default:
 		SERIALUI_DEBUG_OUTLN(F("DeSer: NOT bool"));
@@ -67,6 +69,7 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req, long int val) {
 	case Menu::Item::Request::Type::OptionsList:
 		SERIALUI_DEBUG_OUTLN(F("set long"));
 		req->castAsSubType<Menu::Item::Request::Long>()->setValue(val);
+		Globals::commChannel()->print(req);
 		return true;
 	default:
 		SERIALUI_DEBUG_OUTLN(F("DeSer: NOT long"));
@@ -77,20 +80,41 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req, long int val) {
 
 bool DeSerializer::setValue(Menu::Item::Request::Request* req, unsigned long int val) {
 	switch (req->requestType()) {
+	case Menu::Item::Request::Type::Event:
+		SERIALUI_DEBUG_OUT(F("set ulong event "));
+		SERIALUI_DEBUG_OUTLN(val);
+		req->castAsSubType<Menu::Item::Request::Event>()->setValue(val);
+		break;
+	case Menu::Item::Request::Type::DateTime:
+		SERIALUI_DEBUG_OUT(F("set ulong datetime "));
+		SERIALUI_DEBUG_OUTLN(val);
+		req->castAsSubType<Menu::Item::Request::DateTime>()->setValue(val);
+		break;
+	case Menu::Item::Request::Type::Time:
+
+		SERIALUI_DEBUG_OUT(F("set ulong time "));
+		SERIALUI_DEBUG_OUTLN(val);
+		req->castAsSubType<Menu::Item::Request::Time>()->setValue(val);
+		break;
 	case Menu::Item::Request::Type::UnsignedLongInt:
+		SERIALUI_DEBUG_OUT(F("set ulong "));
+		SERIALUI_DEBUG_OUTLN(val);
 		req->castAsSubType<Menu::Item::Request::UnsignedLong>()->setValue(val);
-		return true;
+		break;
 	default:
 		SERIALUI_DEBUG_OUTLN(F("DeSer: NOT ulong"));
 		return false;
 
 	}
+	Globals::commChannel()->print(req);
+	return true;
 }
 bool DeSerializer::setValue(Menu::Item::Request::Request* req, float val) {
 	switch (req->requestType()) {
 	case Menu::Item::Request::Type::Float:
 		SERIALUI_DEBUG_OUTLN(F("set float"));
 		req->castAsSubType<Menu::Item::Request::Float>()->setValue(val);
+		Globals::commChannel()->print(req);
 		return true;
 	default:
 		SERIALUI_DEBUG_OUTLN(F("DeSer: NOT float"));
@@ -103,6 +127,7 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req, char val) {
 	switch (req->requestType()) {
 	case Menu::Item::Request::Type::Character:
 		req->castAsSubType<Menu::Item::Request::Character>()->setValue(val);
+		Globals::commChannel()->print(req);
 		return true;
 	default:
 		return false;
@@ -117,6 +142,7 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req,
 	case Menu::Item::Request::Type::String:
 		SERIALUI_DEBUG_OUTLN(F("set str"));
 		req->castAsSubType<Menu::Item::Request::String>()->setValue(val);
+		Globals::commChannel()->print(req);
 		return true;
 	default:
 		SERIALUI_DEBUG_OUTLN(F("DeSer: NOT str"));

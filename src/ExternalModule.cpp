@@ -1,3 +1,13 @@
+/*
+ *
+ *  Part of the SerialUI project.
+ *  Copyright (C) 2019 Pat Deegan, psychogenic.com
+ *  See LICENSE file for details, or
+ *  https://devicedruid.com/
+ *  and https://inductive-kickback.com/
+ *
+ */
+
 #include "includes/python/ExternalModule.h"
 
 
@@ -113,12 +123,12 @@ bool ExternalModule::load() {
 		SERIALUI_DEBUG_OUTLN("Couldn't get dict");
 		return false;
 	}
-	CPyObject pHandlerName = PyDict_GetItemString(dict, "SerialUIHandler");
+	CPyObject pHandlerName = PyDict_GetItemString(dict, SUI_EXTMODULE_NAME_HANDLERCLASS);
 	if (!pHandlerName) {
 		if (PyErr_Occurred()) {
 			PyErr_Print();
 		}
-		SERIALUI_DEBUG_OUTLN("Couldn't get SerialUIHandler name");
+		SERIALUI_DEBUG_OUTLN("Couldn't get SerialUI handler");
 		return 1;
 	}
 	if (PyCallable_Check(pHandlerName)) {
@@ -133,30 +143,36 @@ bool ExternalModule::load() {
 		PyDict_SetItem(dict, Py_BuildValue("s", "HANDLER"), pHandler);
 
 	} else {
-		SERIALUI_DEBUG_OUTLN("Couldn't instantiate SerialUIHandler");
+		SERIALUI_DEBUG_OUTLN("Couldn't instantiate SerialUI handler");
 		return false;
 	}
 
 	is_loaded = true;
+	if (PyObject_HasAttrString(pHandler, SUI_EXTMODULE_NAME_HEARTBEAT_METHOD))
+	{
 
+		PyObject* hb = PyObject_GetAttrString(pHandler, SUI_EXTMODULE_NAME_HEARTBEAT_METHOD);
+		if (hb && PyCallable_Check(hb)) {
+			pHeartbeat = hb; // keep a reference to this
+			SUIDRIVER()->setUserPresenceHeartbeat([]() {
+				Globals::pythonModule()->triggerHeartbeat();
+			});
 
-	PyObject* hb = PyObject_GetAttrString(pHandler, "heartbeat");
-	if (hb && PyCallable_Check(hb)) {
-		pHeartbeat = hb;
-		SUIDRIVER()->setUserPresenceHeartbeat([]() {
-			Globals::pythonModule()->triggerHeartbeat();
-		});
+		} else {
+			PyErr_Clear(); // not implemented, doesn't matter
+		}
 
-	} else {
-		PyErr_Clear(); // not implemented, doesn't matter
 	}
 
-	CPyObject loadedCallback = PyObject_GetAttrString(pHandler, "loaded");
-	if (loadedCallback && PyCallable_Check(loadedCallback)) {
-		CPyObject loadedRet = PyObject_CallObject(loadedCallback, nullptr);
+	if (PyObject_HasAttrString(pHandler, SUI_EXTMODULE_NAME_LOADCOMPLETE_METHOD))
+	{
+		CPyObject loadedCallback = PyObject_GetAttrString(pHandler, SUI_EXTMODULE_NAME_LOADCOMPLETE_METHOD);
+		if (loadedCallback && PyCallable_Check(loadedCallback)) {
+			CPyObject loadedRet = PyObject_CallObject(loadedCallback, nullptr);
 
-	} else {
-		PyErr_Clear(); // not implemented, doesn't matter
+		} else {
+			PyErr_Clear(); // not implemented, doesn't matter
+		}
 	}
 
 	return true;
@@ -182,13 +198,56 @@ bool ExternalModule::setHearbeatPeriod(unsigned long ms) {
 	return true;
 }
 bool ExternalModule::triggerHeartbeat() {
-	SERIALUI_DEBUG_OUTLN(F("ExternalModule::trigger heartbeat"));
+
 	if (! pHeartbeat) {
 		return false;
 	}
+	//SERIALUI_DEBUG_OUTLN(F("ExternalModule::trigger heartbeat"));
 
-	PyObject_CallObject(pHeartbeat, nullptr);
+	CPyObject retObj = PyObject_CallObject(pHeartbeat, nullptr);
 	return true;
+
+}
+
+
+void ExternalModule::userEntered() {
+
+	if (!pHandler) {
+		return;
+	}
+	if (!PyObject_HasAttrString(pHandler,
+			SUI_EXTMODULE_NAME_USERENTERED_METHOD)) {
+		return;
+	}
+	CPyObject uEntered = PyObject_GetAttrString(pHandler,
+			SUI_EXTMODULE_NAME_USERENTERED_METHOD);
+	if (uEntered && PyCallable_Check(uEntered)) {
+
+		CPyObject retObj = PyObject_CallObject(uEntered, nullptr);
+
+	} else {
+		PyErr_Clear(); // not implemented, doesn't matter
+	}
+}
+void ExternalModule::userExit() {
+
+	if (!pHandler) {
+		return;
+	}
+	if (!PyObject_HasAttrString(pHandler,
+			SUI_EXTMODULE_NAME_USEREXIT_METHOD)) {
+		return;
+	}
+	CPyObject uExit = PyObject_GetAttrString(pHandler,
+			SUI_EXTMODULE_NAME_USEREXIT_METHOD);
+
+	if (uExit && PyCallable_Check(uExit)) {
+
+		CPyObject retObj = PyObject_CallObject(uExit, nullptr);
+
+	} else {
+		PyErr_Clear(); // not implemented, doesn't matter
+	}
 
 }
 
@@ -196,6 +255,10 @@ bool ExternalModule::callHandlerMethod(DynamicString name) {
 
 	SERIALUI_DEBUG_OUT(F("ExternalModule::callHandler method "));
 	SERIALUI_DEBUG_OUTLN(name);
+	if (!PyObject_HasAttrString(pHandler, name)) {
+		SERIALUI_DEBUG_OUTLN("No such method found");
+		return false;
+	}
 	CPyObject hm = PyObject_GetAttrString(pHandler, name);
 	if (! (hm && PyCallable_Check(hm))) {
 		return false;
@@ -287,9 +350,9 @@ public:
 
 	virtual bool configured(Auth::Level::Value forLevel=Auth::Level::User) {
 
-		PyObject * retObj = SUIPyObjectsStore.callMethodOnStorage("configured", "(i)", (int)forLevel);
+		CPyObject retObj = SUIPyObjectsStore.callMethodOnStorage("configured", "(i)", (int)forLevel);
 
-		if ((!retObj) || retObj == Py_None) {
+		if ((!retObj) || retObj.getObject() == Py_None) {
 			return false;
 		}
 
@@ -301,9 +364,9 @@ public:
 		return false;
 	}
 	virtual Auth::Passphrase passphrase(Auth::Level::Value forLevel) {
-		PyObject * retObj = SUIPyObjectsStore.callMethodOnStorage("passphrase", "(i)", (int)forLevel);
+		CPyObject retObj = SUIPyObjectsStore.callMethodOnStorage("passphrase", "(i)", (int)forLevel);
 
-		if ((!retObj) || retObj == Py_None) {
+		if ((!retObj) || retObj.getObject() == Py_None) {
 			return NULL;
 		}
 		if (PyUnicode_Check(retObj)) {
@@ -318,7 +381,7 @@ public:
 
 	}
 	virtual bool setPassphrase(Auth::Passphrase pass, Auth::Level::Value forLevel) {
-		PyObject * retObj = SUIPyObjectsStore.callMethodOnStorage(
+		CPyObject retObj = SUIPyObjectsStore.callMethodOnStorage(
 				"setPassphrase", "(s, i)", pass, (int) forLevel);
 
 		if ((!retObj) || retObj == Py_None) {
@@ -342,8 +405,8 @@ public:
 
 	virtual Auth::Transmission::Type::Value communicationType() {
 		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValid.communicationType()");
-		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("communicationType", "()");
-		if ((!retObj) || retObj == Py_None) {
+		CPyObject  retObj = SUIPyObjectsStore.callMethodOnAuthValidator("communicationType", "()");
+		if ((!retObj) || retObj.getObject() == Py_None) {
 			SERIALUI_DEBUG_OUTLN("No ret/ret none");
 			return Auth::Transmission::Type::Plain;
 		}
@@ -377,8 +440,8 @@ public:
 	}
 	virtual Auth::Challenge challenge(Auth::Level::Value forLevel=Auth::Level::User) {
 		SERIALUI_DEBUG_OUTLN("ExtModuleAuthValid.challenge()");
-		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("challenge", "(i)", (int)forLevel);
-		if ((!retObj) || retObj == Py_None) {
+		CPyObject  retObj = SUIPyObjectsStore.callMethodOnAuthValidator("challenge", "(i)", (int)forLevel);
+		if ((!retObj) || retObj.getObject() == Py_None) {
 			SERIALUI_DEBUG_OUTLN("No ret/ret none");
 			return NULL;
 		}
@@ -399,11 +462,8 @@ public:
 		SERIALUI_DEBUG_OUTLN(resp);
 
 		// first, just check that this value is sane
-		PyObject * val = Py_BuildValue("(s)", resp);
-		if (val) {
-			// ok, all well
-			Py_DECREF(val); // get rid of this.
-		} else {
+		CPyObject val = Py_BuildValue("(s)", resp);
+		if (! val) {
 			SERIALUI_DEBUG_OUTLN("Could not build a value with this 'challenge response'?");
 			if (PyErr_Occurred()) {
 				PyErr_Print();
@@ -411,8 +471,8 @@ public:
 			return Auth::Level::NoAccess;
 		}
 
-		PyObject * retObj = SUIPyObjectsStore.callMethodOnAuthValidator("grantAccess", "(s)", resp);
-		if ((!retObj) || retObj == Py_None) {
+		CPyObject retObj = SUIPyObjectsStore.callMethodOnAuthValidator("grantAccess", "(s)", resp);
+		if ((!retObj) || retObj.getObject() == Py_None) {
 			SERIALUI_DEBUG_OUTLN("No ret/ret none");
 			return Auth::Level::NoAccess;
 		}

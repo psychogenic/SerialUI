@@ -86,6 +86,8 @@ bool DeSerializerJson::deserializeObj(JsonObject obj) {
 		// easily), to set the correct value type for the particular
 		// input request
 		if (
+				setValue(req, val.as<unsigned long int>())
+				||
 				setValue(req, val.as<long int>())
 				||
 				setValue(req, val.as<float>())
@@ -93,8 +95,6 @@ bool DeSerializerJson::deserializeObj(JsonObject obj) {
 				setValue(req, val.as<const char*>())
 				||
 				setValue(req, val.as<bool>())
-				||
-				setValue(req, val.as<unsigned long int>())
 				) {
 			return true;
 

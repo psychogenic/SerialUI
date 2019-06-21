@@ -20,6 +20,11 @@
 #include "../SerialUIConfig.h"
 #include "../GrowableList.h"
 
+#ifndef SERIALUI_MENUSTRUCTURE_NUMITEMS_ATSTARTUP
+#define SERIALUI_MENUSTRUCTURE_NUMITEMS_ATSTARTUP	SERIALUI_MENUSTRUCTURE_NUMITEMS_ATSTARTUP_DEFAULT
+#endif
+
+
 namespace SerialUI {
 namespace Menu {
 

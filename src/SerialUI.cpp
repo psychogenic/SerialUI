@@ -228,6 +228,12 @@ void SerialUI::enter(){
 	_genFlags.user_present = true;
 	_userLastInteractionMs = 0;
 	goToTopLevelMenu();
+
+#ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
+	if (Globals::pythonModule()) {
+		Globals::pythonModule()->userEntered();
+	}
+#endif
 }
 
 
@@ -239,6 +245,12 @@ void SerialUI::exit(bool terminate_gui){
 #ifdef SERIALUI_AUTHENTICATOR_ENABLE
 	if (Globals::authenticator()) {
 		Globals::authenticator()->clearAccess();
+	}
+#endif
+
+#ifdef SERIALUI_PYTHONMODULES_SUPPORT_ENABLE
+	if (Globals::pythonModule()) {
+		Globals::pythonModule()->userExit();
 	}
 #endif
 

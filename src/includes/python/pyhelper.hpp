@@ -1,5 +1,5 @@
-#ifndef PYHELPER_HPP
-#define PYHELPER_HPP
+#ifndef SUI_PYHELPER_HPP
+#define SUI_PYHELPER_HPP
 #pragma once
 
 #include <Python.h>
