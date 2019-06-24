@@ -24,7 +24,6 @@ bool Request::trigger(Menu::Menu * fromMenu) {
 		return false;
 	}
 
-#warning "TODO:FIXME complete request trigger!"
 	return false;
 }
 
