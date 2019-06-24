@@ -36,6 +36,7 @@ set(serialui_SRCS
 	AuthValidator.cpp
 	AuthValidatorEquality.cpp
 	AuthValidatorPython.cpp
+	BLESerial.cpp
 	ChannelManager.cpp
 	CommChannelArdStd.cpp
 	CommChannel.cpp
@@ -65,7 +66,6 @@ set(serialui_SRCS
 	ItemText.cpp
 	ItemTrackedView.cpp
 	LinuxBLESerial.cpp
-	LinuxBLEServer.cpp
 	LinuxMain.cpp
 	LinuxPrint.cpp
 	LinuxStorageFilesystem.cpp
