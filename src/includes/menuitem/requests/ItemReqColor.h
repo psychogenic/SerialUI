@@ -47,7 +47,7 @@ public:
 
 };
 
-
+typedef Color Colour; // 'cause we ain't all united statesians...
 
 } /* namespace Request */
 } /* namespace Item */
