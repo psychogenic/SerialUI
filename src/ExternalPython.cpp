@@ -1161,7 +1161,9 @@ SUIInputWrapper_changed(SUIInputWrapperObject *self, PyObject * args) {
 	SERIALUI_DEBUG_OUT("input changed() ");
 	if (self->callbacks[0]) {
 		SERIALUI_DEBUG_OUTLN("Have callback set, triggering that");
-		PyObject * retObj = PyObject_CallObject(self->callbacks[0], nullptr);
+
+		CPyObject argList = Py_BuildValue("(O)", self);
+		PyObject * retObj = PyObject_CallObject(self->callbacks[0], argList);
 		if (retObj) {
 			return retObj;
 		} else {
@@ -1320,7 +1322,9 @@ static PyObject *
 SUICommandWrapper_triggered(SUICommandWrapperObject *self, PyObject * args) {
 	if (self->callbacks[0]) {
 		SERIALUI_DEBUG_OUTLN("Calling trigger override");
-		PyObject * retObj = PyObject_CallObject(self->callbacks[0], nullptr);
+
+		CPyObject argList = Py_BuildValue("(O)", self);
+		PyObject * retObj = PyObject_CallObject(self->callbacks[0], argList);
 		if (retObj) {
 			return retObj;
 		} else {
@@ -1422,6 +1426,7 @@ static PyObject *
 SUIItemContainer_children(SUIItemContainerObject *self, PyObject * args) {
 	uint8_t numChildren = self->container->numItems();
 
+	SERIALUI_DEBUG_OUTLN("ItemContainer.children()");
 	// PyObject ** children = new PyObject *[numChildren];
 	PyObject * childList = PyList_New(0);
 
@@ -1430,30 +1435,46 @@ SUIItemContainer_children(SUIItemContainerObject *self, PyObject * args) {
 		Py_RETURN_NONE;
 	}
 
+	ItemPyObjectSet objSet;
 	for (uint8_t i=0; i<numChildren; i++) {
 		SerialUI::Menu::Item::Item * itm = self->container->itemByIndex(i);
 
 		PyObject *argList = Py_BuildValue("si", itm->key(), itm->id());
 		PyObject * curObj = NULL;
 
-
 		switch (itm->type()) {
 		case SerialUI::Menu::Item::Type::Input:
 			// std::cerr << "create input" << std::endl;
-			curObj = PyObject_CallObject((PyObject *) &SUIInputWrapperType, argList);
+			objSet = SerialUI::Python::SUIPyObjectsStore.inputsFor(itm->id());
+			if (objSet.size()) {
+				SERIALUI_DEBUG_OUTLN("Already have an input constructed for this item, re-using that.");
+				curObj = *(objSet.begin());
+				Py_INCREF(curObj); // will be doing a decref, below
+			} else {
+				SERIALUI_DEBUG_OUTLN("Creating new SerialUI.Input for item");
+				curObj = PyObject_CallObject((PyObject *) &SUIInputWrapperType, argList);
+			}
 			break;
 		case SerialUI::Menu::Item::Type::Menu:
 			/* fall-through */
 		case SerialUI::Menu::Item::Type::Group:
 			/* fall-through */
 		case SerialUI::Menu::Item::Type::List:
-			// std::cerr << "create menu" << std::endl;
+
 			curObj = PyObject_CallObject((PyObject *) &SUIItemContainerType, argList);
 			break;
 
 		case SerialUI::Menu::Item::Type::Command:
-			// std::cerr << "create command" << std::endl;
-			curObj = PyObject_CallObject((PyObject *) &SUICommandWrapperType, argList);
+
+			objSet = SerialUI::Python::SUIPyObjectsStore.commandsFor(itm->id());
+			if (objSet.size()) {
+				SERIALUI_DEBUG_OUTLN("Already have a command constructed for this item, re-using that.");
+				curObj = *(objSet.begin());
+				Py_INCREF(curObj); // will be doing a decref, below
+			} else {
+				SERIALUI_DEBUG_OUTLN("Creating new SerialUI.Command for item");
+				curObj = PyObject_CallObject((PyObject *) &SUICommandWrapperType, argList);
+			}
 			break;
 
 		default:
@@ -1465,10 +1486,9 @@ SUIItemContainer_children(SUIItemContainerObject *self, PyObject * args) {
 		}
 
 		if (curObj) {
-			// std::cerr << "APPENDING OBJ TO LIST, (" << (int)itm->id() << ") ref:" << curObj->ob_refcnt << std::endl;
 			PyList_Append(childList, curObj);
-			Py_DECREF(curObj);
-			// std::cerr << "APPENDED OBJ TO LIST, ref:" << curObj->ob_refcnt << std::endl;
+			Py_DECREF(curObj); // list now owns the obj
+
 		}
 		SUIPY_CALLOBJECT_REPORTERROR();
 
@@ -2113,10 +2133,13 @@ static void pysui_fillsubmenu_tree(SUIItemContainerObject * containerObj, PyObje
 static PyObject* pysui_tree(PyObject* self, PyObject* args) {
 	static PyObject * myTree = NULL;
 
+	SERIALUI_DEBUG_OUT("tree() ");
 	if (myTree) {
+		SERIALUI_DEBUG_OUTLN("return cached.");
 		Py_INCREF(myTree); // caller will want to cleanup
 		return myTree;
 	}
+	SERIALUI_DEBUG_OUTLN("building...");
 	PyObject* topMen = pysui_top(self, args);
 	if (! topMen) {
 		Py_RETURN_NONE;
@@ -2129,6 +2152,120 @@ static PyObject* pysui_tree(PyObject* self, PyObject* args) {
 	myTree = topDict;
 	Py_INCREF(myTree);
 	return myTree;
+
+}
+
+static void pysui_ensureItemTreeIsCached(PyObject* self, PyObject* args) {
+	CPyObject itemTree = pysui_tree(self, args);
+
+}
+
+static PyObject* pysui_foreachItemUnder(PyObject* self, PyObject* args) {
+
+	PyObject * containerOfInterest;
+	PyObject * callback;
+	SERIALUI_DEBUG_OUTLN("foreachItemUnder...");
+	if (!PyArg_ParseTuple(args, "OO", &containerOfInterest, &callback)) {
+		SERIALUI_DEBUG_OUTLN("foreachItemUnder: unhappy tuple/keyw parse");
+		Py_RETURN_FALSE;
+	}
+
+	if (containerOfInterest->ob_type != &SUIItemContainerType) {
+
+		PyErr_SetString(PyExc_RuntimeError, "pass a SerialUI.ItemContainer or derivative to search in as first arg");
+
+		Py_RETURN_FALSE;
+	}
+
+	if (! PyCallable_Check(callback) ) {
+
+		PyErr_SetString(PyExc_RuntimeError, "pass a callback as second arg");
+
+		Py_RETURN_FALSE;
+	}
+
+	/*
+	SERIALUI_DEBUG_OUTLN("calling crawler callback for this container");
+
+	CPyObject cbContArgs = Py_BuildValue("(O)", containerOfInterest);
+	CPyObject shouldContinue = PyObject_CallObject(callback, cbContArgs);
+
+	SERIALUI_DEBUG_OUTLN("checking if should continue");
+	if (! (shouldContinue && PyObject_IsTrue(shouldContinue)) ) {
+		SERIALUI_DEBUG_OUTLN("NOT TRUE--no continue");
+		Py_RETURN_TRUE;
+	}
+	*/
+
+	// since we're looping over the elements, the caller may want to
+	// modify the items, say by setting a callback, so we need to ensure
+	// we persist them
+	pysui_ensureItemTreeIsCached(self, args);
+
+	SERIALUI_DEBUG_OUTLN("Getting this container's children");
+
+	SUIItemContainerObject * container = (SUIItemContainerObject *)containerOfInterest;
+
+	CPyObject containerChildrenList = SUIItemContainer_children(container, args);
+	if (! containerChildrenList) {
+
+		PyErr_SetString(PyExc_RuntimeError, "could not get container children?");
+
+		Py_RETURN_FALSE;
+	}
+
+	for (Py_ssize_t i = 0; i < PyList_Size(containerChildrenList); i++) {
+		PyObject * aChildObj = PyList_GetItem(containerChildrenList, i); // PyList_GetItem does NOT INCREF
+		CPyObject retVal;
+
+		CPyObject cbItemArgs = Py_BuildValue("(O)", aChildObj);
+
+		if (aChildObj->ob_type == &SUIItemContainerType) {
+			SERIALUI_DEBUG_OUT("is container...");
+			retVal = PyObject_CallObject(callback, cbItemArgs);
+			if (retVal && PyObject_IsTrue(retVal)) {
+				SERIALUI_DEBUG_OUT("will recurse");
+				CPyObject argList = Py_BuildValue("(OO)", aChildObj ,  callback);
+				retVal = pysui_foreachItemUnder(self, argList);
+			} else {
+				SERIALUI_DEBUG_OUT("no recursion");
+			}
+
+		} else {
+
+			SERIALUI_DEBUG_OUTLN("is menu item (command/input), calling callback");
+			retVal = PyObject_CallObject(callback, cbItemArgs);
+			if (! (retVal && PyObject_IsTrue(retVal))) {
+				Py_RETURN_FALSE;
+			}
+		}
+
+	}
+	Py_RETURN_TRUE;
+}
+
+static PyObject* pysui_foreachItem(PyObject* self, PyObject* args) {
+
+	PyObject * callback;
+	if (!PyArg_ParseTuple(args, "O", &callback)) {
+		SERIALUI_DEBUG_OUTLN("foreachItem: unhappy tuple/keyw parse");
+		Py_RETURN_FALSE;
+	}
+
+
+	if (! PyCallable_Check(callback) ) {
+		PyErr_SetString(PyExc_RuntimeError, "pass a callback as arg");
+		Py_RETURN_FALSE;
+	}
+
+	CPyObject topMen = pysui_top(self, args);
+	if (! topMen) {
+		PyErr_SetString(PyExc_RuntimeError, "could not get top menu??");
+		Py_RETURN_FALSE;
+	}
+
+	CPyObject argList = Py_BuildValue("(OO)", topMen.getObject(),  callback);
+	return pysui_foreachItemUnder(self, argList);
 
 }
 
@@ -2252,13 +2389,15 @@ static PyObject* pysui_flush(PyObject* self, PyObject* args) {
 static struct PyMethodDef methods[] = {
   { "print", pysui_print, METH_VARARGS, "Output a string" },
   { "println", pysui_println, METH_VARARGS, "Output a string \\n" },
-  { "test", pysui_test, METH_VARARGS, "test me" },
+  // { "test", pysui_test, METH_VARARGS, "test me" },
   { "top", pysui_top, METH_NOARGS, "top level menu"},
   { "tree", pysui_tree, METH_NOARGS, "full menu tree"},
   { "trackers", pysui_trackers, METH_NOARGS, "list of state trackers"},
   { "flush", pysui_flush, METH_NOARGS, "flush prints/updates"},
   { "setAuthValidator", pysui_setAuthValidator, METH_VARARGS, "set validator to use for auth"},
   { "setHeartbeatPeriod", pysui_setHeartbeatPeriod, METH_VARARGS, "set heartbeat period (ms)"},
+  { "foreachItem", pysui_foreachItem, METH_VARARGS, "call a method for each item in menu tree"},
+  { "foreachItemUnder", pysui_foreachItemUnder, METH_VARARGS, "call a method for each item within container"},
   { NULL, NULL, 0, NULL }
 };
 
