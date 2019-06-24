@@ -44,6 +44,7 @@ namespace Settings {
 		virtual bool serialize(Menu::Item::Request::Long * req) = 0;
 		virtual bool serialize(Menu::Item::Request::UnsignedLong * req) = 0;
 		virtual bool serialize(Menu::Item::Request::Event * req) = 0;
+		virtual bool serialize(Menu::Item::Request::Color * req) = 0;
 		virtual bool serialize(Menu::Item::Request::Time * req) = 0;
 		virtual bool serialize(Menu::Item::Request::DateTime * req) = 0;
 		virtual bool serialize(Menu::Item::Request::Character * req) = 0;

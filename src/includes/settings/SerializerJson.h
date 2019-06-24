@@ -46,6 +46,7 @@ protected:
 	virtual bool serialize(Menu::Item::Request::Long * req);
 	virtual bool serialize(Menu::Item::Request::UnsignedLong * req);
 	virtual bool serialize(Menu::Item::Request::Event * req);
+	virtual bool serialize(Menu::Item::Request::Color * req);
 	virtual bool serialize(Menu::Item::Request::Time * req);
 	virtual bool serialize(Menu::Item::Request::DateTime * req);
 	virtual bool serialize(Menu::Item::Request::Character * req);

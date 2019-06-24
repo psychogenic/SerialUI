@@ -80,6 +80,11 @@ bool DeSerializer::setValue(Menu::Item::Request::Request* req, long int val) {
 
 bool DeSerializer::setValue(Menu::Item::Request::Request* req, unsigned long int val) {
 	switch (req->requestType()) {
+	case Menu::Item::Request::Type::Color:
+		SERIALUI_DEBUG_OUT(F("set ulong color "));
+		SERIALUI_DEBUG_OUTLN(val);
+		req->castAsSubType<Menu::Item::Request::Color>()->setValue(val);
+		break;
 	case Menu::Item::Request::Type::Event:
 		SERIALUI_DEBUG_OUT(F("set ulong event "));
 		SERIALUI_DEBUG_OUTLN(val);
