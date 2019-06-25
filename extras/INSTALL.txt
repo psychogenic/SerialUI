@@ -1,8 +1,9 @@
 SerialUI Installation
 
  SerialUI: Serial User Interface.
- Copyright (C) 2013-2016 Pat Deegan.  All rights reserved.
- http://flyingcarsandstuff.com/projects/SerialUI/
+ Copyright (C) 2013-2019 Pat Deegan.  All rights reserved.
+ https://devicedruid.com
+ https://inductive-kickback.com/projects/SerialUI/
 
 
 If you're using the Arduino IDE and building for 

@@ -1,7 +1,8 @@
 SerialUI: Serial User Interface.
-Copyright (C) 2013,2014 Pat Deegan.  All rights reserved.
+Copyright (C) 2013-2019 Pat Deegan.  All rights reserved.
 
-http://flyingcarsandstuff.com/projects/SerialUI
+https://devicedruid.com
+https://inductive-kickback.com/projects/SerialUI
 
 SerialUI is released under the LGPL -- see 
 LICENSE.txt for details.

@@ -3,7 +3,8 @@
  * XMegaDetection.h -- SovA compile time configuration.
  * Copyright (C) 2017 Pat Deegan.  All rights reserved.
  *
- * http://www.flyingcarsandstuff.com/projects/SerialUI
+ * https://devicedruid.com
+ * https://inductive-kickback.com/projects/SerialUI
  *
  * Please let me know if you use SerialUI/SovA in your projects, and
  * provide a URL if you'd like me to link to it from the SovA

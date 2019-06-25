@@ -15,8 +15,8 @@
  * code brewery and its wizards, SerialUI and supporting 
  * libraries, as well as the generated parts of this program 
  * are 
- *            Copyright (C) 2013-2018 Pat Deegan 
- * [https://psychogenic.com/ | https://flyingcarsandstuff.com/]
+ *            Copyright (C) 2013-2019 Pat Deegan 
+ * [https://psychogenic.com/ | https://inductive-kickback.com/]
  * and distributed under the terms of their respective licenses.
  * See https://devicedruid.com for details.
  * 
